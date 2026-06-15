@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Phase 0B — blocked)  
-**Current phase:** Phase 0B blocked pending PHP 8.3+; Module 1 not started
+**Last updated:** 2026-06-15 (Phase 0B — complete)  
+**Current phase:** Phase 0B complete; Module 1 not started
 
 ## Principal reference
 
@@ -15,7 +15,7 @@
 |----------------|--------|-------|
 | Phase 0 — Project audit, environment, documentation | **Complete** | Laravel 9 baseline |
 | Phase 1A — Laravel foundation installation | **Complete** | Superseded by Phase 0B requirement |
-| Phase 0B — Modernise technical foundation | **Blocked** | PHP 8.3+ not available on machine |
+| Phase 0B — Modernise technical foundation | **Complete** | PHP 8.3.31 + Laravel 13.15.0 + Vite |
 | Module 1 — SaaS foundation | **Not Started** | Do not begin until Phase 0B completes |
 | Module 2 — Embeddable chat widget | **Not Started** | |
 | Module 3 — Tenant configuration | **Not Started** | |
@@ -60,60 +60,68 @@
 
 ## Phase 0B — Modernisation (2026-06-15)
 
-### Status: **BLOCKED**
+### Status: **COMPLETE**
 
-Phase 0B could not complete because **no PHP 8.3 or newer executable** was found on this machine.
+Phase 0B modernised the technical foundation from Laravel 9 / PHP 8.0 to Laravel 13 / PHP 8.3.31.
 
-### Preservation completed
+### Preservation
 
 | Action | Result |
 |--------|--------|
-| Filesystem backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` (excludes `vendor/`, `node_modules/`, `storage/logs/`) |
-| `.env` backup | `ai_counsellor_phase0_backup\.env.backup` |
-| Git baseline commit | `776a25b` — `chore: preserve phase 0 architecture and Laravel 9 baseline` |
-| `documents/` preserved | Intact — all architecture and agent docs retained |
+| Filesystem backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` (retained) |
+| Git commits preserved | `776a25b`, `f89128b` |
+| `documents/` | Intact |
+| Git history | Intact |
 
-### PHP audit results
+### PHP 8.3.31
 
-| Path | Version |
-|------|---------|
-| `D:\xampp\php\php.exe` (only install found) | **8.0.30** |
-| `D:\php`, `D:\php83`, `D:\php84`, `C:\php` | Not found |
+| Item | Value |
+|------|-------|
+| Executable | `D:\php83\php.exe` |
+| Configuration | `D:\php83\php.ini` |
+| Fix applied | Enabled `extension=zip` |
+| XAMPP PHP 8.0 | **Untouched** |
 
-**Missing extension on PHP 8.0:** `intl` (required for Laravel 10+)
+### Framework replacement
 
-### Work not performed (blocked)
+| Item | Before | After |
+|------|--------|-------|
+| Laravel | 9.52.21 | **13.15.0** |
+| Frontend | Laravel Mix 6 | **Vite 8** |
+| Method | Clean `create-project` + skeleton swap | |
 
-- Clean Laravel 12 skeleton installation
-- Vite migration (Laravel Mix still present)
-- `npm run build` on modern stack
-- Database creation and default migrations on modern stack
-- Composer/npm audit on modern dependencies
+### Database (local)
 
-### Planned target (when PHP 8.3+ available)
+| Item | Status |
+|------|--------|
+| MariaDB | Running on port **3310** |
+| Database `ai_counsellor` | Created |
+| Default migrations | **Ran** (users, cache, jobs) |
+| Module 1 tables | **Not created** |
 
-| Component | Planned version |
-|-----------|-----------------|
-| PHP | 8.3.x or 8.4.x |
-| Laravel | 12.x latest stable patch |
-| Frontend | Vite (remove Laravel Mix) |
-| Node.js | 22.22.0 (current — compatible with Vite) |
+### Verification results
 
-See [PHP_UPGRADE_GUIDE.md](../setup/PHP_UPGRADE_GUIDE.md) for owner upgrade steps.
+| Check | Result |
+|-------|--------|
+| `php artisan test` | 2 passed |
+| `composer audit` | No advisories |
+| `npm run build` | Success (`public/build/manifest.json`) |
+| HTTP `http://127.0.0.1:8000` | 200 |
+| `composer audit` (Laravel 9 baseline) | Was 13 advisories — resolved |
 
-### Authentication decision (documented, not implemented)
+### Local development
 
-See [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md) — Laravel Breeze (Blade) planned for Module 1.
+Use `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000` — not Apache/XAMPP PHP 8.0.
 
-### Current stack security (Laravel 9 baseline)
+### Remaining non-blocking issues
 
-- `composer audit`: **13 advisories** on 7 packages (including high-severity Symfony issues)
-- `npm audit`: vulnerabilities in `axios` (dev dependency) and `elliptic` (transitive)
-- Framework cannot be patched to a supported release without PHP 8.2+
+- `npm audit`: 2 critical advisories in **dev** dependency `shell-quote` (via `concurrently`); not fixed with `--force` per policy
+- Node 22 required for Vite 8; nvm default is Node 20.11.1 — document PATH when building
+- Apache not configured for PHP 8.3 (intentional)
 
 ### Module 1 readiness
 
-**BLOCKED — DO NOT START MODULE 1** until Phase 0B completes.
+**READY FOR MODULE 1**
 
 ---
 

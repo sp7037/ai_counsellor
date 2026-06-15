@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Phase 0B — blocked)
+**Last updated:** 2026-06-15 (Phase 0B — complete)
 
 ## Principal reference
 
@@ -8,107 +8,123 @@ See [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.d
 
 ---
 
-## Current runtime (unchanged — Phase 0B blocked)
+## Current runtime (Phase 0B complete)
 
-| Component | Current version | Status |
-|-----------|-----------------|--------|
-| PHP | 8.0.30 (`D:\xampp\php\php.exe`) | **EOL — blocker** |
-| Laravel | 9.52.21 | **EOL — must replace** |
-| Composer | 2.10.1 (`D:\xampp\php\composer`) | OK |
-| MariaDB | 10.4.32 (XAMPP) | OK locally; not running during audit |
-| Node.js | 22.22.0 | OK for Vite |
-| npm | 10.2.4 | OK |
-| Frontend build | Laravel Mix 6 | **Obsolete — must replace with Vite** |
+| Component | Version | Path / notes |
+|-----------|---------|--------------|
+| PHP | **8.3.31** | `D:\php83\php.exe` — project CLI only |
+| XAMPP PHP | 8.0.30 (unchanged) | `D:\xampp\php\php.exe` — other projects only; **do not use for this project** |
+| Laravel | **13.15.0** (skeleton 13.8.0) | Clean install via `create-project` |
+| Composer | 2.10.1 | `D:\php83\php.exe D:\xampp\php\composer` |
+| MariaDB | 10.4.32 (XAMPP) | Port **3310** (not default 3306) |
+| Node.js | 22.22.0 | `C:\Program Files\cursor\resources\app\resources\helpers\node.exe` for Vite builds |
+| npm | 10.2.4 | Via `C:\nvm4w\nodejs\npm.cmd` (nvm default is Node 20.11.1 — use Node 22 for Vite) |
+| Frontend | **Vite 8** + Tailwind 4 | Laravel Mix removed |
 
-## Planned runtime (after Phase 0B)
+## Modernisation summary
 
-| Component | Target version | Reason |
-|-----------|----------------|--------|
-| PHP | **8.3.x or 8.4.x** | Supported release; Laravel 12 requirement |
-| Laravel | **12.x** (latest stable patch) | New project; security support; Vite included |
-| Frontend | **Vite** | Official modern Laravel asset pipeline; works with Node 22 |
-| Livewire | 3.x (Module 1) | Compatible with Laravel 11/12; install later |
-| MariaDB | 10.4+ local | MySQL-compatible schema only |
-| Redis / Reverb | Production VPS | Not required for Phase 0B |
+| Before (Phase 0) | After (Phase 0B) |
+|------------------|------------------|
+| PHP 8.0.30 | PHP 8.3.31 |
+| Laravel 9.52.21 | Laravel 13.15.0 |
+| Laravel Mix 6 | Vite 8 |
+| 13 composer security advisories | **0 advisories** (`composer audit`) |
+| Apache + XAMPP PHP 8.0 URL | `artisan serve` + PHP 8.3 |
 
-## Reason for modernisation (Phase 0B)
+## PHP executable
 
-| Problem | Impact |
-|---------|--------|
-| PHP 8.0 EOL | No security patches |
-| Laravel 9 EOL | 13 `composer audit` advisories |
-| Laravel Mix + Node 22 | Build fails (`webpack/lib/SizeFormatHelpers`) |
-| Missing `intl` extension | Blocks Laravel 10+ |
-| No business code yet | Safest time for clean skeleton rebuild |
+**Always use for this project:**
 
-## PHP executable audit (2026-06-15)
-
-Only one PHP installation found:
-
-```text
-D:\xampp\php\php.exe → PHP 8.0.30
+```bat
+D:\php83\php.exe
 ```
 
-Searched without result: `D:\php`, `D:\php83`, `D:\php84`, `C:\php`, Laragon, WAMP.
+Configuration: `D:\php83\php.ini`
 
-**Phase 0B did not proceed.** See [PHP_UPGRADE_GUIDE.md](../setup/PHP_UPGRADE_GUIDE.md).
+Enabled during Phase 0B: `extension=zip` (was commented out).
 
-## Laravel version selection (planned)
+Required extensions verified: bcmath, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, pcre, PDO, pdo_mysql, session, tokenizer, xml, zip.
 
-When PHP 8.3+ is available:
+## Composer command
 
-1. Verify latest **stable** Laravel 12.x on https://laravel.com/docs
-2. Confirm compatibility: Blade, Vite, Breeze, Livewire 3, queues, Redis, Reverb
-3. Use clean `create-project` — do not multi-hop upgrade from Laravel 9
-4. If Laravel 12 has unexpected blockers, fall back to latest stable Laravel 11.x with documented ADR
-
-Do not use beta, RC, or nightly releases.
-
-## Composer execution
-
-Composer is not on system PATH:
-
-```powershell
-<PHP83_PATH>\php.exe D:\xampp\php\composer <command>
+```bat
+D:\php83\php.exe D:\xampp\php\composer <command>
 ```
 
-Example after PHP upgrade:
+The Composer PHAR at `D:\xampp\php\composer` is executed by PHP 8.3 — not by XAMPP PHP 8.0.
 
-```powershell
-D:\xampp\php\php.exe D:\xampp\php\composer create-project laravel/laravel:^12.0 temp --prefer-dist
+## Laravel 13 selection rationale
+
+- New project with no business feature code — clean skeleton preferred over multi-major upgrade
+- PHP 8.3.31 satisfies Laravel 13 requirements
+- Laravel 13 provides current security support, Vite 8, and alignment with master architecture “current supported release”
+- `composer audit`: no advisories on installed framework
+
+## Database
+
+| Setting | Value |
+|---------|-------|
+| Connection | `mysql` |
+| Host | `127.0.0.1` |
+| Port | **3310** (XAMPP MariaDB custom port) |
+| Database | `ai_counsellor` |
+| Credentials | `root` / empty (local only) |
+
+Schema uses MySQL-compatible types only (no MariaDB-specific features).
+
+## Local development URL
+
+```
+http://127.0.0.1:8000
 ```
 
-## PHP extensions required
+Start with:
 
-| Extension | PHP 8.0 status | Required |
-|-----------|----------------|----------|
-| ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, session, tokenizer, xml, zip, bcmath | Present | Yes |
-| intl | **Missing** | Yes |
+```bat
+cd /d D:\xampp\htdocs\ai_counsellor
+D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
+```
+
+**Do not use** `http://localhost/ai_counsellor/public` for development — Apache is tied to XAMPP PHP 8.0.
+
+## Frontend (Vite)
+
+| Item | Detail |
+|------|--------|
+| Build command | `npm run build` |
+| Dev command | `npm run dev` |
+| Manifest | `public/build/manifest.json` (gitignored; build locally) |
+
+**Node version note:** `C:\nvm4w\nodejs` defaults to Node 20.11.1, which is below Vite 8 minimum. Use Node 22.22.0 for builds. `@rolldown/binding-win32-x64-msvc` added as explicit devDependency to work around npm optional-dependency bug on Windows.
+
+## Environment configuration
+
+| Setting | Value |
+|---------|-------|
+| `APP_TIMEZONE` | `Asia/Kolkata` |
+| `APP_LOCALE` | `en` |
+| `APP_FAKER_LOCALE` | `en_IN` |
+| `APP_URL` | `http://127.0.0.1:8000` |
+| `LOG_LEVEL` | `debug` (local) |
 
 ## Stack decisions (unchanged intent)
 
 | Layer | Decision |
 |-------|----------|
-| Database | MariaDB/MySQL; tenant-scoped tables |
-| Admin UI | Blade + Livewire (Module 1) |
+| Admin UI | Blade + Livewire 3 (Module 1) |
 | Public widget | Vanilla JavaScript (Module 2) |
-| Local dev | XAMPP on Windows |
-| Production | VPS/cloud primary; cPanel limited |
+| Cache / queues (local) | Database driver (Laravel 13 default) |
+| Production | VPS/cloud; Redis + Reverb |
 
 ## Packages not installed
 
-- Livewire, Reverb, Breeze, tenancy packages, permissions packages
+- Livewire, Breeze, Reverb, tenancy packages, permissions packages
 - OpenAI, payments, WhatsApp, React, Vue
-
-## Environment configuration (current Laravel 9)
-
-| Setting | Value |
-|---------|-------|
-| Application timezone | `Asia/Kolkata` (`config/app.php`) |
-| Application locale | `en` |
-| Local URL | `http://localhost/ai_counsellor/public` |
-| Database (prepared) | `ai_counsellor` — not created |
 
 ## Authentication (Module 1 plan)
 
-Laravel **Breeze (Blade stack)** — see [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).
+Laravel **Breeze (Blade stack)** on Laravel 13 — see [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).
+
+## Module 1 readiness
+
+**READY FOR MODULE 1** (pending owner review of npm dev advisory noted in IMPLEMENTATION_STATUS).

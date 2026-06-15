@@ -1,28 +1,17 @@
-# Local Setup (XAMPP)
+# Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Phase 0B — blocked)
+**Last updated:** 2026-06-15 (Phase 0B — complete)
 
-## ⚠ Phase 0B blocker
+## Stack
 
-**PHP 8.3+ is not installed on this machine.** Phase 0B modernisation (Laravel 12 + Vite) cannot proceed.
-
-**Do not start Module 1** until [PHP_UPGRADE_GUIDE.md](PHP_UPGRADE_GUIDE.md) is completed and Phase 0B is re-run.
-
-Current stack remains **PHP 8.0.30 + Laravel 9.52.21 + Laravel Mix** for reference only.
-
----
-
-## Prerequisites (target after upgrade)
-
-| Requirement | Current | Target |
-|-------------|---------|--------|
-| XAMPP path | `D:\xampp` | Same or `D:\xampp84` |
-| PHP | 8.0.30 | **8.3+** |
-| Laravel | 9.52.21 | **12.x** |
-| Frontend | Laravel Mix 6 | **Vite** |
-| MariaDB | 10.4.x | 10.4.x+ |
-| Composer | `D:\xampp\php\composer` | Same (use new PHP path) |
-| Node.js | 22.22.0 | 22.x (OK for Vite) |
+| Component | Version | Notes |
+|-----------|---------|-------|
+| PHP (project) | 8.3.31 | `D:\php83\php.exe` |
+| PHP (XAMPP, other projects) | 8.0.30 | `D:\xampp\php\php.exe` — **not used for AI Counsellor** |
+| Laravel | 13.15.0 | |
+| MariaDB | 10.4.32 | XAMPP — port **3310** |
+| Node.js (Vite builds) | 22.22.0 | See Node section below |
+| Composer | 2.10.1 | Via PHP 8.3 |
 
 ## Project location
 
@@ -30,104 +19,148 @@ Current stack remains **PHP 8.0.30 + Laravel 9.52.21 + Laravel Mix** for referen
 D:\xampp\htdocs\ai_counsellor
 ```
 
-## Local URL
+## Local development URL
 
 ```
-http://localhost/ai_counsellor/public
+http://127.0.0.1:8000
 ```
 
-Ensure Apache and MySQL are running in XAMPP Control Panel.
+Start the server:
+
+```bat
+cd /d D:\xampp\htdocs\ai_counsellor
+D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
+```
+
+### Why not Apache / `localhost/ai_counsellor/public`?
+
+XAMPP Apache is configured for PHP 8.0.30. This project requires PHP 8.3.31. Using `artisan serve` with `D:\php83\php.exe` avoids modifying XAMPP Apache or affecting other projects.
+
+Optional future step: configure a separate Apache vhost pointing to PHP 8.3 — requires explicit owner permission.
+
+---
+
+## Prerequisites
+
+1. PHP 8.3.31 at `D:\php83\` (see [PHP_UPGRADE_GUIDE.md](PHP_UPGRADE_GUIDE.md))
+2. XAMPP MySQL/MariaDB running (XAMPP Control Panel)
+3. Node.js 22.12+ for Vite builds
+4. Composer PHAR at `D:\xampp\php\composer`
+
+---
+
+## Initial setup
+
+### 1. PHP dependencies
+
+```bat
+cd /d D:\xampp\htdocs\ai_counsellor
+D:\php83\php.exe D:\xampp\php\composer install
+```
+
+### 2. Environment
+
+Copy if needed:
+
+```bat
+copy .env.example .env
+D:\php83\php.exe artisan key:generate
+```
+
+Key `.env` values:
+
+| Variable | Value |
+|----------|-------|
+| `APP_NAME` | AI Counsellor |
+| `APP_URL` | http://127.0.0.1:8000 |
+| `APP_TIMEZONE` | Asia/Kolkata |
+| `DB_PORT` | **3310** |
+| `DB_DATABASE` | ai_counsellor |
+| `DB_USERNAME` | root |
+| `DB_PASSWORD` | (empty) |
+
+### 3. Database
+
+Ensure MariaDB is running, then create database if missing:
+
+```sql
+CREATE DATABASE IF NOT EXISTS ai_counsellor
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Connect via CLI:
+
+```bat
+D:\xampp\mysql\bin\mysql.exe -u root -P 3310
+```
+
+Run migrations:
+
+```bat
+D:\php83\php.exe artisan migrate
+```
+
+### 4. Frontend assets (Vite)
+
+```bat
+npm install
+npm run build
+```
+
+**Node version:** Vite 8 requires Node `^20.19.0` or `>=22.12.0`. The nvm default (`C:\nvm4w\nodejs`) may be Node 20.11.1. Ensure Node 22 is active before building:
+
+```powershell
+$env:PATH = "C:\Program Files\cursor\resources\app\resources\helpers;" + $env:PATH
+node -v   # must show v22.12+
+npm run build
+```
+
+If rolldown binding errors occur, `@rolldown/binding-win32-x64-msvc` is already listed in `package.json`.
+
+### 5. Verify
+
+```bat
+D:\php83\php.exe artisan --version
+D:\php83\php.exe artisan test
+D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
+```
+
+Open `http://127.0.0.1:8000` — expect HTTP 200.
+
+---
+
+## Composer command reference
+
+```bat
+D:\php83\php.exe D:\xampp\php\composer install
+D:\php83\php.exe D:\xampp\php\composer update
+D:\php83\php.exe D:\xampp\php\composer audit
+```
+
+Never use `D:\xampp\php\php.exe` for this project.
+
+---
 
 ## Backup locations
 
 | Item | Path |
 |------|------|
-| Phase 0 filesystem backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` |
-| Git baseline | commit `776a25b` |
+| Phase 0 backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` |
+| Git baseline | commits `776a25b`, `f89128b` |
 
 ---
-
-## Current stack setup (Laravel 9 — interim only)
-
-### Install PHP dependencies
-
-```powershell
-cd D:\xampp\htdocs\ai_counsellor
-php D:\xampp\php\composer install
-```
-
-### Environment file
-
-| Variable | Value |
-|----------|-------|
-| `APP_NAME` | AI Counsellor |
-| `APP_URL` | http://localhost/ai_counsellor/public |
-| `DB_DATABASE` | ai_counsellor |
-| `DB_USERNAME` | root |
-| `DB_PASSWORD` | (empty) |
-| `LOG_LEVEL` | debug |
-
-Timezone: `Asia/Kolkata` in `config/app.php`. Locale: `en`.
-
-### Create database (manual)
-
-Start MySQL in XAMPP, then:
-
-```sql
-CREATE DATABASE ai_counsellor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Migrations not run on modern stack yet. Default Laravel 9 migrations exist but database was not confirmed during Phase 0B (MySQL was stopped).
-
-### Verify current installation
-
-```powershell
-php artisan --version
-php artisan test
-```
-
-Expected: Laravel 9.52.21; 2 tests pass.
-
-### Frontend (current — broken on Node 22)
-
-```powershell
-npm install
-npm run production   # Laravel 9 / Mix — fails on Node 22
-```
-
-After Phase 0B:
-
-```powershell
-npm install
-npm run build        # Vite — Laravel 12+
-```
-
----
-
-## Composer not on PATH
-
-```powershell
-<PHP_PATH>\php.exe D:\xampp\php\composer install
-```
-
-After PHP upgrade, replace `<PHP_PATH>` with PHP 8.3+ executable.
-
-## PHPUnit testing note
-
-`phpunit.xml` sets `APP_URL=http://localhost` for tests because subdirectory `APP_URL` breaks feature tests.
 
 ## Troubleshooting
 
 | Issue | Resolution |
 |-------|------------|
-| Phase 0B blocked | Follow [PHP_UPGRADE_GUIDE.md](PHP_UPGRADE_GUIDE.md) |
-| 404 on homepage | Use `/public` URL |
-| `composer` not found | Use `php D:\xampp\php\composer` |
 | MySQL connection refused | Start MySQL in XAMPP Control Panel |
-| Mix build fails | Expected on Node 22; resolved by Phase 0B Vite migration |
-| Missing `intl` | Enable in `php.ini` on PHP 8.3+ install |
+| Wrong port | XAMPP MariaDB uses port **3310**, not 3306 |
+| Vite build fails (Node version) | Use Node 22.12+ |
+| Vite rolldown binding error | Run `npm install` with Node 22; binding package is in devDependencies |
+| Apache shows old Laravel/PHP errors | Use `artisan serve` with PHP 8.3 instead |
 
 ## Security reminder
 
 - Never commit `.env`
-- Local XAMPP root password empty is for development only
+- Local empty root password is for development only

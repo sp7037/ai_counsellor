@@ -1,48 +1,26 @@
-# PHP Upgrade Guide — Owner Action Required
+# PHP Upgrade Guide
 
-**Status:** Phase 0B is **blocked** until PHP 8.3 or newer is available on this machine.  
+**Status:** Phase 0B **complete** — PHP 8.3.31 installed at `D:\php83\php.exe`  
 **Last updated:** 2026-06-15
 
-## Why this is required
+## Completed upgrade
 
-Phase 0 installed Laravel 9 on PHP 8.0.30. That stack is unsuitable for new commercial SaaS development:
+PHP 8.3.31 was installed separately at `D:\xampp\php83\` without modifying XAMPP PHP 8.0.30.
 
-| Issue | Impact |
-|-------|--------|
-| PHP 8.0 end-of-life | No security patches |
-| Laravel 9 end-of-life | No security patches |
-| `composer audit` | 13 advisories on 7 packages (including high-severity Symfony issues) |
-| Laravel Mix 6 + Node 22 | `npm run production` fails; no Vite |
-| Missing `intl` extension | Required for Laravel 10+ and localisation |
+| Item | Value |
+|------|-------|
+| PHP executable | `D:\php83\php.exe` |
+| Configuration | `D:\php83\php.ini` |
+| Extension fix | `extension=zip` enabled |
+| XAMPP PHP | Unchanged at `D:\xampp\php\php.exe` |
 
-No business feature code exists yet. Upgrading PHP **before** Module 1 is the safest path.
-
----
-
-## What was audited (2026-06-15)
-
-| Location checked | Result |
-|------------------|--------|
-| `where.exe php` | `D:\xampp\php\php.exe` only |
-| `D:\xampp\php` | PHP **8.0.30** |
-| `D:\php`, `D:\php83`, `D:\php84`, `C:\php` | Not found |
-| Laragon, WAMP, standalone installs | Not found |
-
-**Conclusion:** No PHP 8.3+ executable exists. Phase 0B modernisation was **not performed**.
+Laravel 13.15.0 is now installed. See [LOCAL_SETUP.md](LOCAL_SETUP.md) for daily development commands.
 
 ---
 
-## Recommended target after upgrade
+## Historical context (Phase 0B blocker)
 
-| Component | Target |
-|-----------|--------|
-| PHP | **8.3.x** or **8.4.x** (64-bit, Thread Safe for Apache module, NTS for CLI-only workflows) |
-| Laravel | **Latest stable Laravel 12.x** (verify at upgrade time; requires PHP 8.2+) |
-| Frontend | **Vite** (bundled with modern Laravel skeleton) |
-| Node.js | **22.x** (current install is compatible with Vite; no downgrade needed) |
-| Database | MariaDB 10.4 locally (MySQL-compatible schema only) |
-
-Do not use beta, RC, or nightly PHP or Laravel releases.
+Phase 0B was initially blocked because only PHP 8.0.30 was available. The guide below remains for reference if PHP 8.3 must be reinstalled on another machine.
 
 ---
 

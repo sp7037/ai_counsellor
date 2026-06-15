@@ -1,7 +1,8 @@
 # Authentication Decision — Module 1 (Planned, Not Implemented)
 
-**Last updated:** 2026-06-15 (Phase 0B)  
-**Status:** Documented only — no authentication code installed yet
+**Last updated:** 2026-06-15 (Phase 0B complete)  
+**Status:** Documented only — no authentication code installed yet  
+**Framework:** Laravel 13.15.0
 
 ## Principal reference
 
@@ -30,17 +31,17 @@
 
 ## Recommended official Laravel method
 
-For the **modernised Laravel 12** foundation (post Phase 0B), use:
+For the **Laravel 13** foundation (Phase 0B complete), use:
 
 ### **Laravel Breeze (Blade stack)**
 
 | Attribute | Value |
 |-----------|-------|
 | Package | `laravel/breeze` |
+| Compatible with | Laravel 13, PHP 8.3+ |
 | Stack | Blade + optional Alpine.js (no React/Vue) |
-| Install (Module 1) | `php artisan breeze:install blade` |
-| Provides | Login, logout, password reset, email verification hooks, profile basics |
-| Livewire compatibility | Breeze Blade views work alongside Livewire 3 components added in Module 1 |
+| Install (Module 1) | `D:\php83\php.exe artisan breeze:install blade` |
+| Livewire | Install Livewire 3 separately; compatible with Breeze Blade views |
 
 ### Why Breeze (not Fortify-only, not Jetstream)
 
