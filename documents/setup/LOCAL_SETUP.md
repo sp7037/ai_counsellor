@@ -102,20 +102,41 @@ D:\php83\php.exe artisan migrate
 
 ### 4. Frontend assets (Vite)
 
-```bat
-npm install
-npm run build
+```powershell
+$node = "C:\Program Files\cursor\resources\app\resources\helpers\node.exe"
+$npm = "C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js"
+& $node $npm install
+& $node $npm run build
 ```
 
-**Node version:** Vite 8 requires Node `^20.19.0` or `>=22.12.0`. The nvm default (`C:\nvm4w\nodejs`) may be Node 20.11.1. Ensure Node 22 is active before building:
+**Node version:** Vite 8 requires Node `^20.19.0` or `>=22.12.0`. The nvm default (`C:\nvm4w\nodejs`) is Node 20.11.1 — invoke npm through Node 22 as shown above.
+
+### Rolldown platform binding (Windows local workaround)
+
+Vite 8 uses `rolldown`, which installs platform bindings as optional dependencies. On Windows, npm may fail to install the binding due to a known optional-dependency bug.
+
+This project declares in `package.json`:
+
+```json
+"optionalDependencies": {
+  "@rolldown/binding-win32-x64-msvc": "1.0.3"
+}
+```
+
+| Platform | Binding installed |
+|----------|-------------------|
+| Windows (local) | `@rolldown/binding-win32-x64-msvc` |
+| Linux VPS (production build) | `@rolldown/binding-linux-x64-gnu` via `rolldown` — automatic |
+
+This Windows entry is a **local dev workaround only**, not a production Linux requirement.
+
+If a clean install fails on Windows:
 
 ```powershell
-$env:PATH = "C:\Program Files\cursor\resources\app\resources\helpers;" + $env:PATH
-node -v   # must show v22.12+
-npm run build
+Remove-Item -Recurse -Force node_modules
+Remove-Item package-lock.json
+& $node $npm install --include=optional
 ```
-
-If rolldown binding errors occur, `@rolldown/binding-win32-x64-msvc` is already listed in `package.json`.
 
 ### 5. Verify
 

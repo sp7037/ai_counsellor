@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Phase 0B — complete)
+**Last updated:** 2026-06-15 (Phase 0B corrective pass — complete)
 
 ## Principal reference
 
@@ -18,8 +18,11 @@ See [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.d
 | Composer | 2.10.1 | `D:\php83\php.exe D:\xampp\php\composer` |
 | MariaDB | 10.4.32 (XAMPP) | Port **3310** (not default 3306) |
 | Node.js | 22.22.0 | `C:\Program Files\cursor\resources\app\resources\helpers\node.exe` for Vite builds |
-| npm | 10.2.4 | Via `C:\nvm4w\nodejs\npm.cmd` (nvm default is Node 20.11.1 — use Node 22 for Vite) |
+| npm | 10.2.4 | Invoke via Node 22 path (see LOCAL_SETUP.md) |
 | Frontend | **Vite 8** + Tailwind 4 | Laravel Mix removed |
+| npm audit | **0 vulnerabilities** |
+| concurrently | 10.0.3 (devDependency; used by `composer run dev`) |
+| shell-quote | 1.8.4 (transitive via concurrently) |
 
 ## Modernisation summary
 
@@ -95,7 +98,7 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Dev command | `npm run dev` |
 | Manifest | `public/build/manifest.json` (gitignored; build locally) |
 
-**Node version note:** `C:\nvm4w\nodejs` defaults to Node 20.11.1, which is below Vite 8 minimum. Use Node 22.22.0 for builds. `@rolldown/binding-win32-x64-msvc` added as explicit devDependency to work around npm optional-dependency bug on Windows.
+**Node version note:** `C:\nvm4w\nodejs` defaults to Node 20.11.1, which is below Vite 8 minimum. Use Node 22.22.0 for builds. `@rolldown/binding-win32-x64-msvc` is in `optionalDependencies` (Windows local workaround only; Linux VPS uses rolldown's Linux binding).
 
 ## Environment configuration
 
@@ -123,7 +126,7 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 
 ## Authentication (Module 1 plan)
 
-Laravel **Breeze (Blade stack)** on Laravel 13 — see [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).
+**Laravel Breeze — `livewire` stack** (official, Laravel 13 compatible, Blade + Livewire). See [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).
 
 ## Module 1 readiness
 

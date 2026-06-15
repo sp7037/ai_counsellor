@@ -15,7 +15,7 @@
 |----------------|--------|-------|
 | Phase 0 — Project audit, environment, documentation | **Complete** | Laravel 9 baseline |
 | Phase 1A — Laravel foundation installation | **Complete** | Superseded by Phase 0B requirement |
-| Phase 0B — Modernise technical foundation | **Complete** | PHP 8.3.31 + Laravel 13.15.0 + Vite |
+| Phase 0B — Modernise technical foundation | **Complete** | Corrective pass: npm audit clean, auth decision updated |
 | Module 1 — SaaS foundation | **Not Started** | Do not begin until Phase 0B completes |
 | Module 2 — Embeddable chat widget | **Not Started** | |
 | Module 3 — Tenant configuration | **Not Started** | |
@@ -115,9 +115,9 @@ Use `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000` — not Apache
 
 ### Remaining non-blocking issues
 
-- `npm audit`: 2 critical advisories in **dev** dependency `shell-quote` (via `concurrently`); not fixed with `--force` per policy
-- Node 22 required for Vite 8; nvm default is Node 20.11.1 — document PATH when building
+- Node 22 required for Vite 8; nvm default (`C:\nvm4w\nodejs`) is Node 20.11.1 — use Node 22.12+ for npm commands (see LOCAL_SETUP.md)
 - Apache not configured for PHP 8.3 (intentional)
+- `npm audit`: **0 vulnerabilities** (resolved: `concurrently@10.0.3` → `shell-quote@1.8.4`)
 
 ### Module 1 readiness
 

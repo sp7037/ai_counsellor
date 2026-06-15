@@ -1,6 +1,6 @@
 # Authentication Decision — Module 1 (Planned, Not Implemented)
 
-**Last updated:** 2026-06-15 (Phase 0B complete)  
+**Last updated:** 2026-06-15 (Phase 0B corrective pass)  
 **Status:** Documented only — no authentication code installed yet  
 **Framework:** Laravel 13.15.0
 
@@ -9,50 +9,71 @@
 - [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.docx) §5 (roles), §14 (security)
 - [SECURITY_BASELINE.md](SECURITY_BASELINE.md)
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) — Module 1 plan
+- [Laravel 13 Starter Kits](https://laravel.com/docs/starter-kits)
 
 ---
 
-## Requirements summary
+## Architecture requirement
 
-| Requirement | Approach |
-|-------------|----------|
-| Platform super-admin access | Separate guard/context; `/platform/*` routes |
-| Tenant user authentication | Standard session auth scoped to tenant membership |
-| Public self-registration | **Disabled initially** — invite-only tenant users |
-| Password reset | Supported via Laravel password reset flow |
-| Email verification | Configurable per tenant/platform policy |
-| Rate-limited login | Laravel `RateLimiter` on login and password reset |
-| Session security | Encrypted cookies; secure/HTTP-only/SameSite in production |
-| Future 2FA | Plan for TOTP; not in Module 1 MVP |
-| Policies and permissions | Laravel policies + permission checks (custom tables, not package yet) |
-| Tenant selection | **Never trust browser-submitted `tenant_id`** — resolve from membership or route binding |
+The master architecture specifies **Blade + Livewire** for tenant and platform admin dashboards. The authentication foundation must:
+
+- Use official or first-party Laravel-compatible scaffolding
+- Support Livewire-based admin UI
+- **Not** introduce React, Vue, Svelte, or Inertia application architecture
+- Remain maintainable on Laravel 13
 
 ---
 
-## Recommended official Laravel method
+## Laravel 13 official options (verified)
 
-For the **Laravel 13** foundation (Phase 0B complete), use:
+| Option | Status for this project | Assessment |
+|--------|-------------------------|------------|
+| **Laravel Livewire Starter Kit** | Official Laravel 13 recommendation | Livewire 4 + Flux UI + Tailwind 4; designed for `laravel new --livewire` |
+| **Laravel Breeze — `livewire` stack** | **Recommended for Module 1** | Official package; `php artisan breeze:install livewire`; Laravel 13 compatible; lighter than full starter-kit import |
+| Laravel Breeze — `blade` stack | Not recommended as primary | Blade + Alpine only; does not establish Livewire dashboards required by architecture |
+| Laravel Jetstream | Not recommended | Heavier; teams/2FA features not needed in Module 1 MVP |
+| Fortify-only | Not recommended | Headless; excessive custom UI work for Blade + Livewire goal |
+| React / Vue / Svelte / Inertia kits | **Excluded** | Conflicts with architecture |
 
-### **Laravel Breeze (Blade stack)**
+Breeze remains officially maintained for Laravel 13 (including `livewire` and `livewire-functional` stacks). Laravel 13 also documents dedicated starter kits via `laravel new`, but this project was scaffolded without a starter kit in Phase 0B.
+
+---
+
+## Recommended Module 1 approach
+
+### Primary: **Laravel Breeze with Livewire stack**
+
+Install in Module 1 only (not Phase 0B):
+
+```bat
+D:\php83\php.exe D:\xampp\php\composer require laravel/breeze --dev
+D:\php83\php.exe artisan breeze:install livewire
+```
 
 | Attribute | Value |
 |-----------|-------|
 | Package | `laravel/breeze` |
-| Compatible with | Laravel 13, PHP 8.3+ |
-| Stack | Blade + optional Alpine.js (no React/Vue) |
-| Install (Module 1) | `D:\php83\php.exe artisan breeze:install blade` |
-| Livewire | Install Livewire 3 separately; compatible with Breeze Blade views |
+| Stack | `livewire` |
+| Provides | Login, logout, password reset, email verification hooks, profile basics |
+| UI | Blade layouts + Livewire components |
+| Compatible with | Laravel 13, PHP 8.3+, Livewire 3/4 (per Breeze release) |
 
-### Why Breeze (not Fortify-only, not Jetstream)
+### Alternative (if Breeze Livewire proves insufficient)
 
-| Option | Assessment |
-|--------|------------|
-| **Breeze** | Minimal, official, Blade-native, easy to split platform vs tenant login views |
-| Fortify-only | Headless — more work for Blade/Livewire dashboards |
-| Jetstream | Includes teams/Livewire stacks we do not need; heavier than required |
-| UI scaffolding packages | Avoid third-party auth unrelated to Laravel ecosystem |
+Adopt authentication and layout patterns from the official **[Laravel Livewire Starter Kit](https://github.com/laravel/livewire-starter-kit)** (Livewire 4 + Flux UI). This is heavier but matches the Laravel 13 homepage default. Requires an ADR if chosen over Breeze.
 
-Install Breeze in **Module 1 only**, after Phase 0B completes.
+---
+
+## Separation of concerns (Module 1 scope)
+
+| Layer | Module | Phase 0B | Module 1 implementation |
+|-------|--------|----------|-------------------------|
+| **Authentication scaffolding** | Login, logout, password reset, session | Not installed | Breeze `livewire` stack |
+| **Authorization / roles** | Permission checks | Not installed | Custom `roles`, `permissions`, policies |
+| **Tenant membership** | `tenant_user` pivot, tenant resolution | Not installed | Migrations + middleware |
+| **Platform super-admin** | `/platform/*` context | Not installed | `is_platform_user`, separate routes |
+
+Phase 0B installs **none** of the above.
 
 ---
 
@@ -78,64 +99,45 @@ Install Breeze in **Module 1 only**, after Phase 0B completes.
 
 ### Login flows
 
-1. **Platform login** — `GET/POST /platform/login` (separate view or shared with role redirect).
-2. **Tenant login** — `GET/POST /login` → after auth, redirect to tenant selector or default tenant dashboard.
-3. **No public registration** — `RegisterController` routes not published; users created by platform or tenant admin invite.
+1. **Platform login** — `GET/POST /platform/login` (separate view or role-based redirect after shared login).
+2. **Tenant login** — Breeze login → redirect to tenant selector or default tenant dashboard.
+3. **No public self-registration** — registration routes disabled or not published; users invited by platform or tenant admin.
 
 ### Tenant resolution (post-login)
 
 1. User authenticates globally (`users` table).
-2. Application loads `tenant_user` memberships.
+2. Application loads `tenant_user` memberships from database.
 3. If one tenant → redirect to `/app/{tenant_uuid}/dashboard`.
-4. If multiple → show tenant picker (server-side list from membership only).
+4. If multiple → tenant picker (server-side membership list only).
 5. Route model binding uses `tenant.uuid`, never numeric `id` in URLs.
+6. **Never trust browser-submitted `tenant_id`.**
 
-### Session and CSRF
+### Session, CSRF, and rate limiting
 
-- Default Laravel `web` middleware group (CSRF, session, cookie encryption).
+- Laravel `web` middleware (CSRF, encrypted cookies).
 - Production: `SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax` or `strict`.
+- Rate-limit login and password reset via `RateLimiter`.
 
-### Rate limiting
+### Email verification and 2FA
 
-```php
-RateLimiter::for('login', fn (Request $request) =>
-    Limit::perMinute(5)->by($request->input('email').$request->ip())
-);
-```
-
-Apply to platform and tenant login routes.
-
-### Password reset
-
-- Use Breeze password reset views and `password_reset_tokens` table (Laravel default).
-- Rate-limit `password.email` and `password.update` routes.
-
-### Email verification
-
-- Implement `MustVerifyEmail` on `User` when tenant/platform policy requires it.
-- Platform super-admin accounts: verification required by default.
-- Tenant users: configurable via `tenant_settings`.
-
-### Future two-factor authentication (deferred)
-
-- Plan: Laravel Fortify 2FA or `pragmarx/google2fa` with middleware `EnsureTwoFactorVerified`.
-- Required for platform super-admin in a later security hardening phase.
+- Email verification: configurable via `MustVerifyEmail` when policy requires.
+- Two-factor authentication: deferred; plan Fortify 2FA or equivalent in later security phase.
 
 ---
 
-## Permissions (Module 1)
+## Permissions (Module 1 — not Phase 0B)
 
-- Custom `roles`, `permissions`, `role_permission` tables (per architecture).
-- No `spatie/laravel-permission` in initial Module 1 unless ADR approves — keep control explicit.
-- Check permissions in policies and middleware: `$user->hasPermission('tenant.users.manage')`.
+- Custom `roles`, `permissions`, `role_permission` tables per architecture.
+- No `spatie/laravel-permission` unless approved via ADR.
+- Policies and middleware enforce permissions; never rely on hidden form fields.
 
 ---
 
 ## What is explicitly not implemented in Phase 0B
 
-- No Breeze installation
+- No Breeze or Livewire Starter Kit installation
 - No login routes beyond Laravel defaults
-- No tenant tables
+- No tenant, role, or permission tables
 - No platform admin UI
 
 ---
@@ -144,6 +146,6 @@ Apply to platform and tenant login routes.
 
 Install authentication **only when**:
 
-1. Phase 0B is complete (PHP 8.3+, Laravel 12, Vite).
+1. Phase 0B gates are complete (PHP 8.3+, Laravel 13, Vite, clean audits).
 2. Module 1 development begins.
-3. First migrations for `users` platform fields and `tenant_user` are ready.
+3. First migrations for platform user fields and `tenant_user` are ready.
