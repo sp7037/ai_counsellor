@@ -404,6 +404,55 @@ Maintenance command (also scheduled daily):
 D:\php83\php.exe artisan subscriptions:maintain
 ```
 
+## Module 10 — Payments
+
+Automated tests use `FakePaymentProvider` (`FAKE_PAYMENT_ENABLED=true` in `phpunit.xml`). **No real payment API calls during tests.**
+
+Optional `.env` placeholders (do not commit live credentials):
+
+| Variable | Purpose |
+|----------|---------|
+| `PAYMENT_ENVIRONMENT` | `test` or `live` |
+| `PAYMENT_DEFAULT_PROVIDER` | `razorpay` (production) |
+| `FAKE_PAYMENT_KEY_SECRET` | Local/test fake signing |
+| `FAKE_PAYMENT_WEBHOOK_SECRET` | Local webhook tests |
+| `RAZORPAY_KEY_ID` | Razorpay dashboard (test mode for local) |
+| `RAZORPAY_KEY_SECRET` | Server-side only |
+| `RAZORPAY_WEBHOOK_SECRET` | Webhook signature |
+
+Configure via Platform Settings UI (`/platform/settings`) or encrypted `platform_settings` rows.
+
+Webhook endpoint (Razorpay dashboard):
+
+```
+http://127.0.0.1:8000/webhooks/payments/razorpay
+```
+
+For local fake adapter tests:
+
+```
+http://127.0.0.1:8000/webhooks/payments/fake
+```
+
+1. Seed plans: `D:\php83\php.exe artisan db:seed --class=PlansSeeder`
+2. Set plan pricing on `/platform/plans/{plan}` (amount in paise, mark purchasable)
+3. Enable payments in Platform Settings (test mode recommended)
+4. Tenant checkout: `/app/{tenant_uuid}/subscription/plans`
+
+Reconciliation (expire abandoned orders):
+
+```bat
+D:\php83\php.exe artisan payments:reconcile
+```
+
+Payment module tests:
+
+```bat
+D:\php83\php.exe artisan test --filter=PaymentModuleTest
+```
+
+Manual platform subscription assignment (Module 9) remains available and separate from payment checkout.
+
 ---
 
 ## Backup locations

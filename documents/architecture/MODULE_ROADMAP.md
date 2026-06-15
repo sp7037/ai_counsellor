@@ -225,13 +225,30 @@ Exit gate: Suspension and limit enforcement proven.
 
 **READY FOR MODULE 10 (Payments)**
 
+## Module 10 — Payments
+
+**Status:** Complete
+
+- Razorpay integration (first production provider) with fake adapter for tests
+- Provider-neutral payment services and governed order/payment states
+- Plan pricing configuration (integer minor units, non-purchasable until configured)
+- Tenant checkout, browser verification, webhook reconciliation
+- Subscription activation via `SubscriptionLifecycleService` only
+- Platform payment visibility and encrypted provider credentials
+- Payment receipts (not tax invoices)
+
+Exit gate: Verified payment activates subscription exactly once; entitlement boundary preserved.
+
+**READY FOR MODULE 11**
+
+## Post–Module 10 integrations
+
 **Status:** Not Started (all)
 
 | Module | Scope |
 |--------|-------|
 | WhatsApp | Outbound messaging integration |
 | Email | Transactional and notification email |
-| Payments | Gateway orders and verification |
 | Appointments | Booking and availability |
 | Document collection | Upload and processing workflows |
 | Voice calling | Deferred per architecture |

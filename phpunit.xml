@@ -34,5 +34,7 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="AI_DEFAULT_PROVIDER" value="fake"/>
         <env name="OPENAI_ENABLED" value="false"/>
+        <env name="PAYMENT_ENVIRONMENT" value="test"/>
+        <env name="FAKE_PAYMENT_ENABLED" value="true"/>
     </php>
 </phpunit>

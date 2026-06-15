@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 8)
+**Last updated:** 2026-06-15 (Module 10)
 
 ## Principal reference
 
@@ -146,6 +146,21 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Subscription page remains accessible when commercially expired
 - Widget responses exclude billing/plan internals
 - Payment gateway integration deferred (ADR-006)
+
+## Module 10 enforcement (implemented)
+
+- Payment provider secrets encrypted in `platform_settings`; never echoed to browser, logs, or audit cleartext
+- Checkout amount/currency determined server-side from plan; client cannot supply authoritative price
+- Browser payment success requires cryptographic signature verification (`PaymentVerificationService`)
+- Webhooks require raw-body HMAC verification; duplicate events deduplicated in `payment_webhook_events`
+- Subscription activation only via `BillingService` → `SubscriptionLifecycleService::applyVerifiedPayment`
+- `EntitlementResolver` remains sole authority for feature access; payments do not grant features directly
+- Financial records append-oriented; no hard-delete of payments/orders
+- Card/bank/UPI secrets not stored; only provider reference IDs and safe metadata
+- Tenant Owner/Admin only for checkout; counsellors denied billing routes
+- Test/live mode stored on orders/payments; fake provider used in automated tests (no real API calls)
+
+See [ADR-007](decisions/ADR-007-payments-and-billing-boundary.md).
 
 ## AI security
 

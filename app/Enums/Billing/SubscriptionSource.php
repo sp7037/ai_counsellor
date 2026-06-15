@@ -7,6 +7,7 @@ enum SubscriptionSource: string
     case Manual = 'manual';
     case Trial = 'trial';
     case Platform = 'platform';
+    case Payment = 'payment';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum SubscriptionSource: string
             self::Manual => 'Manual',
             self::Trial => 'Trial',
             self::Platform => 'Platform',
+            self::Payment => 'Payment',
         };
     }
 }

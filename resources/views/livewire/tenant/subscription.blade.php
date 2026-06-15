@@ -24,6 +24,12 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             'effectiveStatus' => $effective,
             'usage' => $entitlements->usageSummary($this->tenant),
             'events' => $subscription?->events()->latest('created_at')->limit(10)->get() ?? collect(),
+            'payments' => \App\Models\Payment::query()
+                ->where('tenant_id', $this->tenant->id)
+                ->with(['paymentOrder.plan'])
+                ->latest()
+                ->limit(10)
+                ->get(),
             'features' => $subscription
                 ? $subscription->plan->entitlements->map(fn ($e) => [
                     'code' => $e->feature->value,
@@ -37,6 +43,9 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 }; ?>
 
 <x-slot:heading>Subscription</x-slot:heading>
+<x-slot:actions>
+    <flux:button href="{{ route('tenant.subscription.plans', $tenant) }}" wire:navigate size="sm">View plans</flux:button>
+</x-slot:actions>
 
 <div class="grid gap-6">
     @if (session('subscription_restriction'))
@@ -78,9 +87,30 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             @if ($effectiveStatus === SubscriptionStatus::Grace)
                 <flux:callout variant="warning">Your subscription is in a grace period. Renew soon to avoid interruption.</flux:callout>
             @elseif (in_array($effectiveStatus, [SubscriptionStatus::Expired, SubscriptionStatus::Cancelled, SubscriptionStatus::PastDue], true))
-                <flux:callout variant="danger">Your subscription is not active. Contact support to restore access.</flux:callout>
+                <flux:callout variant="danger">Your subscription is not active. Renew online or contact support.</flux:callout>
             @endif
         </flux:card>
+
+        @if ($payments->isNotEmpty())
+            <flux:card>
+                <flux:heading size="md" class="mb-4">Payment history</flux:heading>
+                <ul class="grid gap-2 text-sm">
+                    @foreach ($payments as $payment)
+                        <li class="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 py-2 first:border-t-0">
+                            <div>
+                                <span>{{ $payment->paymentOrder->plan->name ?? 'Plan' }}</span>
+                                <span class="text-zinc-500"> — {{ $payment->captured_at?->format('d M Y') }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <flux:badge size="sm">{{ $payment->status->label() }}</flux:badge>
+                                <span>{{ $payment->currency }} {{ number_format($payment->amount_minor / 100, 2) }}</span>
+                                <flux:button href="{{ route('tenant.subscription.payment.receipt', [$tenant, $payment]) }}" wire:navigate size="xs" variant="ghost">Receipt</flux:button>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </flux:card>
+        @endif
 
         @if ($usage !== [])
             <flux:card>

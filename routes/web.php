@@ -1,12 +1,18 @@
 <?php
 
 use App\Http\Controllers\Tenant\KnowledgeDocumentDownloadController;
+use App\Http\Controllers\Tenant\PaymentVerificationController;
+use App\Http\Controllers\Webhooks\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::post('/webhooks/payments/{provider}', PaymentWebhookController::class)
+    ->middleware('throttle:'.config('payments.webhook_rate_limit', '120,1'))
+    ->name('webhooks.payments');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('app/select-tenant', 'tenant.select')->name('tenant.select');
@@ -28,6 +34,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Volt::route('settings', 'platform.settings.index')->name('settings.index');
             Volt::route('failed-runs', 'platform.failed-runs.index')->name('failed-runs.index');
             Volt::route('system-health', 'platform.system-health.index')->name('system-health.index');
+            Volt::route('payments', 'platform.payments.index')->name('payments.index');
+            Volt::route('payments/{payment}', 'platform.payments.show')->name('payments.show');
+            Volt::route('payment-orders', 'platform.payment-orders.index')->name('payment-orders.index');
+            Volt::route('tenants/{tenant}/payments', 'platform.tenants.payments')->name('tenants.payments');
         });
 
     Route::prefix('app/{tenant}')
@@ -35,6 +45,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('tenant.')
         ->group(function () {
             Volt::route('subscription', 'tenant.subscription')->name('subscription');
+
+            Route::middleware('tenant.billing')->prefix('subscription')->name('subscription.')->group(function () {
+                Volt::route('plans', 'tenant.subscription.plans')->name('plans');
+                Volt::route('checkout/{plan}', 'tenant.subscription.checkout')->name('checkout');
+                Volt::route('payment/{order}/success', 'tenant.subscription.payment-success')->name('payment.success');
+                Volt::route('payment/{order}/failed', 'tenant.subscription.payment-failed')->name('payment.failed');
+                Volt::route('payment/{payment}/receipt', 'tenant.subscription.receipt')->name('payment.receipt');
+                Route::post('payments/verify', PaymentVerificationController::class)->name('payments.verify');
+            });
 
             Route::middleware('tenant.operational')->group(function () {
                 Volt::route('dashboard', 'tenant.dashboard')->name('dashboard');

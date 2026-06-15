@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 9 — complete)  
-**Current phase:** Module 9 complete; Module 10 not started
+**Last updated:** 2026-06-15 (Module 10 — complete)  
+**Current phase:** Module 10 complete; Module 11 not started
 
 ## Principal reference
 
@@ -26,6 +26,7 @@
 | Module 7 — Lead qualification and counsellor workspace | **Complete** | Leads, assignment, workspace, follow-ups, deterministic scoring |
 | Module 8 — Human agent live conversations | **Complete** | Handoff, ownership, counsellor chat, widget polling, admin supervision |
 | Module 9 — Subscription and usage enforcement | **Complete** | Entitlements, limits, manual billing, platform plan admin |
+| Module 10 — Payments | **Complete** | Razorpay/fake provider, checkout, webhooks, plan pricing, receipts |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |
 
 ---
@@ -133,6 +134,44 @@ See [MODULE_9_SCHEMA.md](MODULE_9_SCHEMA.md) and [ADR-006](decisions/ADR-006-sub
 | Pint | Pass |
 
 **READY FOR MODULE 10**
+
+## Module 10 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Provider-neutral payment layer (`PaymentProviderContract`, `RazorpayPaymentProvider`, `FakePaymentProvider`)
+- Plan commercial pricing fields + Super Admin configuration (non-purchasable until priced)
+- `payment_orders`, `payments`, `payment_events`, `payment_webhook_events`
+- Tenant checkout with checkout-request idempotency and browser signature verification
+- Webhook endpoint `POST /webhooks/payments/{provider}` with signature verification and deduplication
+- `BillingService` race-safe finalization → `SubscriptionLifecycleService::applyVerifiedPayment`
+- Tenant billing UI (plans, checkout, success/failure, payment history, receipt)
+- Platform billing UI (payments, payment orders, tenant payments)
+- Platform payment settings (encrypted secrets, test/live mode)
+- `payments:reconcile` command (expire abandoned orders)
+- **222 automated tests** (21 new Module 10 tests)
+
+See [MODULE_10_SCHEMA.md](MODULE_10_SCHEMA.md) and [ADR-007](decisions/ADR-007-payments-and-billing-boundary.md).
+
+### Deferred
+
+- Provider refunds and partial refunds
+- Tax invoices / GST compliance
+- Provider order status polling reconciliation
+- Offline/manual payment recording UI
+- Email/SMS payment notifications
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **222 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 11 (not started)**
 
 ---
 

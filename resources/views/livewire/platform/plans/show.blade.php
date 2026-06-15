@@ -4,6 +4,7 @@ use App\Enums\Billing\PlanFeature;
 use App\Enums\Billing\PlanStatus;
 use App\Models\Plan;
 use App\Services\Billing\PlanManagementService;
+use App\Services\Billing\PlanPricingService;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -15,12 +16,21 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
     public string $description = '';
 
+    public ?string $currency = null;
+
+    public ?int $amount_minor = null;
+
+    public bool $is_purchasable = false;
+
     public function mount(Plan $plan): void
     {
         Gate::authorize('view', $plan);
         $this->plan = $plan->load('entitlements');
         $this->name = $plan->name;
         $this->description = (string) $plan->description;
+        $this->currency = $plan->currency;
+        $this->amount_minor = $plan->amount_minor;
+        $this->is_purchasable = (bool) $plan->is_purchasable;
     }
 
     public function with(): array
@@ -42,6 +52,25 @@ new #[Layout('components.layouts.platform')] class extends Component {
         Gate::authorize('update', $this->plan);
         $this->plan = $plans->setStatus($this->plan, PlanStatus::Active, auth()->user());
     }
+
+    public function savePricing(PlanPricingService $pricing): void
+    {
+        Gate::authorize('update', $this->plan);
+
+        $this->validate([
+            'currency' => ['nullable', 'string', 'size:3'],
+            'amount_minor' => ['nullable', 'integer', 'min:0'],
+            'is_purchasable' => ['boolean'],
+        ]);
+
+        $this->plan = $pricing->updatePricing($this->plan, [
+            'currency' => $this->currency,
+            'amount_minor' => $this->amount_minor,
+            'is_purchasable' => $this->is_purchasable,
+        ], auth()->user());
+
+        session()->flash('pricing_status', 'Pricing updated.');
+    }
 }; ?>
 
 <x-slot:heading>{{ $plan->name }}</x-slot:heading>
@@ -62,6 +91,20 @@ new #[Layout('components.layouts.platform')] class extends Component {
                 <flux:button wire:click="activate" size="sm">Activate</flux:button>
             @endif
         </div>
+    </flux:card>
+
+    <flux:card class="grid gap-3">
+        <flux:heading size="md">Commercial pricing</flux:heading>
+        @if (session('pricing_status'))
+            <flux:callout variant="success">{{ session('pricing_status') }}</flux:callout>
+        @endif
+        <form wire:submit="savePricing" class="grid gap-3 max-w-md">
+            <flux:input wire:model="currency" label="Currency (ISO 4217)" placeholder="INR" maxlength="3" />
+            <flux:input wire:model="amount_minor" label="Amount (minor units, e.g. paise)" type="number" min="0" />
+            <flux:checkbox wire:model="is_purchasable" label="Publicly purchasable" />
+            <flux:text class="text-xs text-zinc-500">Leave amount empty to keep the plan non-purchasable. Price changes are audited.</flux:text>
+            <flux:button type="submit" size="sm">Save pricing</flux:button>
+        </form>
     </flux:card>
 
     <flux:card>

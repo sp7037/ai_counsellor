@@ -6,6 +6,7 @@ use App\Enums\Audit\AuditAction;
 use App\Enums\Billing\SubscriptionEventType;
 use App\Enums\Billing\SubscriptionSource;
 use App\Enums\Billing\SubscriptionStatus;
+use App\Models\PaymentOrder;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
@@ -301,6 +302,169 @@ class SubscriptionLifecycleService
             ]);
 
             $this->audit->log(AuditAction::SubscriptionPlanChanged, $subscription, $subscription->tenant_id, [
+                'plan_code' => $plan->code,
+            ], $actor);
+
+            $this->entitlements->clearCache();
+
+            return $subscription->fresh(['plan.entitlements']);
+        });
+    }
+
+    public function applyVerifiedPayment(
+        Tenant $tenant,
+        Plan $plan,
+        PaymentOrder $order,
+        ?User $actor = null,
+    ): Subscription {
+        return DB::transaction(function () use ($tenant, $plan, $order, $actor): Subscription {
+            $subscription = Subscription::query()
+                ->where('tenant_id', $tenant->id)
+                ->lockForUpdate()
+                ->first();
+
+            $calculator = app(BillingPeriodCalculator::class);
+            $now = now();
+
+            if ($subscription === null) {
+                $periodEnd = $calculator->periodEnd(
+                    $now,
+                    $plan->billing_interval,
+                    (int) ($plan->billing_interval_count ?? 1),
+                );
+
+                $subscription = Subscription::query()->create([
+                    'tenant_id' => $tenant->id,
+                    'plan_id' => $plan->id,
+                    'status' => SubscriptionStatus::Active,
+                    'source' => SubscriptionSource::Payment,
+                    'current_period_started_at' => $now,
+                    'current_period_ends_at' => $periodEnd,
+                    'provider_name' => $order->provider->value,
+                    'created_by' => $actor?->id,
+                    'updated_by' => $actor?->id,
+                ]);
+
+                $this->recordEvent($subscription, SubscriptionEventType::Created, null, $subscription->status, $actor, 'Payment activation', [
+                    'payment_order_uuid' => $order->uuid,
+                ]);
+                $this->recordEvent($subscription, SubscriptionEventType::Activated, null, $subscription->status, $actor, 'Payment activation', [
+                    'payment_order_uuid' => $order->uuid,
+                ]);
+                $this->audit->log(AuditAction::SubscriptionActivated, $subscription, $tenant->id, [
+                    'source' => SubscriptionSource::Payment->value,
+                    'payment_order_uuid' => $order->uuid,
+                ], $actor);
+                $this->entitlements->clearCache();
+
+                return $subscription->load('plan.entitlements');
+            }
+
+            $previousStatus = $subscription->status;
+            $samePlan = $subscription->plan_id === $plan->id;
+            $stillActive = in_array($subscription->effectiveStatus(), [
+                SubscriptionStatus::Active,
+                SubscriptionStatus::Grace,
+            ], true) && $samePlan;
+
+            if ($subscription->status === SubscriptionStatus::Trialing) {
+                $periodStart = $now;
+                $periodEnd = $calculator->periodEnd(
+                    $periodStart,
+                    $plan->billing_interval,
+                    (int) ($plan->billing_interval_count ?? 1),
+                );
+
+                $subscription->update([
+                    'plan_id' => $plan->id,
+                    'status' => SubscriptionStatus::Active,
+                    'source' => SubscriptionSource::Payment,
+                    'trial_started_at' => null,
+                    'trial_ends_at' => null,
+                    'current_period_started_at' => $periodStart,
+                    'current_period_ends_at' => $periodEnd,
+                    'grace_ends_at' => null,
+                    'cancel_at_period_end' => false,
+                    'cancelled_at' => null,
+                    'expired_at' => null,
+                    'provider_name' => $order->provider->value,
+                    'updated_by' => $actor?->id,
+                ]);
+
+                $this->recordEvent($subscription, SubscriptionEventType::Activated, $previousStatus, $subscription->status, $actor, 'Trial converted via payment', [
+                    'payment_order_uuid' => $order->uuid,
+                ]);
+            } elseif ($samePlan && $stillActive) {
+                $periodStart = $calculator->renewalStart(
+                    $now,
+                    $subscription->current_period_ends_at,
+                    true,
+                );
+                $periodEnd = $calculator->periodEnd(
+                    $periodStart,
+                    $plan->billing_interval,
+                    (int) ($plan->billing_interval_count ?? 1),
+                );
+
+                $subscription->update([
+                    'status' => SubscriptionStatus::Active,
+                    'source' => SubscriptionSource::Payment,
+                    'current_period_started_at' => $subscription->current_period_started_at ?? $periodStart,
+                    'current_period_ends_at' => $periodEnd,
+                    'grace_ends_at' => null,
+                    'cancel_at_period_end' => false,
+                    'cancelled_at' => null,
+                    'expired_at' => null,
+                    'provider_name' => $order->provider->value,
+                    'updated_by' => $actor?->id,
+                ]);
+
+                $this->recordEvent($subscription, SubscriptionEventType::PaymentRenewed, $previousStatus, $subscription->status, $actor, 'Renewal via payment', [
+                    'payment_order_uuid' => $order->uuid,
+                    'period_end' => $periodEnd->toIso8601String(),
+                ]);
+            } else {
+                $periodStart = $now;
+                $periodEnd = $calculator->periodEnd(
+                    $periodStart,
+                    $plan->billing_interval,
+                    (int) ($plan->billing_interval_count ?? 1),
+                );
+
+                $previousPlanId = $subscription->plan_id;
+
+                $subscription->update([
+                    'plan_id' => $plan->id,
+                    'status' => SubscriptionStatus::Active,
+                    'source' => SubscriptionSource::Payment,
+                    'current_period_started_at' => $periodStart,
+                    'current_period_ends_at' => $periodEnd,
+                    'trial_started_at' => null,
+                    'trial_ends_at' => null,
+                    'grace_ends_at' => null,
+                    'cancel_at_period_end' => false,
+                    'cancelled_at' => null,
+                    'expired_at' => null,
+                    'provider_name' => $order->provider->value,
+                    'updated_by' => $actor?->id,
+                ]);
+
+                if ($previousPlanId !== $plan->id) {
+                    $this->recordEvent($subscription, SubscriptionEventType::PlanChanged, $previousStatus, $subscription->status, $actor, 'Plan changed via payment', [
+                        'previous_plan_id' => $previousPlanId,
+                        'new_plan_id' => $plan->id,
+                        'payment_order_uuid' => $order->uuid,
+                    ]);
+                }
+
+                $this->recordEvent($subscription, SubscriptionEventType::Activated, $previousStatus, $subscription->status, $actor, 'Activated via payment', [
+                    'payment_order_uuid' => $order->uuid,
+                ]);
+            }
+
+            $this->audit->log(AuditAction::SubscriptionActivated, $subscription, $tenant->id, [
+                'source' => SubscriptionSource::Payment->value,
+                'payment_order_uuid' => $order->uuid,
                 'plan_code' => $plan->code,
             ], $actor);
 

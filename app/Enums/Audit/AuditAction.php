@@ -102,6 +102,9 @@ enum AuditAction: string
     case SubscriptionPlanChanged = 'subscription.plan_changed';
     case EntitlementOverrideApplied = 'entitlement.override_applied';
     case EntitlementOverrideRemoved = 'entitlement.override_removed';
+    case PlanPricingUpdated = 'plan.pricing_updated';
+    case PaymentSecretReplaced = 'payment.secret_replaced';
+    case PaymentSettingsUpdated = 'payment.settings_updated';
 
     public function label(): string
     {
@@ -204,6 +207,9 @@ enum AuditAction: string
             self::SubscriptionPlanChanged => 'Subscription plan changed',
             self::EntitlementOverrideApplied => 'Entitlement override applied',
             self::EntitlementOverrideRemoved => 'Entitlement override removed',
+            self::PlanPricingUpdated => 'Plan pricing updated',
+            self::PaymentSecretReplaced => 'Payment secret replaced',
+            self::PaymentSettingsUpdated => 'Payment settings updated',
         };
     }
 }

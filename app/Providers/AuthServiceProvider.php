@@ -14,7 +14,8 @@ use App\Models\KnowledgeFee;
 use App\Models\KnowledgeItem;
 use App\Models\Lead;
 use App\Models\Location;
-use App\Models\Plan;
+use App\Models\Payment;
+use App\Models\PaymentOrder;
 use App\Models\Service;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -36,6 +37,8 @@ use App\Policies\KnowledgeFeePolicy;
 use App\Policies\KnowledgeItemPolicy;
 use App\Policies\LeadPolicy;
 use App\Policies\LocationPolicy;
+use App\Policies\PaymentOrderPolicy;
+use App\Policies\PaymentPolicy;
 use App\Policies\PlanPolicy;
 use App\Policies\ServicePolicy;
 use App\Policies\SubscriptionPolicy;
@@ -75,6 +78,8 @@ class AuthServiceProvider extends ServiceProvider
         AuditLog::class => AuditLogPolicy::class,
         Lead::class => LeadPolicy::class,
         Plan::class => PlanPolicy::class,
+        PaymentOrder::class => PaymentOrderPolicy::class,
+        Payment::class => PaymentPolicy::class,
         Subscription::class => SubscriptionPolicy::class,
     ];
 

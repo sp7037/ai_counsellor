@@ -37,6 +37,11 @@ enum TenantRole: string
         return in_array($this, [self::Owner, self::Admin], true);
     }
 
+    public function canManageBilling(): bool
+    {
+        return $this->canManageMembers();
+    }
+
     public function canWorkAssignedLeads(): bool
     {
         return $this === self::Staff;

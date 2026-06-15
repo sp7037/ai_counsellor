@@ -220,3 +220,19 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 **Test suite:** 198 tests, 532 assertions.
 
 **READY FOR MODULE 10 (Payments)**
+
+## Module 10 — Payments (implemented)
+
+| Item | Decision |
+|------|----------|
+| Provider | Razorpay first; `FakePaymentProvider` for tests/local |
+| Abstraction | `PaymentProviderContract` + billing services (ADR-007) |
+| Money | Integer `amount_minor` on plans and payment records |
+| Activation | `BillingService` → `SubscriptionLifecycleService` only |
+| Webhooks | `POST /webhooks/payments/{provider}`; raw body signature |
+| Refunds | Deferred; schema readiness only |
+| Receipts | HTML payment receipt; not tax invoice |
+
+**Test suite:** 222 tests, 584 assertions.
+
+**READY FOR MODULE 11**

@@ -16,6 +16,7 @@ enum SubscriptionEventType: string
     case Cancelled = 'cancelled';
     case Restored = 'restored';
     case PlanChanged = 'plan_changed';
+    case PaymentRenewed = 'payment_renewed';
     case OverrideApplied = 'override_applied';
     case OverrideRemoved = 'override_removed';
 
@@ -34,6 +35,7 @@ enum SubscriptionEventType: string
             self::Cancelled => 'Subscription cancelled',
             self::Restored => 'Subscription restored',
             self::PlanChanged => 'Plan changed',
+            self::PaymentRenewed => 'Subscription renewed via payment',
             self::OverrideApplied => 'Entitlement override applied',
             self::OverrideRemoved => 'Entitlement override removed',
         };
