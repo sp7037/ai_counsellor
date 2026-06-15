@@ -45,6 +45,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         @endcan
         <flux:button href="{{ route('tenant.widget.index', $tenant) }}" wire:navigate variant="ghost">Chat widget</flux:button>
         <flux:button href="{{ route('tenant.configuration.index', $tenant) }}" wire:navigate variant="ghost">Configuration</flux:button>
+        <flux:button href="{{ route('tenant.knowledge.index', $tenant) }}" wire:navigate variant="ghost">Knowledge base</flux:button>
         <flux:button href="{{ route('tenant.notes.index', $tenant) }}" wire:navigate variant="ghost">Tenant notes</flux:button>
     </div>
 </div>

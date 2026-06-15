@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Widget;
 
+use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Http\Controllers\Controller;
 use App\Models\WidgetSession;
 use App\Services\Configuration\WidgetPublicConfigService;
@@ -19,6 +20,7 @@ class WidgetGatewayController extends Controller
         private readonly WidgetSessionService $sessionService,
         private readonly ConversationService $conversationService,
         private readonly WidgetPublicConfigService $publicConfigService,
+        private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
     ) {}
 
     public function startSession(Request $request): JsonResponse
@@ -72,6 +74,26 @@ class WidgetGatewayController extends Controller
             'offline_form_enabled' => $settings->offline_form_enabled,
             'messages' => $this->conversationService->listMessages($session->conversation),
             'configuration' => $publicConfig,
+        ]);
+    }
+
+    public function searchKnowledge(Request $request): JsonResponse
+    {
+        /** @var WidgetSession $session */
+        $session = $request->attributes->get('widget_session');
+
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'max:'.config('knowledge.max_search_query_length', 120)],
+        ]);
+
+        $results = $this->knowledgeRetrieval->searchPublished(
+            $session->tenant,
+            $validated['q'],
+            config('knowledge.max_search_results', 20),
+        );
+
+        return response()->json([
+            'results' => $results,
         ]);
     }
 

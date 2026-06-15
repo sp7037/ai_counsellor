@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Module 1 — complete)
+**Last updated:** 2026-06-15 (Module 4 — complete)
 
 ## Principal reference
 
@@ -132,6 +132,18 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 
 **Laravel Breeze — `livewire` stack** (official, Laravel 13 compatible, Blade + Livewire). See [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).
 
-## Module 1 readiness
+## Module 4 — knowledge base (implemented)
 
-**READY FOR MODULE 1** (pending owner review of npm dev advisory noted in IMPLEMENTATION_STATUS).
+| Item | Decision |
+|------|----------|
+| Content format | Plain text only; sanitized server-side (no rich HTML editor) |
+| Versioning | Immutable `knowledge_versions` table with `current_version_id` pointer |
+| Search | Tenant-scoped SQL `LIKE` on published content only (no vector/AI search) |
+| Retrieval contract | `KnowledgeRetrievalContract` for Module 5 integration without provider calls |
+| File storage | Private `local` disk; PDF/DOC/DOCX/TXT; no OCR or PDF parsing |
+| Fees | Integer minor units + ISO 4217 currency codes |
+| New packages | None — uses existing Laravel/PHP stack |
+
+**Test suite:** 102 tests, 237 assertions (Module 4 adds 10 knowledge tests).
+
+**READY FOR MODULE 5**

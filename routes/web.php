@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Tenant\KnowledgeDocumentDownloadController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -38,6 +39,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Volt::route('courses', 'tenant.configuration.courses')->name('courses');
                 Volt::route('institutions', 'tenant.configuration.institutions')->name('institutions');
                 Volt::route('locations', 'tenant.configuration.locations')->name('locations');
+            });
+
+            Route::prefix('knowledge')->name('knowledge.')->group(function () {
+                Volt::route('/', 'tenant.knowledge.index')->name('index');
+                Volt::route('items', 'tenant.knowledge.items')->name('items');
+                Volt::route('fees', 'tenant.knowledge.fees')->name('fees');
+                Volt::route('eligibility', 'tenant.knowledge.eligibility')->name('eligibility');
+                Volt::route('documents', 'tenant.knowledge.documents')->name('documents');
+                Volt::route('course-institutions', 'tenant.knowledge.course-institutions')->name('course-institutions');
+                Route::get('documents/{document}/download', KnowledgeDocumentDownloadController::class)
+                    ->name('documents.download');
             });
         });
 });

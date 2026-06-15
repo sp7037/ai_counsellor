@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 2 — complete)
+**Last updated:** 2026-06-15 (Module 4 — complete)
 
 ## Stack
 
@@ -218,6 +218,33 @@ Gateway API base: `http://127.0.0.1:8000/widget/v1`
 Tenant owners/admins configure branding, assistant, office hours and catalogues at `/app/{tenant_uuid}/configuration`.
 
 After `php artisan storage:link`, uploaded logos are served from `public/storage/tenant-logos/…`.
+
+## Module 4 knowledge base (local)
+
+Tenant owners/admins manage knowledge at `/app/{tenant_uuid}/knowledge`:
+
+| Page | Route suffix |
+|------|--------------|
+| Overview | `/knowledge` |
+| Knowledge items | `/knowledge/items` |
+| Fees | `/knowledge/fees` |
+| Eligibility rules | `/knowledge/eligibility` |
+| Source documents | `/knowledge/documents` |
+| Course–institution offerings | `/knowledge/course-institutions` |
+
+Private source documents are stored on the `local` disk (not publicly web-accessible). Authorized downloads use `/app/{tenant_uuid}/knowledge/documents/{uuid}/download`.
+
+Widget published-knowledge search (requires valid widget session):
+
+```
+GET http://127.0.0.1:8000/widget/v1/knowledge/search?q=passport
+Authorization: Bearer {session_token}
+Origin: http://127.0.0.1:8000
+```
+
+Only **published** knowledge items appear in search results. Drafts and archived content are excluded.
+
+Automated coverage: `D:\php83\php.exe artisan test --filter=KnowledgeBaseTest`
 
 ---
 

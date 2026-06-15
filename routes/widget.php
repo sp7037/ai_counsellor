@@ -12,6 +12,7 @@ Route::middleware([HandleWidgetCors::class, ResolveWidgetSession::class])
     ->group(function (): void {
         Route::middleware('throttle:'.config('widget.rate_limit.messages', '60,1'))->group(function (): void {
             Route::get('config', [WidgetGatewayController::class, 'config']);
+            Route::get('knowledge/search', [WidgetGatewayController::class, 'searchKnowledge']);
             Route::post('messages', [WidgetGatewayController::class, 'sendMessage']);
             Route::post('offline', [WidgetGatewayController::class, 'submitOffline']);
         });

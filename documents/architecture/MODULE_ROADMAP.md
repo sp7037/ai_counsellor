@@ -1,6 +1,6 @@
 # Module Roadmap
 
-**Last updated:** 2026-06-15 (Module 3 complete)
+**Last updated:** 2026-06-15 (Module 4 complete)
 
 ## Principal reference
 
@@ -86,7 +86,7 @@ Exit gate: Tenant admin can configure without code changes.
 
 ## Module 4 — Knowledge base
 
-**Status:** Not Started
+**Status:** Complete
 
 - FAQs
 - Structured course/service information

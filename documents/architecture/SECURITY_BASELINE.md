@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 3)
+**Last updated:** 2026-06-15 (Module 4)
 
 ## Principal reference
 
@@ -41,6 +41,20 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Widget public `configuration` payload excludes internal IDs, secrets and admin metadata
 - Catalogue CRUD tenant-scoped; staff cannot mutate configuration
 - Office hours evaluated in tenant IANA timezone, not server default alone
+
+## Module 4 enforcement (implemented)
+
+- Knowledge mutations centralized in dedicated services with transactional publish/archive and audit
+- Draft and archived knowledge never exposed via widget search or public APIs
+- Published content served only through `KnowledgeRetrievalContract` / `PublishedKnowledgeSearchService`
+- Immutable `knowledge_versions` rows; monotonic `version_number` with unique constraint per item
+- Plain-text sanitization via `KnowledgeContentSanitizer` (scripts, event handlers, `javascript:` URLs stripped)
+- Source documents stored on private `local` disk under `knowledge-documents/{tenant_uuid}/`; authorized download only
+- Document uploads: PDF/DOC/DOCX/TXT only, server-side MIME verification, size limit, random filenames
+- Fees stored as integer minor units (no floats); eligibility criteria as bounded plain text (no executable expressions)
+- Catalogue links (`service_id`, `course_id`, etc.) validated tenant-scoped; cross-tenant attachment returns 404
+- Staff may view knowledge admin pages but cannot create, publish, archive, upload or delete
+- Widget `GET /widget/v1/knowledge/search` requires valid session + origin; production localhost rejected when `WIDGET_ALLOW_LOCAL_ORIGINS` is false or absent
 
 ## Secrets and credentials
 

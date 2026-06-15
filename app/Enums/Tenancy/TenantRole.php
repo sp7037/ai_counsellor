@@ -27,6 +27,11 @@ enum TenantRole: string
         return $this->canManageMembers();
     }
 
+    public function canManageKnowledge(): bool
+    {
+        return $this->canManageMembers();
+    }
+
     public function rank(): int
     {
         return match ($this) {

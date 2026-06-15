@@ -43,6 +43,22 @@ enum AuditAction: string
     case LocationActivated = 'location.activated';
     case LocationDeactivated = 'location.deactivated';
     case LocationRemoved = 'location.removed';
+    case KnowledgeCreated = 'knowledge.created';
+    case KnowledgeUpdated = 'knowledge.updated';
+    case KnowledgePublished = 'knowledge.published';
+    case KnowledgeVersionCreated = 'knowledge.version_created';
+    case KnowledgeArchived = 'knowledge.archived';
+    case KnowledgeDeleted = 'knowledge.deleted';
+    case KnowledgeSourceUploaded = 'knowledge.source_uploaded';
+    case KnowledgeSourceRemoved = 'knowledge.source_removed';
+    case FeeCreated = 'fee.created';
+    case FeeUpdated = 'fee.updated';
+    case FeeArchived = 'fee.archived';
+    case EligibilityCreated = 'eligibility.created';
+    case EligibilityUpdated = 'eligibility.updated';
+    case EligibilityArchived = 'eligibility.archived';
+    case CourseInstitutionCreated = 'course_institution.created';
+    case CourseInstitutionUpdated = 'course_institution.updated';
     case PlatformBypass = 'platform.bypass';
 
     public function label(): string
@@ -87,6 +103,22 @@ enum AuditAction: string
             self::LocationActivated => 'Location activated',
             self::LocationDeactivated => 'Location deactivated',
             self::LocationRemoved => 'Location removed',
+            self::KnowledgeCreated => 'Knowledge created',
+            self::KnowledgeUpdated => 'Knowledge updated',
+            self::KnowledgePublished => 'Knowledge published',
+            self::KnowledgeVersionCreated => 'Knowledge version created',
+            self::KnowledgeArchived => 'Knowledge archived',
+            self::KnowledgeDeleted => 'Knowledge deleted',
+            self::KnowledgeSourceUploaded => 'Knowledge source uploaded',
+            self::KnowledgeSourceRemoved => 'Knowledge source removed',
+            self::FeeCreated => 'Fee created',
+            self::FeeUpdated => 'Fee updated',
+            self::FeeArchived => 'Fee archived',
+            self::EligibilityCreated => 'Eligibility created',
+            self::EligibilityUpdated => 'Eligibility updated',
+            self::EligibilityArchived => 'Eligibility archived',
+            self::CourseInstitutionCreated => 'Course institution created',
+            self::CourseInstitutionUpdated => 'Course institution updated',
             self::PlatformBypass => 'Platform bypass',
         };
     }

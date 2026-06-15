@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 3 — complete)  
-**Current phase:** Module 3 complete; Module 4 not started
+**Last updated:** 2026-06-15 (Module 4 — complete)  
+**Current phase:** Module 4 complete; Module 5 not started
 
 ## Principal reference
 
@@ -19,7 +19,7 @@
 | Module 1 — SaaS foundation | **Complete** | Auth, tenancy, isolation, platform/tenant dashboards, tests |
 | Module 2 — Embeddable chat widget | **Complete** | Widget gateway, keys, domains, sessions, admin UI, demo pages |
 | Module 3 — Tenant configuration | **Complete** | Branding, catalogue, office hours, widget public config |
-| Module 4 — Knowledge base | **Not Started** | |
+| Module 4 — Knowledge base | **Complete** | FAQs, fees, eligibility, documents, versioning, widget search |
 | Module 5 — AI orchestration | **Not Started** | |
 | Module 6 — Lead qualification | **Not Started** | |
 | Module 7 — Human agent workspace | **Not Started** | |
@@ -219,6 +219,44 @@ See [MODULE_2_SCHEMA.md](MODULE_2_SCHEMA.md).
 See [MODULE_3_SCHEMA.md](MODULE_3_SCHEMA.md).
 
 **READY FOR MODULE 4**
+
+---
+
+## Module 4 — Completion summary (2026-06-15)
+
+### Delivered
+
+- `knowledge_items`, `knowledge_versions`, `knowledge_fees`, `eligibility_rules`, `documents`, `course_institution`
+- Knowledge admin UI at `/app/{tenant}/knowledge/*`
+- Publication lifecycle with immutable version history
+- Structured fees (integer minor units), eligibility rules, source documents
+- Course–institution availability pivot with optional fees
+- Widget published-knowledge search at `GET /widget/v1/knowledge/search`
+- `KnowledgeRetrievalContract` for Module 5 integration
+- Plain-text content sanitization (XSS prevention)
+- Private document storage with authorized download
+- **102 automated tests** total (10 new Module 4 tests)
+
+See [MODULE_4_SCHEMA.md](MODULE_4_SCHEMA.md).
+
+### Explicitly deferred (Module 4 boundary)
+
+- AI provider calls, embeddings, vector search, chat answer generation
+- OCR / PDF parsing, semantic retrieval
+- Lead qualification, human agent workspace
+- Redis, Reverb, payment gateways
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **102 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 5**
 
 ---
 
