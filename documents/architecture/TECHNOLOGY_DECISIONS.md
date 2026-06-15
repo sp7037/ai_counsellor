@@ -160,6 +160,6 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Widget integration | `/widget/v1/messages` now returns assistant/system fallback based on orchestrator result |
 | Dependencies | No new Composer/NPM packages |
 
-**Test suite:** 108 tests, 255 assertions (Module 5 adds 6 AI orchestration tests).
+**Test suite:** 109 tests, 260 assertions (Module 5 adds 7 AI orchestration tests).
 
 **READY FOR MODULE 6**

@@ -274,7 +274,7 @@ See [MODULE_4_SCHEMA.md](MODULE_4_SCHEMA.md).
 - Idempotency using `request_id` / `request_uuid` to prevent duplicate assistant replies
 - Tenant admin AI configuration page at `/app/{tenant}/ai/configuration`
 - Audit actions for AI config update and secret replacement
-- **108 automated tests** total (6 new Module 5 tests)
+- **109 automated tests** total (7 new Module 5 tests)
 
 See [MODULE_5_SCHEMA.md](MODULE_5_SCHEMA.md).
 
@@ -290,7 +290,7 @@ See [MODULE_5_SCHEMA.md](MODULE_5_SCHEMA.md).
 
 | Check | Result |
 |-------|--------|
-| `php artisan test` | **108 passed** |
+| `php artisan test` | **109 passed** |
 | `composer audit` | 0 advisories |
 | `npm audit` | 0 vulnerabilities |
 | `npm run build` | Success |

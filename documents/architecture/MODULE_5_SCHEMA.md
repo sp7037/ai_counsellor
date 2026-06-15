@@ -144,6 +144,7 @@ Audit metadata excludes raw secrets.
 - Staff denied AI configuration access
 - Draft knowledge not exposed via retrieval into AI response flow
 - Cross-tenant access to AI configuration route denied
+- Tenant AI secret encrypted at rest and not returned in UI responses
 
 Regression suites for Modules 1–4 remain passing.
 
