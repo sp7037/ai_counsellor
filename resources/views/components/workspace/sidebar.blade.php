@@ -3,6 +3,7 @@
     $items = [
         ['label' => 'My Dashboard', 'route' => 'workspace.dashboard'],
         ['label' => 'My Leads', 'route' => 'workspace.leads.index'],
+        ['label' => 'Conversations', 'route' => 'workspace.conversations.index'],
         ['label' => 'Follow-ups', 'route' => 'workspace.follow-ups.index'],
     ];
 @endphp

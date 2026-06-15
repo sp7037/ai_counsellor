@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 7)
+**Last updated:** 2026-06-15 (Module 8)
 
 ## Principal reference
 
@@ -125,6 +125,18 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Deactivated counsellors blocked via membership status and workspace middleware
 - Assignment/reassignment, stage changes, and counsellor lifecycle events audited
 - Operational timeline (`lead_activities`) separate from security `audit_logs` (ADR-004)
+
+## Module 8 enforcement (implemented)
+
+- `ConversationMode` transitions governed server-side; no direct client mode control
+- AI provider not called during `human` or `handoff_requested` visitor message handling
+- Human ownership claimed with row lock; one active owner per conversation
+- Counsellor workspace and tenant conversation routes deny platform super admin
+- Cross-tenant and cross-counsellor conversation access rejected in services/policies
+- Widget poll/handoff endpoints session+origin protected; public payloads exclude notes/audit
+- Counsellor messages use `MessageRole::Counsellor`; only safe display name exposed to widget
+- Handoff idempotency via `handoff_request_uuid`; message idempotency via `request_uuid`
+- Conversation operational history (`conversation_activities`) separate from security audit log (ADR-005)
 
 ## AI security
 

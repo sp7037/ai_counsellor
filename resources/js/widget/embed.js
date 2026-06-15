@@ -14,6 +14,10 @@
         messages: [],
         loading: false,
         config: null,
+        mode: 'ai',
+        pollTimer: null,
+        lastMessageUuid: null,
+        handoffRequestUuid: null,
     };
 
     function baseStyles(primary, position) {
@@ -28,6 +32,7 @@
         .ac-msg { max-width: 85%; padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
         .ac-msg.visitor { justify-self: end; background: ${primary}; }
         .ac-msg.system, .ac-msg.assistant { justify-self: start; background: #374151; }
+        .ac-msg.counsellor { justify-self: start; background: #065f46; }
         #ac-widget-form { display: grid; gap: 8px; padding: 10px; border-top: 1px solid #374151; }
         #ac-widget-input, #ac-offline-name, #ac-offline-email, #ac-offline-message { width: 100%; border: 1px solid #4b5563; background: #111827; color: #fff; border-radius: 8px; padding: 8px; font-size: 13px; box-sizing: border-box; }
         #ac-widget-send, #ac-offline-submit, #ac-human-transfer { border: none; border-radius: 8px; background: ${primary}; color: #fff; padding: 8px 12px; cursor: pointer; font-size: 13px; }
@@ -68,9 +73,12 @@
         container.textContent = '';
         state.messages.forEach((message) => {
             const div = document.createElement('div');
-            div.className = `ac-msg ${message.role === 'visitor' ? 'visitor' : 'system'}`;
-            div.textContent = message.body;
+            const roleClass = message.role === 'visitor' ? 'visitor' : (message.role === 'counsellor' ? 'counsellor' : 'system');
+            div.className = `ac-msg ${roleClass}`;
+            const prefix = message.sender_name ? `${message.sender_name}: ` : '';
+            div.textContent = prefix + message.body;
             container.appendChild(div);
+            state.lastMessageUuid = message.uuid || state.lastMessageUuid;
         });
         container.scrollTop = container.scrollHeight;
     }
@@ -145,6 +153,45 @@
         }
     }
 
+    async function requestHandoff() {
+        state.handoffRequestUuid = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const data = await api('/handoff', {
+            method: 'POST',
+            body: JSON.stringify({ handoff_request_uuid: state.handoffRequestUuid }),
+        });
+        state.mode = data.mode || 'handoff_requested';
+        if (data.acknowledgement) {
+            state.messages.push({
+                uuid: data.acknowledgement.uuid,
+                role: data.acknowledgement.role || 'system',
+                body: data.acknowledgement.body,
+            });
+            renderMessages();
+        }
+        startPolling();
+    }
+
+    function startPolling() {
+        if (state.pollTimer) return;
+        const interval = 5000;
+        state.pollTimer = setInterval(async () => {
+            if (!state.token || !state.open) return;
+            try {
+                const query = state.lastMessageUuid ? `?after=${encodeURIComponent(state.lastMessageUuid)}` : '';
+                const data = await api(`/messages/poll${query}`);
+                state.mode = data.mode || state.mode;
+                (data.messages || []).forEach((message) => {
+                    if (!state.messages.find((m) => m.uuid === message.uuid)) {
+                        state.messages.push(message);
+                    }
+                });
+                renderMessages();
+            } catch (error) {
+                // Ignore transient poll errors.
+            }
+        }, interval);
+    }
+
     async function sendMessage(body) {
         const requestId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const data = await api('/messages', {
@@ -153,9 +200,20 @@
         });
 
         state.messages.push(
-            { role: 'visitor', body: data.visitor_message.body },
-            { role: data.reply.role || 'system', body: data.reply.body },
+            { uuid: data.visitor_message.uuid, role: 'visitor', body: data.visitor_message.body },
         );
+        if (data.reply) {
+            state.messages.push({
+                uuid: data.reply.uuid,
+                role: data.reply.role || 'system',
+                body: data.reply.body,
+                sender_name: data.reply.sender_name,
+            });
+        }
+        state.mode = data.mode || state.mode;
+        if (state.mode === 'handoff_requested' || state.mode === 'human') {
+            startPolling();
+        }
         renderMessages();
     }
 
@@ -215,10 +273,12 @@
                 if (transferBtn && transfer?.enabled) {
                     transferBtn.style.display = 'block';
                     transferBtn.textContent = transfer.label || 'Speak to a counsellor';
-                    transferBtn.addEventListener('click', () => {
-                        const message = transfer.message || 'A counsellor will join you shortly.';
-                        state.messages.push({ role: 'system', body: message });
-                        renderMessages();
+                    transferBtn.addEventListener('click', async () => {
+                        try {
+                            await requestHandoff();
+                        } catch (error) {
+                            showError(error.message);
+                        }
                     }, { once: true });
                 }
             }

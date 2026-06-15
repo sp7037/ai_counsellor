@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 7 — complete)
+**Last updated:** 2026-06-15 (Module 8 — complete)
 
 ## Stack
 
@@ -342,6 +342,48 @@ Automated coverage:
 
 ```bat
 D:\php83\php.exe artisan test --filter=LeadQualificationWorkspaceTest
+```
+
+## Module 8 — Human agent live conversations (local)
+
+### Counsellor workspace
+
+| Page | Route |
+|------|-------|
+| Conversations inbox | `/app/{tenant_uuid}/workspace/conversations` |
+| Live chat | `/app/{tenant_uuid}/workspace/conversations/{conversation_uuid}` |
+
+Uses Livewire polling (5s) — no WebSocket server required.
+
+### Tenant admin supervision
+
+| Page | Route |
+|------|-------|
+| Conversations | `/app/{tenant_uuid}/conversations` |
+| Supervision / convert to lead | `/app/{tenant_uuid}/conversations/{conversation_uuid}` |
+
+### Widget handoff and polling
+
+```
+POST http://127.0.0.1:8000/widget/v1/handoff
+Authorization: Bearer {session_token}
+Origin: http://127.0.0.1:8000
+
+{ "handoff_request_uuid": "uuid-for-idempotency" }
+```
+
+```
+GET http://127.0.0.1:8000/widget/v1/messages/poll?after={message_uuid}
+Authorization: Bearer {session_token}
+Origin: http://127.0.0.1:8000
+```
+
+Rebuild widget after changes: `npm run build` (updates `public/build/widget.js`).
+
+Automated coverage:
+
+```bat
+D:\php83\php.exe artisan test --filter=HumanAgentLiveConversationsTest
 ```
 
 ---

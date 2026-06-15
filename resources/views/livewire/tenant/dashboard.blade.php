@@ -1,7 +1,8 @@
 <?php
 
 use App\Models\Tenant;
-use App\Services\Tenancy\TenantContext;
+use App\Services\Conversations\ConversationDirectoryService;
+use App\Services\Leads\LeadDirectoryService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -14,39 +15,33 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->tenant = $tenant;
     }
 
-    public function with(): array
+    public function with(LeadDirectoryService $leads, ConversationDirectoryService $conversations): array
     {
-        $context = app(TenantContext::class);
-
         return [
-            'membership' => $context->membership(),
-            'user' => Auth::user(),
+            'leadMetrics' => $leads->tenantMetrics($this->tenant),
+            'conversationMetrics' => $conversations->tenantMetrics($this->tenant),
         ];
     }
 }; ?>
 
 <x-slot:heading>Tenant dashboard</x-slot:heading>
-
-<div class="grid gap-6 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-    <div>
-        <flux:heading size="lg">{{ $tenant->name }}</flux:heading>
-        <flux:subheading>Status: {{ $tenant->status->label() }}</flux:subheading>
+<div class="grid gap-6">
+    <flux:heading size="lg">{{ $tenant->name }}</flux:heading>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @foreach ([
+            'New leads (month)' => $leadMetrics['new_leads'],
+            'Unassigned leads' => $leadMetrics['unassigned'],
+            'Follow-ups due' => $leadMetrics['follow_ups_due'],
+            'Waiting handoffs' => $conversationMetrics['waiting_handoffs'],
+            'Active human chats' => $conversationMetrics['active_human'],
+            'Unread visitor msgs' => $conversationMetrics['unread_visitor_messages'],
+        ] as $label => $value)
+            <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4"><p class="text-xs text-zinc-500">{{ $label }}</p><p class="mt-2 text-2xl font-semibold">{{ $value }}</p></div>
+        @endforeach
     </div>
-
-    <dl class="grid gap-3 text-sm text-zinc-300">
-        <div><dt class="text-zinc-500">Authenticated user</dt><dd>{{ $user->name }} ({{ $user->email }})</dd></div>
-        <div><dt class="text-zinc-500">Membership role</dt><dd>{{ $membership?->role?->label() ?? 'Platform access' }}</dd></div>
-        <div><dt class="text-zinc-500">Public tenant identifier</dt><dd class="font-mono text-xs">{{ $tenant->uuid }}</dd></div>
-    </dl>
-
-    <div class="flex gap-3">
-        @can('viewAny', [App\Models\TenantMembership::class, $tenant])
-            <flux:button href="{{ route('tenant.members.index', $tenant) }}" wire:navigate>View members</flux:button>
-        @endcan
-        <flux:button href="{{ route('tenant.widget.index', $tenant) }}" wire:navigate variant="ghost">Chat widget</flux:button>
-        <flux:button href="{{ route('tenant.configuration.index', $tenant) }}" wire:navigate variant="ghost">Configuration</flux:button>
-        <flux:button href="{{ route('tenant.knowledge.index', $tenant) }}" wire:navigate variant="ghost">Knowledge base</flux:button>
-        <flux:button href="{{ route('tenant.ai.configuration', $tenant) }}" wire:navigate variant="ghost">AI orchestration</flux:button>
-        <flux:button href="{{ route('tenant.notes.index', $tenant) }}" wire:navigate variant="ghost">Tenant notes</flux:button>
+    <div class="flex flex-wrap gap-3">
+        <flux:button href="{{ route('tenant.leads.index', $tenant) }}" wire:navigate>Leads</flux:button>
+        <flux:button href="{{ route('tenant.conversations.index', $tenant) }}" wire:navigate variant="ghost">Conversations</flux:button>
+        <flux:button href="{{ route('tenant.counsellors.index', $tenant) }}" wire:navigate variant="ghost">Counsellors</flux:button>
     </div>
 </div>

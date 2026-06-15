@@ -37,6 +37,7 @@ class AiPromptBuilder
             $role = match ($message->role->value) {
                 'assistant' => 'assistant',
                 'visitor' => 'user',
+                'counsellor' => 'assistant',
                 default => null,
             };
 
@@ -44,10 +45,13 @@ class AiPromptBuilder
                 continue;
             }
 
-            $messages[] = new AiMessage(
-                $role,
-                Str::limit((string) $message->body, (int) config('ai.max_input_chars', 8000), '')
-            );
+            $content = Str::limit((string) $message->body, (int) config('ai.max_input_chars', 8000), '');
+
+            if ($message->role->value === 'counsellor') {
+                $content = '[Human counsellor] '.$content;
+            }
+
+            $messages[] = new AiMessage($role, $content);
         }
 
         $messages[] = new AiMessage(

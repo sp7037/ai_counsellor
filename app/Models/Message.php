@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'request_uuid', 'conversation_id', 'role', 'body', 'metadata'])]
+#[Fillable(['uuid', 'request_uuid', 'tenant_id', 'conversation_id', 'role', 'sender_user_id', 'sender_display_name', 'body', 'metadata'])]
 class Message extends Model
 {
     use BelongsToTenant;
@@ -46,5 +46,10 @@ class Message extends Model
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    public function sender(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sender_user_id');
     }
 }

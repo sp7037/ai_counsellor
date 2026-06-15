@@ -6,6 +6,8 @@ use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Http\Controllers\Controller;
 use App\Models\WidgetSession;
 use App\Services\Configuration\WidgetPublicConfigService;
+use App\Services\Conversations\ConversationHandoffService;
+use App\Services\Conversations\ConversationMessageService;
 use App\Services\Leads\LeadCaptureService;
 use App\Services\Widget\ConversationService;
 use App\Services\Widget\WidgetSessionService;
@@ -21,6 +23,8 @@ class WidgetGatewayController extends Controller
         private readonly WidgetSessionService $sessionService,
         private readonly ConversationService $conversationService,
         private readonly LeadCaptureService $leadCapture,
+        private readonly ConversationHandoffService $handoffService,
+        private readonly ConversationMessageService $conversationMessages,
         private readonly WidgetPublicConfigService $publicConfigService,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
     ) {}
@@ -72,6 +76,7 @@ class WidgetGatewayController extends Controller
 
         return response()->json([
             'conversation_uuid' => $session->conversation->uuid,
+            'mode' => $session->conversation->mode?->value ?? 'ai',
             'offline_message' => $settings->offline_message,
             'offline_form_enabled' => $settings->offline_form_enabled,
             'messages' => $this->conversationService->listMessages($session->conversation),
@@ -126,12 +131,14 @@ class WidgetGatewayController extends Controller
                 'body' => $result['visitor_message']->body,
                 'created_at' => $result['visitor_message']->created_at?->toIso8601String(),
             ],
-            'reply' => [
+            'reply' => $result['reply'] ? [
                 'uuid' => $result['reply']->uuid,
                 'role' => $result['reply']->role->value,
                 'body' => $result['reply']->body,
                 'created_at' => $result['reply']->created_at?->toIso8601String(),
-            ],
+                'sender_name' => $result['reply']->sender_display_name,
+            ] : null,
+            'mode' => $result['mode'] ?? $session->conversation->mode?->value ?? 'ai',
         ]);
     }
 
@@ -159,6 +166,61 @@ class WidgetGatewayController extends Controller
             'message' => 'Thank you. Your enquiry has been received.',
             'lead_reference' => $lead->public_reference,
         ]);
+    }
+
+    public function requestHandoff(Request $request): JsonResponse
+    {
+        /** @var WidgetSession $session */
+        $session = $request->attributes->get('widget_session');
+
+        $validated = $request->validate([
+            'handoff_request_uuid' => ['required', 'uuid'],
+            'full_name' => ['nullable', 'string', 'max:120'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'enquiry_summary' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $result = $this->handoffService->requestFromWidget(
+            $session,
+            $validated['handoff_request_uuid'],
+            $validated,
+        );
+
+        $ack = $result['acknowledgement'];
+
+        return response()->json([
+            'mode' => $result['conversation']->mode->value,
+            'message' => $ack?->body ?? config('conversations.handoff_acknowledgement'),
+            'acknowledgement' => $ack ? [
+                'uuid' => $ack->uuid,
+                'role' => $ack->role->value,
+                'body' => $ack->body,
+                'created_at' => $ack->created_at?->toIso8601String(),
+            ] : null,
+            'lead_reference' => ($result['lead'] ?? null)?->public_reference,
+        ]);
+    }
+
+    public function pollMessages(Request $request): JsonResponse
+    {
+        /** @var WidgetSession $session */
+        $session = $request->attributes->get('widget_session');
+
+        $validated = $request->validate([
+            'after' => ['nullable', 'uuid'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.config('conversations.max_poll_messages', 50)],
+        ]);
+
+        $messages = $this->conversationMessages->listPublicMessages(
+            $session->conversation,
+            $validated['after'] ?? null,
+            $validated['limit'] ?? config('conversations.max_poll_messages', 50),
+        );
+
+        return response()->json([
+            'mode' => $session->conversation->fresh()->mode->value,
+            'messages' => $messages,
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function submitOffline(Request $request): JsonResponse

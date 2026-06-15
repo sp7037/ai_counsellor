@@ -2,32 +2,32 @@
 
 namespace App\Models;
 
-use App\Enums\Leads\LeadActivityType;
+use App\Enums\Conversations\ConversationActivityType;
 use App\Models\Concerns\BelongsToTenant;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'tenant_id',
-    'lead_id',
-    'actor_user_id',
-    'action_type',
-    'metadata',
-    'previous_values',
-    'new_values',
-    'created_at',
-])]
-class LeadActivity extends Model
+class ConversationActivity extends Model
 {
     use BelongsToTenant;
 
     public $timestamps = false;
 
+    protected $fillable = [
+        'tenant_id',
+        'conversation_id',
+        'actor_user_id',
+        'action_type',
+        'metadata',
+        'previous_values',
+        'new_values',
+        'created_at',
+    ];
+
     protected function casts(): array
     {
         return [
-            'action_type' => LeadActivityType::class,
+            'action_type' => ConversationActivityType::class,
             'metadata' => 'array',
             'previous_values' => 'array',
             'new_values' => 'array',
@@ -35,9 +35,9 @@ class LeadActivity extends Model
         ];
     }
 
-    public function lead(): BelongsTo
+    public function conversation(): BelongsTo
     {
-        return $this->belongsTo(Lead::class);
+        return $this->belongsTo(Conversation::class);
     }
 
     public function actor(): BelongsTo

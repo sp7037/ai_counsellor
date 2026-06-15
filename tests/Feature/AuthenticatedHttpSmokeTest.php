@@ -64,6 +64,7 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('tenant.ai.configuration', $tenant))->assertOk();
         $this->get(route('tenant.leads.index', $tenant))->assertOk();
         $this->get(route('tenant.counsellors.index', $tenant))->assertOk();
+        $this->get(route('tenant.conversations.index', $tenant))->assertOk();
 
         $counsellor = User::factory()->create(['password' => Hash::make('smoke-test-password-12')]);
         TenantMembership::factory()->create([
@@ -84,6 +85,7 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('workspace.dashboard', $tenant))->assertOk();
         $this->get(route('workspace.leads.index', $tenant))->assertOk();
         $this->get(route('workspace.follow-ups.index', $tenant))->assertOk();
+        $this->get(route('workspace.conversations.index', $tenant))->assertOk();
     }
 
     public function test_unauthorized_http_access_is_denied(): void

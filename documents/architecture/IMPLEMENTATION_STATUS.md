@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 7 — complete)  
-**Current phase:** Module 7 complete; Module 8 not started
+**Last updated:** 2026-06-15 (Module 8 — complete)  
+**Current phase:** Module 8 complete; Module 9 not started
 
 ## Principal reference
 
@@ -24,7 +24,7 @@
 | Module 6 — Super Admin control plane | **Complete** | Platform dashboard, tenant ops, AI monitoring, usage, audit, settings |
 | Module 6 (original master doc) — Lead qualification items | **Partially restored in Module 7** | OTP/PIN flows still deferred |
 | Module 7 — Lead qualification and counsellor workspace | **Complete** | Leads, assignment, workspace, follow-ups, deterministic scoring |
-| Module 8 — Human agent live conversations | **Not Started** | Renumbered from original Module 7 |
+| Module 8 — Human agent live conversations | **Complete** | Handoff, ownership, counsellor chat, widget polling, admin supervision |
 | Module 9 — Subscription and usage enforcement | **Not Started** | Formerly Module 8 |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |
 
@@ -67,6 +67,40 @@ See [MODULE_7_SCHEMA.md](MODULE_7_SCHEMA.md) and [ADR-004](decisions/ADR-004-lea
 | Pint | Pass |
 
 **READY FOR MODULE 8**
+
+## Module 8 — Completion summary (2026-06-15)
+
+### Delivered
+
+- `ConversationMode` governed lifecycle with transition service
+- Human handoff request (widget), claim, release, close, reopen
+- Counsellor messaging (`MessageRole::Counsellor`) with idempotency
+- Widget `POST /handoff` and `GET /messages/poll` (bounded polling)
+- Counsellor workspace conversation inbox and live chat UI (`wire:poll.5s`)
+- Tenant admin conversation supervision and convert-to-lead action
+- Dashboard metrics (tenant + counsellor) for leads and conversations
+- Platform super admin denied from routine conversation workspace
+- **182 automated tests** (8 new Module 8 tests)
+
+See [MODULE_8_SCHEMA.md](MODULE_8_SCHEMA.md) and [ADR-005](decisions/ADR-005-human-agent-live-conversations.md).
+
+### Deferred
+
+- AI suggested replies (`ai_runs.purpose` reserved)
+- Conversation summaries
+- WebSocket/Echo broadcasting
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **182 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 9**
 
 ---
 

@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Module 7 — complete)
+**Last updated:** 2026-06-15 (Module 8 — complete)
 
 ## Principal reference
 
@@ -191,6 +191,19 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Notifications | In-app `lead_notifications` table only |
 | UI | Extend existing Flux tenant/workspace layouts — no second design system |
 
-**Test suite:** 174 tests, 479 assertions.
+**Test suite:** 174 tests, 486 assertions (Module 6 adds platform control plane authorization, tenant ops, AI monitoring, usage, audit, and secret-leakage suites).
 
-**READY FOR MODULE 8**
+## Module 8 — Human agent live conversations (implemented)
+
+| Item | Decision |
+|------|----------|
+| Real-time delivery | Bounded HTTP polling (widget 5s, Livewire `wire:poll.5s`) — no Reverb/Echo |
+| Conversation modes | `ConversationMode` enum + `ConversationTransitionService` |
+| Ownership | `human_owner_id` + `conversation_handoffs` history; `lockForUpdate` on claim |
+| AI during human mode | Provider calls skipped; resume is explicit |
+| Widget sync | `GET /widget/v1/messages/poll?after={uuid}` — public roles only |
+| Suggested replies | Deferred; `ai_runs.purpose` reserved |
+
+**Test suite:** 182 tests, 503 assertions.
+
+**READY FOR MODULE 9**

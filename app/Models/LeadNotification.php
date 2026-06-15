@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'lead_id', 'type', 'title', 'body', 'read_at'])]
+#[Fillable(['tenant_id', 'user_id', 'lead_id', 'conversation_id', 'type', 'title', 'body', 'read_at'])]
 class LeadNotification extends Model
 {
     use BelongsToTenant;

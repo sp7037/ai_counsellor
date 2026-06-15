@@ -3,6 +3,7 @@
 namespace App\Services\Widget;
 
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
+use App\Enums\Conversations\ConversationMode;
 use App\Enums\Conversations\ConversationStatus;
 use App\Enums\Conversations\MessageRole;
 use App\Models\Conversation;
@@ -11,6 +12,7 @@ use App\Models\TenantSettings;
 use App\Models\WidgetSession;
 use App\Services\AI\AiConversationOrchestrator;
 use App\Services\AI\AiIdempotencyCoordinator;
+use App\Services\Conversations\ConversationMessageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -21,10 +23,27 @@ class ConversationService
         private readonly AiConversationOrchestrator $orchestrator,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
         private readonly AiIdempotencyCoordinator $idempotency,
+        private readonly ConversationMessageService $conversationMessages,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
     {
+        $conversation = $session->conversation;
+
+        if ($conversation->status !== ConversationStatus::Open || $conversation->mode === ConversationMode::Closed) {
+            throw ValidationException::withMessages(['body' => 'Conversation is closed.']);
+        }
+
+        if (! $conversation->mode->allowsAiResponse()) {
+            $humanResult = $this->conversationMessages->addVisitorMessageInHumanMode($session, $body, $requestId);
+
+            return [
+                'visitor_message' => $humanResult['visitor_message'],
+                'reply' => $humanResult['reply'] ?? $this->waitingReply($conversation),
+                'mode' => $humanResult['mode'],
+            ];
+        }
+
         $body = trim(strip_tags($body));
 
         if ($body === '') {
@@ -33,12 +52,6 @@ class ConversationService
 
         if (strlen($body) > config('widget.max_message_length', 4000)) {
             throw ValidationException::withMessages(['body' => 'Message is too long.']);
-        }
-
-        $conversation = $session->conversation;
-
-        if ($conversation->status !== ConversationStatus::Open) {
-            throw ValidationException::withMessages(['body' => 'Conversation is closed.']);
         }
 
         $resolved = $this->idempotency->resolveVisitorMessage(
@@ -52,6 +65,7 @@ class ConversationService
             return [
                 'visitor_message' => $resolved['visitor_message'],
                 'reply' => $resolved['replay']['reply'],
+                'mode' => $conversation->mode->value,
             ];
         }
 
@@ -71,7 +85,10 @@ class ConversationService
         );
 
         $reply = DB::transaction(function () use ($session, $conversation, $aiResult): Message {
-            $conversation->update(['last_message_at' => now()]);
+            $conversation->update([
+                'last_message_at' => now(),
+                'last_visitor_message_at' => now(),
+            ]);
 
             if ($aiResult['status'] === 'success' && is_string($aiResult['content'])) {
                 if ($aiResult['run']->message !== null) {
@@ -90,13 +107,14 @@ class ConversationService
                 'tenant_id' => $session->tenant_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::System->value,
-                'body' => $this->safeFallbackMessage(),
+                'body' => $this->safeFallbackMessage($session->tenant_id),
             ]);
         });
 
         return [
             'visitor_message' => $resolved['visitor_message'],
             'reply' => $reply,
+            'mode' => $conversation->fresh()->mode->value,
         ];
     }
 
@@ -141,18 +159,14 @@ class ConversationService
         return $conversation->messages()
             ->orderBy('created_at')
             ->get()
-            ->map(fn (Message $message) => [
-                'uuid' => $message->uuid,
-                'role' => $message->role->value,
-                'body' => $message->body,
-                'created_at' => $message->created_at?->toIso8601String(),
-            ])
+            ->filter(fn (Message $message) => $message->role->isPublicWidgetVisible())
+            ->map(fn (Message $message) => app(ConversationMessageService::class)->serializePublicMessage($message))
             ->all();
     }
 
-    private function safeFallbackMessage(): string
+    private function safeFallbackMessage(int $tenantId): string
     {
-        $settings = TenantSettings::query()->first();
+        $settings = TenantSettings::query()->where('tenant_id', $tenantId)->first();
         $handover = trim((string) ($settings?->human_transfer_message ?? ''));
 
         if ($handover !== '') {
@@ -160,5 +174,18 @@ class ConversationService
         }
 
         return 'Our assistant is temporarily unavailable. Please try again shortly or contact our team.';
+    }
+
+    private function waitingReply(Conversation $conversation): ?Message
+    {
+        if ($conversation->mode !== ConversationMode::HandoffRequested) {
+            return null;
+        }
+
+        return $conversation->messages()
+            ->where('role', MessageRole::System->value)
+            ->where('metadata->type', 'handoff_ack')
+            ->latest('id')
+            ->first();
     }
 }

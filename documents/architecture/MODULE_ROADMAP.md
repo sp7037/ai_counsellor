@@ -186,14 +186,21 @@ Exit gate: Tenant Admin can manage leads and counsellors; counsellors can work a
 
 ## Module 8 — Human agent live conversations (formerly Module 7)
 
-**Status:** Not Started
+**Status:** Complete
 
 Renumbered from original roadmap "Module 7 — Human agent workspace" live-conversation items:
 
-- Live conversations
-- Human takeover
-- Suggested replies
-- Conversation summaries
+- Governed conversation modes (AI / handoff / human / closed)
+- Human handoff with idempotency and lead linkage
+- Atomic counsellor ownership claiming
+- Counsellor live messaging and workspace inbox
+- Widget handoff endpoint and message polling (no WebSockets)
+- Tenant admin conversation supervision
+- Conversation-to-lead admin action
+- Dashboard metrics integration (tenant + counsellor)
+- In-app notifications for handoff events
+
+**Deferred:** suggested replies, conversation summaries, WebSocket broadcasting.
 
 Exit gate: Agent can continue live conversations without losing context.
 

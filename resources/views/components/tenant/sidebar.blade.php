@@ -4,7 +4,7 @@
         ['label' => 'Dashboard', 'route' => 'tenant.dashboard'],
         ['label' => 'Leads', 'route' => 'tenant.leads.index'],
         ['label' => 'Counsellors', 'route' => 'tenant.counsellors.index'],
-        ['label' => 'Conversations', 'route' => 'tenant.widget.conversations'],
+        ['label' => 'Conversations', 'route' => 'tenant.conversations.index'],
         ['label' => 'Knowledge', 'route' => 'tenant.knowledge.index'],
         ['label' => 'AI Settings', 'route' => 'tenant.ai.configuration'],
         ['label' => 'Members', 'route' => 'tenant.members.index'],

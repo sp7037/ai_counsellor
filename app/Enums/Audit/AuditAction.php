@@ -80,6 +80,11 @@ enum AuditAction: string
     case CounsellorActivated = 'counsellor.activated';
     case CounsellorDeactivated = 'counsellor.deactivated';
     case LeadQualificationRulesUpdated = 'lead.qualification_rules_updated';
+    case ConversationHandoffRequested = 'conversation.handoff_requested';
+    case ConversationReassigned = 'conversation.reassigned';
+    case ConversationClosed = 'conversation.closed';
+    case ConversationReopened = 'conversation.reopened';
+    case ConversationAiResumed = 'conversation.ai_resumed';
 
     public function label(): string
     {
@@ -160,6 +165,11 @@ enum AuditAction: string
             self::CounsellorActivated => 'Counsellor activated',
             self::CounsellorDeactivated => 'Counsellor deactivated',
             self::LeadQualificationRulesUpdated => 'Lead qualification rules updated',
+            self::ConversationHandoffRequested => 'Conversation handoff requested',
+            self::ConversationReassigned => 'Conversation reassigned',
+            self::ConversationClosed => 'Conversation closed',
+            self::ConversationReopened => 'Conversation reopened',
+            self::ConversationAiResumed => 'Conversation AI resumed',
         };
     }
 }

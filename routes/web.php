@@ -69,6 +69,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Volt::route('leads/{lead}', 'tenant.leads.show')->name('leads.show');
                 Volt::route('counsellors', 'tenant.counsellors.index')->name('counsellors.index');
                 Volt::route('counsellors/create', 'tenant.counsellors.create')->name('counsellors.create');
+                Volt::route('conversations', 'tenant.conversations.index')->name('conversations.index');
+                Volt::route('conversations/{conversation}', 'tenant.conversations.show')->name('conversations.show');
             });
         });
 
@@ -80,6 +82,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Volt::route('leads', 'workspace.leads.index')->name('leads.index');
             Volt::route('leads/{lead}', 'workspace.leads.show')->name('leads.show');
             Volt::route('follow-ups', 'workspace.follow-ups.index')->name('follow-ups.index');
+            Volt::route('conversations', 'workspace.conversations.index')->name('conversations.index');
+            Volt::route('conversations/{conversation}', 'workspace.conversations.show')->name('conversations.show');
         });
 });
 
