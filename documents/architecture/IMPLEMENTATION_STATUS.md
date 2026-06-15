@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Phase 0B — complete)  
-**Current phase:** Phase 0B complete; Module 1 not started
+**Last updated:** 2026-06-15 (Module 1 — complete)  
+**Current phase:** Module 1 complete; Module 2 not started
 
 ## Principal reference
 
@@ -16,7 +16,7 @@
 | Phase 0 — Project audit, environment, documentation | **Complete** | Laravel 9 baseline |
 | Phase 1A — Laravel foundation installation | **Complete** | Superseded by Phase 0B requirement |
 | Phase 0B — Modernise technical foundation | **Complete** | Corrective pass: npm audit clean, auth decision updated |
-| Module 1 — SaaS foundation | **Not Started** | Do not begin until Phase 0B completes |
+| Module 1 — SaaS foundation | **Complete** | Auth, tenancy, isolation, platform/tenant dashboards, tests |
 | Module 2 — Embeddable chat widget | **Not Started** | |
 | Module 3 — Tenant configuration | **Not Started** | |
 | Module 4 — Knowledge base | **Not Started** | |
@@ -119,13 +119,45 @@ Use `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000` — not Apache
 - Apache not configured for PHP 8.3 (intentional)
 - `npm audit`: **0 vulnerabilities** (resolved: `concurrently@10.0.3` → `shell-quote@1.8.4`)
 
-### Module 1 readiness
+### Module 1 readiness (Phase 0B)
 
-**READY FOR MODULE 1**
+**READY FOR MODULE 1** — achieved 2026-06-15
 
 ---
 
-## Module 1 — Implementation Plan (prepared, not implemented)
+## Module 1 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Fortify + Livewire 4 + Volt + Flux authentication (see [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md), [ADR-001](decisions/ADR-001-authentication-foundation.md))
+- Tables: `tenants`, `tenant_user`, extended `users`, `audit_logs`, sample `tenant_notes`
+- Platform super-admin area: `/platform/tenants`
+- Tenant area: `/app/{tenant_uuid}/dashboard`, members, notes
+- `TenantContext`, `BelongsToTenant`, policies, status enforcement
+- `platform:create-super-admin` Artisan command
+- **28 automated tests** (tenant isolation, auth, authorization)
+
+### Explicitly deferred (Module 1 scope)
+
+- Plans, subscriptions, billing, entitlements, tenant domains
+- AI, widget, leads, Redis, Reverb, payment gateways
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | 28 passed |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+
+See [MODULE_1_SCHEMA.md](MODULE_1_SCHEMA.md) for schema and isolation design.
+
+**READY FOR MODULE 2**
+
+---
+
+## Module 1 — Original implementation plan (archived reference)
 
 ### Overview
 

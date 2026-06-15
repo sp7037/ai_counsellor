@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Phase 0B corrective pass — complete)
+**Last updated:** 2026-06-15 (Module 1 — complete)
 
 ## Principal reference
 
@@ -23,6 +23,10 @@ See [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.d
 | npm audit | **0 vulnerabilities** |
 | concurrently | 10.0.3 (devDependency; used by `composer run dev`) |
 | shell-quote | 1.8.4 (transitive via concurrently) |
+| **livewire/livewire** | ^4.3 (Module 1) |
+| **livewire/volt** | ^1.10 (Module 1) |
+| **livewire/flux** | ^2.14 (Module 1) |
+| **laravel/fortify** | ^1.37 (Module 1) |
 
 ## Modernisation summary
 

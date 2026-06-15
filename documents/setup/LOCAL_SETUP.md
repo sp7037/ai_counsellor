@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Phase 0B — complete)
+**Last updated:** 2026-06-15 (Module 1 — complete)
 
 ## Stack
 
@@ -147,6 +147,21 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 ```
 
 Open `http://127.0.0.1:8000` — expect HTTP 200.
+
+---
+
+## Module 1 — Platform super-admin bootstrap
+
+```bat
+D:\php83\php.exe artisan platform:create-super-admin
+```
+
+Log in at `/login`, then manage tenants at `/platform/tenants`.
+
+```bat
+D:\php83\php.exe artisan test
+D:\php83\php.exe artisan pint --test
+```
 
 ---
 

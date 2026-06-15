@@ -1,10 +1,20 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Module 1)
 
 ## Principal reference
 
 Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.docx) §14. This document is the enforced baseline for all modules.
+
+## Module 1 enforcement (implemented)
+
+- Tenant context resolved server-side via `ResolveTenant` middleware; never from request `tenant_id` alone
+- `BelongsToTenant` global scope on tenant-owned models; `tenant_id` not mass-assignable
+- Platform `/platform/*` routes require `platform.admin` middleware
+- Login rate limiting: 5 attempts/minute per email+IP
+- Public registration disabled; Fortify registration feature off
+- Audit logging for tenant lifecycle and membership changes (`audit_logs`)
+- Disabled user accounts (`users.status = disabled`) are logged out on next request
 
 ## Secrets and credentials
 
