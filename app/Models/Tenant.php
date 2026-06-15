@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -83,5 +84,25 @@ class Tenant extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(TenantNote::class);
+    }
+
+    public function widgetSettings(): HasOne
+    {
+        return $this->hasOne(TenantWidgetSettings::class);
+    }
+
+    public function widgetKeys(): HasMany
+    {
+        return $this->hasMany(WidgetKey::class);
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(TenantDomain::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
     }
 }

@@ -26,6 +26,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Volt::route('dashboard', 'tenant.dashboard')->name('dashboard');
             Volt::route('members', 'tenant.members.index')->name('members.index');
             Volt::route('notes', 'tenant.notes.index')->name('notes.index');
+            Volt::route('widget', 'tenant.widget.index')->name('widget.index');
+            Volt::route('widget/conversations', 'tenant.widget.conversations')->name('widget.conversations');
         });
 });
 

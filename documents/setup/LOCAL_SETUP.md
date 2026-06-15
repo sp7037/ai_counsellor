@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 1 — complete)
+**Last updated:** 2026-06-15 (Module 2 — complete)
 
 ## Stack
 
@@ -187,6 +187,29 @@ D:\php83\php.exe D:\xampp\php\composer audit
 ```
 
 Never use `D:\xampp\php\php.exe` for this project.
+
+---
+
+## Module 2 widget (local)
+
+After `npm run build`, the embed script is at `public/build/widget.js`.
+
+1. Log in as tenant owner/admin → **Chat widget** (`/app/{tenant_uuid}/widget`)
+2. Create a widget key and add/verify domain `127.0.0.1` (or rely on `WIDGET_ALLOW_LOCAL_ORIGINS=true`)
+3. Open demo pages:
+   - `http://127.0.0.1:8000/widget-demo/static.html`
+   - `http://127.0.0.1:8000/widget-demo/php/`
+   - `http://127.0.0.1:8000/widget-demo/wordpress.html`
+4. Replace `YOUR_WIDGET_KEY` in the demo HTML with your `wk_…` key
+
+Optional `.env` overrides:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `WIDGET_ALLOW_LOCAL_ORIGINS` | `true` | Allow localhost embed without verified domain |
+| `WIDGET_SESSION_TTL_MINUTES` | `120` | Widget session lifetime |
+
+Gateway API base: `http://127.0.0.1:8000/widget/v1`
 
 ---
 

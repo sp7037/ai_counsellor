@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 1 corrective pass — complete)  
-**Current phase:** Module 1 complete; Module 2 not started
+**Last updated:** 2026-06-15 (Module 2 — complete)  
+**Current phase:** Module 2 complete; Module 3 not started
 
 ## Principal reference
 
@@ -17,7 +17,7 @@
 | Phase 1A — Laravel foundation installation | **Complete** | Superseded by Phase 0B requirement |
 | Phase 0B — Modernise technical foundation | **Complete** | Corrective pass: npm audit clean, auth decision updated |
 | Module 1 — SaaS foundation | **Complete** | Auth, tenancy, isolation, platform/tenant dashboards, tests |
-| Module 2 — Embeddable chat widget | **Not Started** | |
+| Module 2 — Embeddable chat widget | **Complete** | Widget gateway, keys, domains, sessions, admin UI, demo pages |
 | Module 3 — Tenant configuration | **Not Started** | |
 | Module 4 — Knowledge base | **Not Started** | |
 | Module 5 — AI orchestration | **Not Started** | |
@@ -167,6 +167,41 @@ Use `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000` — not Apache
 See [MODULE_1_SCHEMA.md](MODULE_1_SCHEMA.md) for schema and isolation design.
 
 **READY FOR MODULE 2**
+
+---
+
+## Module 2 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Public widget gateway API at `/widget/v1` (session, messages, offline intake, config)
+- Vanilla JavaScript embed (`public/build/widget.js`)
+- Tables: `tenant_widget_settings`, `tenant_domains`, `widget_keys`, `visitors`, `conversations`, `messages`, `widget_sessions`
+- Tenant admin UI: `/app/{tenant}/widget`, `/app/{tenant}/widget/conversations`
+- Widget key and domain lifecycle auditing
+- Demo embed pages under `public/widget-demo/`
+- **82 automated tests** total (18 new Module 2 tests)
+
+### Explicitly deferred (Module 2 boundary)
+
+- AI provider calls, lead qualification, human agent workspace
+- Full tenant branding and office-hours configuration (Module 3)
+- Redis, Reverb, WebSockets, production queues
+- Payment gateways and subscription enforcement
+
+See [MODULE_2_SCHEMA.md](MODULE_2_SCHEMA.md).
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **82 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success (`public/build/widget.js`) |
+| Pint | Pass (`vendor/bin/pint`) |
+
+**READY FOR MODULE 3**
 
 ---
 

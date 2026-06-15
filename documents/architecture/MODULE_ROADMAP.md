@@ -1,6 +1,6 @@
 # Module Roadmap
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Module 2 complete)
 
 ## Principal reference
 
@@ -35,7 +35,7 @@ Exit gate: Clean install and automated baseline checks.
 
 ## Module 1 — SaaS foundation
 
-**Status:** Not Started
+**Status:** Complete
 
 - Super-admin authentication
 - Tenant organisations
@@ -54,16 +54,17 @@ Exit gate: Automated tenant-isolation and authorisation tests pass.
 
 ## Module 2 — Embeddable chat widget
 
-**Status:** Not Started
+**Status:** Complete
 
-- Public JavaScript widget
-- Tenant public key
-- Domain validation
-- Chat sessions
-- Responsive interface
-- Secure server communication
+- Public JavaScript widget (`public/build/widget.js`)
+- Tenant widget public keys (rotatable)
+- Domain validation (verified whitelist + local dev origins)
+- Chat sessions, visitors, conversations, messages
+- Offline intake form
+- Widget gateway API with CORS and rate limits
+- Tenant admin widget settings UI
 
-Exit gate: Works on at least PHP/static/WordPress test pages.
+Exit gate: Works on at least PHP/static/WordPress test pages (`public/widget-demo/`).
 
 ---
 

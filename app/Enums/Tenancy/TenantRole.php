@@ -22,6 +22,11 @@ enum TenantRole: string
         return in_array($this, [self::Owner, self::Admin], true);
     }
 
+    public function canManageWidget(): bool
+    {
+        return $this->canManageMembers();
+    }
+
     public function rank(): int
     {
         return match ($this) {

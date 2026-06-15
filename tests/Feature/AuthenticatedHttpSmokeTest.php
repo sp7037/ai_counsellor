@@ -43,6 +43,8 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('tenant.dashboard', $tenant))->assertOk();
         $this->get(route('tenant.members.index', $tenant))->assertOk();
         $this->get(route('tenant.notes.index', $tenant))->assertOk();
+        $this->get(route('tenant.widget.index', $tenant))->assertOk();
+        $this->get(route('tenant.widget.conversations', $tenant))->assertOk();
     }
 
     public function test_unauthorized_http_access_is_denied(): void

@@ -30,6 +30,13 @@ class TenantContext
         $this->platformBypass = true;
     }
 
+    public function setFromWidgetGateway(Tenant $tenant): void
+    {
+        $this->tenant = $tenant;
+        $this->membership = null;
+        $this->platformBypass = false;
+    }
+
     public function enforceIsolation(): void
     {
         $this->isolationEnforced = true;

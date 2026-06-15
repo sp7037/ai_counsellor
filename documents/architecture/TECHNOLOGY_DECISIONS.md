@@ -119,7 +119,7 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Layer | Decision |
 |-------|----------|
 | Admin UI | Blade + Livewire 3 (Module 1) |
-| Public widget | Vanilla JavaScript (Module 2) |
+| Public widget | Vanilla JavaScript (Module 2) — `resources/js/widget/embed.js` → `public/build/widget.js` |
 | Cache / queues (local) | Database driver (Laravel 13 default) |
 | Production | VPS/cloud; Redis + Reverb |
 

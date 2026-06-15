@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/widget/embed.js'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
@@ -16,6 +16,19 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                entryFileNames: (chunkInfo) => {
+                    if (chunkInfo.name === 'embed') {
+                        return 'widget.js';
+                    }
+
+                    return 'assets/[name]-[hash].js';
+                },
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

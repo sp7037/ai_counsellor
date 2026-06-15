@@ -43,6 +43,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         @can('viewAny', [App\Models\TenantMembership::class, $tenant])
             <flux:button href="{{ route('tenant.members.index', $tenant) }}" wire:navigate>View members</flux:button>
         @endcan
+        <flux:button href="{{ route('tenant.widget.index', $tenant) }}" wire:navigate variant="ghost">Chat widget</flux:button>
         <flux:button href="{{ route('tenant.notes.index', $tenant) }}" wire:navigate variant="ghost">Tenant notes</flux:button>
     </div>
 </div>

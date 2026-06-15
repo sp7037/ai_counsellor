@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 1)
+**Last updated:** 2026-06-15 (Module 2)
 
 ## Principal reference
 
@@ -20,6 +20,17 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Disabled user accounts (`users.status = disabled`) are logged out on next request
 - Email verification required for protected dashboards (`verified` middleware)
 - Fortify 2FA/passkey migrations retained; features disabled in config (no routes)
+
+## Module 2 enforcement (implemented)
+
+- Public widget resolves tenant via **widget public key + verified Origin/Referer** only; never client `tenant_id`
+- Widget session tokens stored as SHA-256 hashes; plain token returned once at session start
+- `HandleWidgetCors` reflects request `Origin`; gateway rate-limited per `config/widget.php`
+- `ResolveWidgetSession` validates token, tenant active state, and origin binding
+- Widget gateway sets `TenantContext::setFromWidgetGateway()` with isolation enforced; cleared via `ClearTenantContext` on `api` group
+- Widget key rotation/revocation and domain verify/remove audited
+- Tenant admin widget mutations authorized in policies; cross-tenant UUID/ID lookups return 404 under tenant scope
+- Suspended/cancelled/pending tenants rejected at widget session start
 
 ## Secrets and credentials
 

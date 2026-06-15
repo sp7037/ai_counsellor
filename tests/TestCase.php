@@ -5,9 +5,13 @@ namespace Tests;
 use App\Enums\Tenancy\MembershipStatus;
 use App\Enums\Tenancy\TenantRole;
 use App\Enums\Tenancy\TenantStatus;
+use App\Enums\Widget\TenantDomainStatus;
+use App\Enums\Widget\WidgetKeyStatus;
 use App\Models\Tenant;
+use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\User;
+use App\Models\WidgetKey;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -52,5 +56,37 @@ abstract class TestCase extends BaseTestCase
         $context->enforceIsolation();
 
         return $context;
+    }
+
+    protected function createWidgetReadyTenant(
+        array $tenantAttributes = [],
+        ?User $user = null,
+        TenantRole $role = TenantRole::Owner,
+    ): array {
+        $result = $this->createTenantWithMember($tenantAttributes, $user, $role);
+
+        app(TenantContext::class)->clear();
+        app(TenantContext::class)->resolveForUser($result['user'], $result['tenant']);
+        app(TenantContext::class)->enforceIsolation();
+
+        $key = WidgetKey::query()->create([
+            'tenant_id' => $result['tenant']->id,
+            'public_key' => 'wk_test_'.str()->random(24),
+            'name' => 'Test key',
+            'status' => WidgetKeyStatus::Active->value,
+            'created_by' => $result['user']->id,
+        ]);
+
+        $domain = TenantDomain::query()->create([
+            'tenant_id' => $result['tenant']->id,
+            'domain' => '127.0.0.1',
+            'status' => TenantDomainStatus::Verified->value,
+            'verified_at' => now(),
+            'created_by' => $result['user']->id,
+        ]);
+
+        app(TenantContext::class)->clear();
+
+        return array_merge($result, compact('key', 'domain'));
     }
 }
