@@ -7,6 +7,7 @@ use App\Services\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class ResolveTenant
 {
@@ -14,8 +15,6 @@ class ResolveTenant
 
     public function handle(Request $request, Closure $next): Response
     {
-        $this->tenantContext->clear();
-
         $tenant = $request->route('tenant');
 
         if (is_string($tenant)) {
@@ -32,8 +31,24 @@ class ResolveTenant
             abort(403);
         }
 
-        $this->tenantContext->resolveForUser($user, $tenant);
+        try {
+            $this->tenantContext->resolveForUser($user, $tenant);
+            $this->tenantContext->enforceIsolation();
+        } catch (Throwable $exception) {
+            $this->tenantContext->clear();
+            throw $exception;
+        }
 
-        return $next($request);
+        try {
+            return $next($request);
+        } catch (Throwable $exception) {
+            $this->tenantContext->clear();
+            throw $exception;
+        }
+    }
+
+    public function terminate(Request $request, Response $response): void
+    {
+        $this->tenantContext->clear();
     }
 }

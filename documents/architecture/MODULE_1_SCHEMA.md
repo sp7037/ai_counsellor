@@ -1,6 +1,6 @@
 # Module 1 — Multi-tenant schema and design
 
-**Last updated:** 2026-06-15  
+**Last updated:** 2026-06-15 (corrective pass)  
 **Status:** Implemented (Module 1)
 
 ## Tables
@@ -39,20 +39,62 @@ Membership pivot (not `users.tenant_id`).
 
 ### `audit_logs`
 
-Append-only security events. No passwords/tokens in `metadata`.
+Append-only security events. Metadata includes `actor_scope` (`platform` / `tenant`), `before`, `after`, and `target_user_id` for membership changes. No passwords/tokens in metadata.
 
 ### `tenant_notes`
 
-Sample tenant-owned table for isolation tests and future patterns. Uses `BelongsToTenant`.
+Sample tenant-owned table for isolation tests. Uses `BelongsToTenant`.
+
+## Membership lifecycle
+
+All membership mutations go through `App\Services\Tenancy\MembershipLifecycleService`:
+
+| Operation | Audit action | Authorization |
+|-----------|--------------|---------------|
+| Add member | `membership.created` | Platform super-admin or tenant owner/admin |
+| Change role | `membership.role_changed` | Policy + role hierarchy |
+| Change status | `membership.status_changed` | Policy + final-owner rule |
+| Remove member | `membership.removed` | Policy + final-owner rule |
+
+### Final active owner protection
+
+The last active owner (`role = owner` or `is_owner = true`) cannot be:
+
+- deactivated (`status → inactive`)
+- demoted to another role
+- removed
+
+unless another active owner exists (ownership transfer deferred to later module).
+
+### Role assignment rules
+
+| Actor | May assign |
+|-------|------------|
+| Platform super-admin | Any tenant role including owner |
+| Tenant owner | `admin`, `staff` (not owner) |
+| Tenant admin | `staff` only |
+| Tenant staff | None |
+
+Platform users (`users.platform_role`) cannot be modified through tenant membership operations.
 
 ## Tenant context lifecycle
 
-1. Request enters `/app/{tenant:uuid}/*` route group.
-2. `ResolveTenant` middleware clears prior context, resolves tenant by UUID, validates membership and tenant status.
-3. `TenantContext` service exposes tenant id to `BelongsToTenant` global scope and creating hooks.
-4. Context cleared at start of each request; tests must set context explicitly when bypassing HTTP.
+1. **Request start:** `ClearTenantContext` middleware clears all tenant state.
+2. **Tenant route (`/app/{uuid}/*`):** `ResolveTenant` validates auth, membership, and tenant status; sets context; calls `enforceIsolation()`.
+3. **During request:** `BelongsToTenant` scopes queries to resolved tenant; fail-closed (`WHERE 1=0`) when isolation enforced but no tenant resolved.
+4. **Request end:** `ResolveTenant::terminate()` and `ClearTenantContext::terminate()` clear context (success, 403, 404, validation failure, or exception).
+5. **Platform routes (`/platform/*`):** Never set tenant context; cannot inherit prior tenant state.
+6. **Tests:** `TestCase::tearDown()` clears context between tests.
+7. **Future jobs/CLI:** Must explicitly initialize and clear tenant context; no implicit inheritance.
 
-Platform routes (`/platform/*`) do **not** set tenant context unless a super-admin explicitly opens a tenant area.
+## Global scope bypass policy
+
+| Context | Behaviour |
+|---------|-----------|
+| Tenant route with enforced isolation | Scoped queries; `tenant_id` forced on create; updates cannot change `tenant_id` |
+| Platform routes | Isolation not enforced; platform queries use explicit tenant filters |
+| Factories/seeders | Use `forceCreate()` or set context deliberately |
+| Platform bypass of tenant data | Super-admin via `ResolveTenant` platform bypass; sensitive bypasses should be audited |
 
 ## Roles
 
@@ -60,8 +102,6 @@ Platform routes (`/platform/*`) do **not** set tenant context unless a super-adm
 |-------|-------|
 | Platform | `super_admin` (`users.platform_role`) |
 | Tenant | `owner`, `admin`, `staff` (`tenant_user.role`) |
-
-Platform super-admins manage tenants without becoming ordinary members.
 
 ## Status rules
 
@@ -77,18 +117,10 @@ Platform super-admins manage tenants without becoming ordinary members.
 | `active` | Allowed (if tenant active) |
 | `inactive`, `invited` | Denied |
 
-## Isolation strategy
-
-- `BelongsToTenant` trait: global scope + forced `tenant_id` on create from `TenantContext`
-- `tenant_id` excluded from mass assignment on tenant-owned models
-- Route model binding uses `tenants.uuid`
-- Policies verify ownership/membership
-- Cross-tenant IDOR returns 403/404 without data leakage
-
-## Authorization
-
-Laravel policies: `TenantPolicy`, `TenantMembershipPolicy`, `TenantNotePolicy`  
-Middleware: `platform.admin`, `tenant.resolve`, `user.active`
+| User status | Access |
+|-------------|--------|
+| `active` | Allowed per policies |
+| `disabled` | Logged out; all protected routes denied |
 
 ## Bootstrap
 
@@ -96,12 +128,30 @@ Middleware: `platform.admin`, `tenant.resolve`, `user.active`
 D:\php83\php.exe artisan platform:create-super-admin
 ```
 
-Disabled in `production` environment. Password via prompt or `--password` (local only).
+- **No `--password` CLI option** (prevents shell history exposure)
+- Password entered via hidden prompt with confirmation
+- Optional temporary `PLATFORM_BOOTSTRAP_PASSWORD` env var for local bootstrap only (unset after use)
+- Blocked in `production`
+
+## HTTP smoke verification
+
+1. Start: `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000`
+2. Verify unauthenticated: `/` and `/login` return 200
+3. Log in via Livewire login form at `/login`
+4. Verify platform super-admin: `/platform/tenants`
+5. Log in as tenant member; verify `/app/{uuid}/dashboard`, `/members`, `/notes`
+6. Verify unauthorized: tenant user → `/platform/tenants` (403); cross-tenant UUID (403)
+
+Automated equivalent: `tests/Feature/AuthenticatedHttpSmokeTest.php`
+
+## Fortify 2FA / passkey schema
+
+Migrations `add_two_factor_columns_to_users_table` and `create_passkeys_table` were published by `fortify:install` for starter-kit compatibility. Features are **disabled** in `config/fortify.php` (no registration, 2FA, or passkeys). No routes expose these endpoints. Schema retained to avoid drift from future Fortify upgrades; can be removed via ADR if desired.
 
 ## Deferred to later modules
 
 - Plans, subscriptions, billing, entitlements
 - Custom domains / subdomain provisioning
-- Roles/permissions tables beyond fixed enums
+- Ownership transfer workflow UI
 - 2FA, passkeys, SSO
-- AI, widget, leads, queues beyond defaults
+- AI, widget, leads, Redis, Reverb

@@ -1,6 +1,6 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 1 — complete)  
+**Last updated:** 2026-06-15 (Module 1 corrective pass — complete)  
 **Current phase:** Module 1 complete; Module 2 not started
 
 ## Principal reference
@@ -146,10 +146,23 @@ Use `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000` — not Apache
 
 | Check | Result |
 |-------|--------|
-| `php artisan test` | 28 passed |
+| `php artisan test` | **64 passed** (corrective pass) |
 | `composer audit` | 0 advisories |
 | `npm audit` | 0 vulnerabilities |
 | `npm run build` | Success |
+| Authenticated HTTP smoke (browser) | Platform tenant list loads after Livewire login |
+
+### Corrective pass (2026-06-15)
+
+| Gate | Status |
+|------|--------|
+| Membership lifecycle audit (create/role/status/remove) | Implemented via `MembershipLifecycleService` |
+| Final active owner protection | Enforced |
+| Secure super-admin bootstrap (no `--password` CLI arg) | Implemented |
+| TenantContext request lifecycle + leakage tests | Implemented |
+| Account status / email verification / session tests | Implemented |
+| Global scope fail-closed + bypass policy | Documented and tested |
+| Fortify 2FA/passkey schema | Retained, features disabled |
 
 See [MODULE_1_SCHEMA.md](MODULE_1_SCHEMA.md) for schema and isolation design.
 

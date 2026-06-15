@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ClearTenantContext;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ResolveTenant;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.active' => EnsureUserIsActive::class,
         ]);
 
+        $middleware->prependToGroup('web', ClearTenantContext::class);
         $middleware->appendToGroup('web', EnsureUserIsActive::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

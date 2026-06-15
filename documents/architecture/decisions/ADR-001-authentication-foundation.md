@@ -35,6 +35,7 @@ Auth **views and routes** follow the official [laravel/livewire-starter-kit](htt
 - UI matches official Livewire starter kit conventions (Flux layouts, Volt auth screens).
 - Future Laravel 13 starter-kit package releases can be diffed against this implementation when `^13` support ships.
 - Two-factor authentication, passkeys, and social login remain deferred.
+- Fortify-published `two_factor_*` columns and `passkeys` table migrations are **retained** for starter-kit compatibility but features remain disabled in `config/fortify.php` with no registered routes.
 
 ## References
 

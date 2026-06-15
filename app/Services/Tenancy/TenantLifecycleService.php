@@ -3,7 +3,6 @@
 namespace App\Services\Tenancy;
 
 use App\Enums\Audit\AuditAction;
-use App\Enums\Tenancy\MembershipStatus;
 use App\Enums\Tenancy\TenantRole;
 use App\Enums\Tenancy\TenantStatus;
 use App\Models\Tenant;
@@ -17,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class TenantLifecycleService
 {
-    public function __construct(private AuditLogger $auditLogger) {}
+    public function __construct(
+        private AuditLogger $auditLogger,
+        private MembershipLifecycleService $membershipLifecycle,
+    ) {}
 
     public function createTenant(
         array $attributes,
@@ -120,7 +122,13 @@ class TenantLifecycleService
 
     public function addOwner(Tenant $tenant, User $user, ?User $actor = null): TenantMembership
     {
-        return $this->addMember($tenant, $user, TenantRole::Owner, isOwner: true, actor: $actor);
+        if ($actor?->isPlatformSuperAdmin()) {
+            return $this->membershipLifecycle->addMember($tenant, $user, TenantRole::Owner, isOwner: true, actor: $actor);
+        }
+
+        throw ValidationException::withMessages([
+            'role' => 'Only platform administrators may assign the initial tenant owner.',
+        ]);
     }
 
     public function addMember(
@@ -130,30 +138,7 @@ class TenantLifecycleService
         bool $isOwner = false,
         ?User $actor = null,
     ): TenantMembership {
-        if (TenantMembership::query()->where('tenant_id', $tenant->id)->where('user_id', $user->id)->exists()) {
-            throw ValidationException::withMessages([
-                'user_id' => 'This user is already a member of the tenant.',
-            ]);
-        }
-
-        $membership = TenantMembership::query()->create([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user->id,
-            'role' => $role->value,
-            'status' => MembershipStatus::Active->value,
-            'is_owner' => $isOwner,
-            'joined_at' => now(),
-        ]);
-
-        $this->auditLogger->log(
-            AuditAction::MembershipCreated,
-            $membership,
-            $tenant->id,
-            ['role' => $role->value, 'user_id' => $user->id],
-            $actor,
-        );
-
-        return $membership;
+        return $this->membershipLifecycle->addMember($tenant, $user, $role, $isOwner, $actor);
     }
 
     public function createOwnerUser(string $name, string $email, string $password): User

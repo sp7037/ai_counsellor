@@ -9,12 +9,17 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 ## Module 1 enforcement (implemented)
 
 - Tenant context resolved server-side via `ResolveTenant` middleware; never from request `tenant_id` alone
-- `BelongsToTenant` global scope on tenant-owned models; `tenant_id` not mass-assignable
-- Platform `/platform/*` routes require `platform.admin` middleware
+- `ClearTenantContext` + `ResolveTenant::terminate()` clear context after every web request
+- `BelongsToTenant` fail-closed global scope when isolation enforced; `tenant_id` not mass-assignable or updatable
+- Platform `/platform/*` routes require `platform.admin` middleware and never inherit tenant context
 - Login rate limiting: 5 attempts/minute per email+IP
 - Public registration disabled; Fortify registration feature off
-- Audit logging for tenant lifecycle and membership changes (`audit_logs`)
+- Password reset Livewire flow uses generic message (does not reveal account existence)
+- Membership lifecycle audited via `MembershipLifecycleService` (create, role change, status change, remove)
+- Final active tenant owner cannot be removed/deactivated/demoted without another owner
 - Disabled user accounts (`users.status = disabled`) are logged out on next request
+- Email verification required for protected dashboards (`verified` middleware)
+- Fortify 2FA/passkey migrations retained; features disabled in config (no routes)
 
 ## Secrets and credentials
 

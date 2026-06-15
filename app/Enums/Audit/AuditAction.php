@@ -10,6 +10,7 @@ enum AuditAction: string
     case TenantReactivated = 'tenant.reactivated';
     case MembershipCreated = 'membership.created';
     case MembershipRoleChanged = 'membership.role_changed';
+    case MembershipStatusChanged = 'membership.status_changed';
     case MembershipRemoved = 'membership.removed';
     case PlatformBypass = 'platform.bypass';
 
@@ -22,6 +23,7 @@ enum AuditAction: string
             self::TenantReactivated => 'Tenant reactivated',
             self::MembershipCreated => 'Membership created',
             self::MembershipRoleChanged => 'Membership role changed',
+            self::MembershipStatusChanged => 'Membership status changed',
             self::MembershipRemoved => 'Membership removed',
             self::PlatformBypass => 'Platform bypass',
         };

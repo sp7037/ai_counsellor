@@ -32,6 +32,7 @@ class TenantIsolationTest extends TestCase
         ]);
 
         app(TenantContext::class)->resolveForUser($userA, $tenantA);
+        app(TenantContext::class)->enforceIsolation();
 
         $this->assertFalse(TenantNote::query()->whereKey($noteB->id)->exists());
     }
@@ -51,6 +52,7 @@ class TenantIsolationTest extends TestCase
 
         $this->actingAs($userA);
         app(TenantContext::class)->resolveForUser($userA, $tenantA);
+        app(TenantContext::class)->enforceIsolation();
 
         Volt::test('tenant.notes.index', ['tenant' => $tenantA])
             ->call('deleteNote', $noteB->id)
@@ -75,6 +77,7 @@ class TenantIsolationTest extends TestCase
         ['tenant' => $tenantB] = $this->createTenantWithMember();
 
         app(TenantContext::class)->resolveForUser($userA, $tenantA);
+        app(TenantContext::class)->enforceIsolation();
 
         $note = TenantNote::query()->create([
             'tenant_id' => $tenantB->id,
@@ -105,11 +108,13 @@ class TenantIsolationTest extends TestCase
 
     public function test_membership_duplicates_are_rejected(): void
     {
-        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember();
+        ['tenant' => $tenant, 'user' => $user, 'membership' => $membership] = $this->createTenantWithMember(role: TenantRole::Owner);
+
+        $this->actingAs($user);
 
         $service = app(TenantLifecycleService::class);
 
         $this->expectException(ValidationException::class);
-        $service->addMember($tenant, $user, TenantRole::Staff);
+        $service->addMember($tenant, $user, TenantRole::Staff, actor: $user);
     }
 }

@@ -49,6 +49,17 @@ The Packagist package `laravel/livewire-starter-kit` currently requires Laravel 
 - New users are created by platform super-admins (tenant owner provisioning) or the local `platform:create-super-admin` command
 - Tenants start as `pending` until platform activation
 
+## Super-admin bootstrap security
+
+```bat
+D:\php83\php.exe artisan platform:create-super-admin
+```
+
+- Password via **hidden interactive prompt** with confirmation (no `--password` CLI flag)
+- Optional local-only `PLATFORM_BOOTSTRAP_PASSWORD` environment variable (must be unset after bootstrap)
+- Command blocked in `production`
+- Never commit passwords to Git or documentation
+
 ---
 
 ## Post-login routing

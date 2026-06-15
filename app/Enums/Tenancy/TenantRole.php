@@ -21,4 +21,26 @@ enum TenantRole: string
     {
         return in_array($this, [self::Owner, self::Admin], true);
     }
+
+    public function rank(): int
+    {
+        return match ($this) {
+            self::Owner => 3,
+            self::Admin => 2,
+            self::Staff => 1,
+        };
+    }
+
+    public function canAssignRole(self $target): bool
+    {
+        if ($this === self::Owner) {
+            return $target !== self::Owner;
+        }
+
+        if ($this === self::Admin) {
+            return $target === self::Staff;
+        }
+
+        return false;
+    }
 }

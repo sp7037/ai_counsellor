@@ -8,10 +8,18 @@ use App\Enums\Tenancy\TenantStatus;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function tearDown(): void
+    {
+        app(TenantContext::class)->clear();
+
+        parent::tearDown();
+    }
+
     protected function createTenantWithMember(
         array $tenantAttributes = [],
         ?User $user = null,
@@ -34,5 +42,15 @@ abstract class TestCase extends BaseTestCase
         ]);
 
         return compact('tenant', 'user', 'membership');
+    }
+
+    protected function withTenantContext(User $user, Tenant $tenant): TenantContext
+    {
+        $context = app(TenantContext::class);
+        $context->clear();
+        $context->resolveForUser($user, $tenant);
+        $context->enforceIsolation();
+
+        return $context;
     }
 }

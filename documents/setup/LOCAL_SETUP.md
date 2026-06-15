@@ -150,18 +150,31 @@ Open `http://127.0.0.1:8000` — expect HTTP 200.
 
 ---
 
-## Module 1 — Platform super-admin bootstrap
+## Super-admin bootstrap (local only)
 
 ```bat
 D:\php83\php.exe artisan platform:create-super-admin
 ```
 
-Log in at `/login`, then manage tenants at `/platform/tenants`.
+Interactive hidden password prompt with confirmation. **Do not pass passwords on the command line.**
+
+Optional temporary local bootstrap (unset immediately after use):
 
 ```bat
-D:\php83\php.exe artisan test
-D:\php83\php.exe artisan pint --test
+set PLATFORM_BOOTSTRAP_PASSWORD=your-local-only-password
+D:\php83\php.exe artisan platform:create-super-admin --name="Admin" --email=admin@example.test
+set PLATFORM_BOOTSTRAP_PASSWORD=
 ```
+
+Log in at `/login`, then manage tenants at `/platform/tenants`.
+
+### HTTP smoke verification
+
+1. `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000`
+2. Open `http://127.0.0.1:8000/` and `/login` (expect 200)
+3. Authenticate via the Livewire login form
+4. Verify platform (`/platform/tenants`) and tenant (`/app/{uuid}/dashboard`) pages
+5. Automated: `D:\php83\php.exe artisan test --filter=AuthenticatedHttpSmokeTest`
 
 ---
 

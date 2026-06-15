@@ -14,6 +14,8 @@ class TenantContext
 
     private bool $platformBypass = false;
 
+    private bool $isolationEnforced = false;
+
     public function set(Tenant $tenant, TenantMembership $membership): void
     {
         $this->tenant = $tenant;
@@ -28,11 +30,17 @@ class TenantContext
         $this->platformBypass = true;
     }
 
+    public function enforceIsolation(): void
+    {
+        $this->isolationEnforced = true;
+    }
+
     public function clear(): void
     {
         $this->tenant = null;
         $this->membership = null;
         $this->platformBypass = false;
+        $this->isolationEnforced = false;
     }
 
     public function hasTenant(): bool
@@ -58,6 +66,11 @@ class TenantContext
     public function isPlatformBypass(): bool
     {
         return $this->platformBypass;
+    }
+
+    public function isIsolationEnforced(): bool
+    {
+        return $this->isolationEnforced;
     }
 
     public function resolveForUser(User $user, Tenant $tenant): void
