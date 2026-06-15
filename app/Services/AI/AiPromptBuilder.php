@@ -52,7 +52,7 @@ class AiPromptBuilder
 
         $messages[] = new AiMessage(
             'user',
-            Str::limit(trim($visitorMessage), (int) config('ai.max_input_chars', 8000), '')
+            Str::limit(trim(strip_tags($visitorMessage)), (int) config('ai.max_input_chars', 8000), '')
         );
 
         return $messages;

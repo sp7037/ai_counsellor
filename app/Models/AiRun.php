@@ -10,19 +10,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'request_uuid',
     'conversation_id',
+    'triggering_message_id',
     'message_id',
     'provider',
     'model',
+    'credential_source',
     'input_tokens',
     'output_tokens',
     'total_tokens',
     'latency_ms',
     'status',
     'error_category',
+    'attempt_number',
 ])]
 class AiRun extends Model
 {
     use BelongsToTenant;
+
+    protected $hidden = [
+        'request_uuid',
+    ];
 
     public function tenant(): BelongsTo
     {

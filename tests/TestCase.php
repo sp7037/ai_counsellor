@@ -8,10 +8,12 @@ use App\Enums\Tenancy\TenantStatus;
 use App\Enums\Widget\TenantDomainStatus;
 use App\Enums\Widget\WidgetKeyStatus;
 use App\Models\Tenant;
+use App\Models\TenantAiConfig;
 use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Models\WidgetKey;
+use App\Services\AI\TenantAiConfigService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -88,5 +90,30 @@ abstract class TestCase extends BaseTestCase
         app(TenantContext::class)->clear();
 
         return array_merge($result, compact('key', 'domain'));
+    }
+
+    protected function widgetSessionToken(WidgetKey $key): string
+    {
+        return (string) $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+    }
+
+    protected function configureTenantAi(
+        Tenant $tenant,
+        User $user,
+        array $overrides = [],
+    ): TenantAiConfig {
+        $this->withTenantContext($user, $tenant);
+
+        return app(TenantAiConfigService::class)->upsert($tenant, array_merge([
+            'provider' => 'fake',
+            'model' => 'fake-model',
+            'temperature' => 0.2,
+            'max_output_tokens' => 400,
+            'timeout_seconds' => 15,
+            'enabled' => true,
+            'credential_mode' => 'platform_managed',
+        ], $overrides), $user);
     }
 }

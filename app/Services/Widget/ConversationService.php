@@ -5,12 +5,12 @@ namespace App\Services\Widget;
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Enums\Conversations\ConversationStatus;
 use App\Enums\Conversations\MessageRole;
-use App\Models\AiRun;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\TenantSettings;
 use App\Models\WidgetSession;
 use App\Services\AI\AiConversationOrchestrator;
+use App\Services\AI\AiIdempotencyCoordinator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,32 +20,11 @@ class ConversationService
     public function __construct(
         private readonly AiConversationOrchestrator $orchestrator,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
+        private readonly AiIdempotencyCoordinator $idempotency,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
     {
-        if ($requestId !== null && Str::isUuid($requestId)) {
-            $existingRun = AiRun::query()
-                ->where('request_uuid', $requestId)
-                ->where('conversation_id', $session->conversation_id)
-                ->where('status', 'success')
-                ->with('message')
-                ->first();
-
-            if ($existingRun?->message !== null) {
-                $visitorMessage = Message::query()
-                    ->where('conversation_id', $session->conversation_id)
-                    ->where('role', MessageRole::Visitor->value)
-                    ->latest('id')
-                    ->first();
-
-                return [
-                    'visitor_message' => $visitorMessage ?? $existingRun->message,
-                    'reply' => $existingRun->message,
-                ];
-            }
-        }
-
         $body = trim(strip_tags($body));
 
         if ($body === '') {
@@ -62,16 +41,19 @@ class ConversationService
             throw ValidationException::withMessages(['body' => 'Conversation is closed.']);
         }
 
-        $visitorMessage = DB::transaction(function () use ($session, $body): Message {
-            $conversation = $session->conversation;
+        $resolved = $this->idempotency->resolveVisitorMessage(
+            tenant: $session->tenant,
+            conversation: $conversation,
+            body: $body,
+            clientRequestId: $requestId,
+        );
 
-            return Message::query()->create([
-                'tenant_id' => $session->tenant_id,
-                'conversation_id' => $conversation->id,
-                'role' => MessageRole::Visitor->value,
-                'body' => $body,
-            ]);
-        });
+        if ($resolved['replay'] !== null) {
+            return [
+                'visitor_message' => $resolved['visitor_message'],
+                'reply' => $resolved['replay']['reply'],
+            ];
+        }
 
         $knowledge = $this->knowledgeRetrieval->searchPublished(
             $session->tenant,
@@ -82,39 +64,38 @@ class ConversationService
         $aiResult = $this->orchestrator->respond(
             tenant: $session->tenant,
             conversation: $conversation,
+            triggeringMessage: $resolved['visitor_message'],
             visitorMessage: $body,
             knowledge: $knowledge,
-            requestId: $requestId,
+            requestUuid: $resolved['request_uuid'],
         );
 
         $reply = DB::transaction(function () use ($session, $conversation, $aiResult): Message {
             $conversation->update(['last_message_at' => now()]);
 
             if ($aiResult['status'] === 'success' && is_string($aiResult['content'])) {
-                $message = Message::query()->create([
-                    'tenant_id' => $session->tenant_id,
-                    'conversation_id' => $conversation->id,
-                    'role' => MessageRole::Assistant->value,
-                    'body' => $aiResult['content'],
-                ]);
+                if ($aiResult['run']->message !== null) {
+                    return $aiResult['run']->message;
+                }
 
-                $aiResult['run']->update(['message_id' => $message->id]);
+                $finalized = app(AiIdempotencyCoordinator::class)->finalizeSuccess(
+                    $aiResult['run'],
+                    $aiResult['content'],
+                );
 
-                return $message;
+                return $finalized['assistant'];
             }
-
-            $fallback = $this->safeFallbackMessage();
 
             return Message::query()->create([
                 'tenant_id' => $session->tenant_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::System->value,
-                'body' => $fallback,
+                'body' => $this->safeFallbackMessage(),
             ]);
         });
 
         return [
-            'visitor_message' => $visitorMessage,
+            'visitor_message' => $resolved['visitor_message'],
             'reply' => $reply,
         ];
     }

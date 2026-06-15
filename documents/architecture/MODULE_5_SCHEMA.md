@@ -54,6 +54,7 @@ No provider SDK response type leaks beyond adapter boundary.
 | `max_output_tokens` | bounded int |
 | `timeout_seconds` | bounded int |
 | `enabled` | enable/disable tenant AI |
+| `credential_mode` | `tenant_key_required`, `platform_managed`, `tenant_key_with_explicit_platform_fallback` |
 | `encrypted_api_key` | encrypted at rest (nullable) |
 | `secret_updated_at` | rotation timestamp |
 | `created_by`, `updated_by` | actor tracking |
@@ -64,7 +65,10 @@ Unique: one config per tenant.
 
 | Column | Notes |
 |--------|-------|
-| `request_uuid` | idempotency key |
+| `request_uuid` | tenant-scoped idempotency key (mandatory server-side; client `request_id` optional) |
+| `triggering_message_id` | FK → visitor `messages.id` |
+| `credential_source` | `tenant` or `platform` (never secret values) |
+| `attempt_number` | retry counter for failed-run recovery |
 | `tenant_id` | FK → `tenants` |
 | `conversation_id` | FK → `conversations` |
 | `message_id` | assistant message FK (nullable until success persisted) |
@@ -79,7 +83,7 @@ Unique: one config per tenant.
 - AI provider definitions are platform-owned (`ai_providers`)
 - Tenant runtime configuration is tenant-owned (`tenant_ai_configs`)
 - Secrets are encrypted at rest; raw values are never returned in UI/API responses
-- Environment fallback remains supported for centrally managed OpenAI key
+- Environment fallback remains supported only through explicit `credential_mode` selection (see ADR-002)
 
 ## Orchestration flow
 
@@ -111,7 +115,7 @@ Unique: one config per tenant.
 ## Widget/API integration
 
 - Existing endpoint preserved: `POST /widget/v1/messages`
-- Added optional `request_id` UUID for idempotency
+- Added optional `request_id` UUID; server always enforces idempotency even when omitted
 - Response includes persisted `visitor_message` + `reply`
 - Reply role:
   - `assistant` on successful AI generation
@@ -136,15 +140,17 @@ Audit metadata excludes raw secrets.
 
 ## Tests added
 
-`tests/Feature/AiOrchestrationTest.php`:
+`tests/Feature/AiOrchestrationTest.php` plus corrective suites:
 
-- Assistant message + usage record on successful widget message
-- Duplicate `request_id` does not create duplicate assistant reply
-- Provider timeout returns safe system fallback and failed run status
-- Staff denied AI configuration access
-- Draft knowledge not exposed via retrieval into AI response flow
-- Cross-tenant access to AI configuration route denied
-- Tenant AI secret encrypted at rest and not returned in UI responses
+- `AiIdempotencyTest.php`
+- `AiCrossTenantIsolationTest.php`
+- `AiPromptSafetyTest.php`
+- `AiSecretLeakageTest.php`
+- `AiProviderFailureTest.php`
+- `OpenAiProviderHttpTest.php`
+- `AiUsageIntegrityTest.php`
+
+Coverage includes mandatory idempotency, cross-tenant orchestration isolation, prompt trust hierarchy, secret redaction, credential modes, provider HTTP safety, failed-run semantics, and usage integrity.
 
 Regression suites for Modules 1–4 remain passing.
 

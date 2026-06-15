@@ -24,6 +24,7 @@ class PublishedKnowledgeSearchService implements KnowledgeRetrievalContract
         $like = '%'.$escaped.'%';
 
         return KnowledgeItem::query()
+            ->where('knowledge_items.tenant_id', $tenant->id)
             ->where('status', KnowledgeItemStatus::Published->value)
             ->whereNotNull('current_version_id')
             ->join('knowledge_versions', 'knowledge_items.current_version_id', '=', 'knowledge_versions.id')

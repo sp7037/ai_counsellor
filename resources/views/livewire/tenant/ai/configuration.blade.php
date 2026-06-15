@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AI\AiCredentialMode;
 use App\Models\AiProvider;
 use App\Models\Tenant;
 use App\Models\TenantAiConfig;
@@ -22,6 +23,8 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public bool $enabled = true;
 
+    public string $credentialMode = 'platform_managed';
+
     public string $apiKey = '';
 
     public bool $replaceSecret = false;
@@ -39,6 +42,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             $this->maxOutputTokens = (int) $config->max_output_tokens;
             $this->timeoutSeconds = (int) $config->timeout_seconds;
             $this->enabled = (bool) $config->enabled;
+            $this->credentialMode = $config->credential_mode?->value ?? AiCredentialMode::PlatformManaged->value;
         }
     }
 
@@ -66,6 +70,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             'maxOutputTokens' => ['required', 'integer', 'min:1', 'max:'.config('ai.max_output_tokens_limit', 1200)],
             'timeoutSeconds' => ['required', 'integer', 'min:5', 'max:60'],
             'enabled' => ['required', 'boolean'],
+            'credentialMode' => ['required', 'string', 'in:'.implode(',', array_column(AiCredentialMode::cases(), 'value'))],
         ]);
 
         $payload = [
@@ -75,6 +80,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             'max_output_tokens' => (int) $validated['maxOutputTokens'],
             'timeout_seconds' => (int) $validated['timeoutSeconds'],
             'enabled' => (bool) $validated['enabled'],
+            'credential_mode' => $validated['credentialMode'],
         ];
 
         if ($this->replaceSecret) {
@@ -110,6 +116,12 @@ new #[Layout('components.layouts.app')] class extends Component {
             <flux:input wire:model="maxOutputTokens" type="number" label="Max output tokens" />
             <flux:input wire:model="timeoutSeconds" type="number" label="Timeout seconds" />
             <flux:checkbox wire:model="enabled" label="Enable AI replies" />
+
+            <flux:select wire:model="credentialMode" label="Credential mode" class="md:col-span-2">
+                @foreach (\App\Enums\AI\AiCredentialMode::cases() as $mode)
+                    <option value="{{ $mode->value }}">{{ $mode->label() }}</option>
+                @endforeach
+            </flux:select>
 
             <div class="md:col-span-2 rounded border border-zinc-800 p-3">
                 <flux:checkbox wire:model.live="replaceSecret" label="Replace provider key" />

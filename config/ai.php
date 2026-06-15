@@ -12,6 +12,12 @@ return [
     'max_temperature' => 1.2,
     'min_temperature' => 0.0,
     'max_output_tokens_limit' => 1200,
+    'allowed_models' => [
+        'gpt-4o-mini',
+        'gpt-4o',
+        'fake-model',
+    ],
+    'http_retries' => 0,
     'rate_limit' => [
         'messages' => env('AI_RATE_LIMIT_MESSAGES', '30,1'),
     ],

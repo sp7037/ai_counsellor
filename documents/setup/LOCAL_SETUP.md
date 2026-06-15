@@ -275,7 +275,15 @@ Content-Type: application/json
 }
 ```
 
-If provider configuration is missing or provider times out, the API returns a safe fallback response without leaking provider details.
+`request_id` is optional. The server always assigns/enforces an idempotency key (client UUID or visitor-message UUID) and returns the existing assistant reply for duplicate submissions.
+
+Credential modes on `/app/{tenant}/ai/configuration`:
+
+- `tenant_key_required`
+- `platform_managed`
+- `tenant_key_with_explicit_platform_fallback`
+
+If provider configuration is missing or provider times out, the API returns a safe `system` fallback without leaking provider details or creating a successful assistant run.
 
 ---
 

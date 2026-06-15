@@ -102,16 +102,17 @@ Exit gate: Only published tenant content is retrievable.
 
 ## Module 5 — AI orchestration
 
-**Status:** Complete
+**Status:** Complete (corrective security pass 2026-06-15)
 
 - AI provider interface
-- OpenAI adapter
-- Future provider adapters
-- Tool calling
-- Knowledge retrieval
-- Prompt versioning
-- Usage and cost logs
-- Guardrails
+- OpenAI adapter + fake test adapter
+- Mandatory server-side idempotency and retry-safe run lifecycle
+- Explicit credential ownership modes (tenant/platform)
+- Tool calling (guarded retrieval only in this phase)
+- Knowledge retrieval (tenant-scoped published-only)
+- Prompt trust hierarchy and injection boundaries
+- Usage and cost logs (`ai_runs`)
+- Guardrails, secret redaction, and cross-tenant isolation tests
 
 Exit gate: Model cannot bypass tool/service validation.
 

@@ -65,7 +65,9 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Tenant AI secrets are encrypted at rest in `tenant_ai_configs`; raw keys are never returned after save
 - AI failures (timeout/auth/rate-limit/provider) return safe fallback without exposing provider internals
 - Assistant output persisted as plain text and rendered as text in widget
-- Idempotency key (`request_id`) maps to `ai_runs.request_uuid` to prevent duplicate assistant replies
+- Idempotency key (`request_id`) maps to tenant-scoped `ai_runs.request_uuid`; server generates key from visitor message UUID when omitted
+- Explicit `credential_mode` controls tenant/platform credential ownership (ADR-002)
+- Published knowledge retrieval must filter by `tenant_id` explicitly
 - AI config changes and secret replacement are audited with redacted metadata
 
 ## Secrets and credentials

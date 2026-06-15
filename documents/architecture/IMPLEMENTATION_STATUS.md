@@ -300,6 +300,62 @@ See [MODULE_5_SCHEMA.md](MODULE_5_SCHEMA.md).
 
 ---
 
+## Module 5 — Corrective completion (2026-06-15)
+
+### Gates closed
+
+- Mandatory server-side idempotency (`AiIdempotencyCoordinator`, tenant-scoped uniqueness, triggering-message linkage)
+- Explicit credential modes with audited configuration (`ADR-002`)
+- Cross-tenant orchestration and knowledge retrieval isolation tests
+- Prompt trust-hierarchy and injection-boundary tests
+- Secret redaction in logs, audits, model serialization, and widget responses
+- Provider failure vs assistant-success semantics (`system` fallback excluded from provider history)
+- OpenAI HTTP safety tests with Laravel HTTP fakes (no real API calls)
+- `ai_runs` usage integrity (`credential_source`, `triggering_message_id`, `attempt_number`)
+- Knowledge search tenant filter bugfix in `PublishedKnowledgeSearchService`
+
+### Verification (corrective pass)
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **146 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 6**
+
+---
+
+## Module 5 — Corrective completion (2026-06-15)
+
+### Gates closed
+
+- Mandatory server-side idempotency (`AiIdempotencyCoordinator`, tenant-scoped uniqueness, triggering-message linkage)
+- Explicit credential modes with audited configuration (`ADR-002`)
+- Cross-tenant orchestration and knowledge retrieval isolation tests
+- Prompt trust-hierarchy and injection-boundary tests
+- Secret redaction in logs, audits, model serialization, and widget responses
+- Provider failure vs assistant-success semantics (`system` fallback excluded from provider history)
+- OpenAI HTTP safety tests with Laravel HTTP fakes (no real API calls)
+- `ai_runs` usage integrity (`credential_source`, `triggering_message_id`, `attempt_number`)
+- Knowledge search tenant filter bugfix in `PublishedKnowledgeSearchService`
+
+### Verification (corrective pass)
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **146 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 6**
+
+---
+
 ## Module 1 — Original implementation plan (archived reference)
 
 ### Overview

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AI\AiCredentialMode;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
     'max_output_tokens',
     'timeout_seconds',
     'enabled',
+    'credential_mode',
     'encrypted_api_key',
     'secret_updated_at',
     'created_by',
@@ -24,6 +26,10 @@ use Illuminate\Support\Str;
 class TenantAiConfig extends Model
 {
     use BelongsToTenant;
+
+    protected $hidden = [
+        'encrypted_api_key',
+    ];
 
     protected static function booted(): void
     {
@@ -41,6 +47,7 @@ class TenantAiConfig extends Model
             'temperature' => 'decimal:2',
             'secret_updated_at' => 'datetime',
             'encrypted_api_key' => 'encrypted',
+            'credential_mode' => AiCredentialMode::class,
         ];
     }
 

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'conversation_id', 'role', 'body', 'metadata'])]
+#[Fillable(['uuid', 'request_uuid', 'conversation_id', 'role', 'body', 'metadata'])]
 class Message extends Model
 {
     use BelongsToTenant;

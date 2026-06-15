@@ -155,11 +155,12 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Tests without API cost | Built-in `FakeAiProvider`, defaulted in phpunit env |
 | Prompting | `AiPromptBuilder` with separated system/tenant/knowledge/user context |
 | Retrieval | Existing `KnowledgeRetrievalContract` only (published tenant content) |
-| Secrets | Tenant key encrypted at rest in `tenant_ai_configs.encrypted_api_key`; env fallback supported |
-| Usage logging | `ai_runs` table stores status, latency, and token usage |
+| Secrets | Tenant key encrypted at rest; explicit `credential_mode` controls platform fallback (ADR-002) |
+| Idempotency | Mandatory server-side key; tenant-scoped `ai_runs.request_uuid`; visitor message linkage |
+| Usage logging | `ai_runs` table stores status, latency, token usage, `credential_source`, `attempt_number` |
 | Widget integration | `/widget/v1/messages` now returns assistant/system fallback based on orchestrator result |
 | Dependencies | No new Composer/NPM packages |
 
-**Test suite:** 109 tests, 260 assertions (Module 5 adds 7 AI orchestration tests).
+**Test suite:** 146 tests, 390 assertions (Module 5 corrective pass adds idempotency, isolation, prompt safety, secret leakage, provider HTTP, and usage integrity suites).
 
 **READY FOR MODULE 6**
