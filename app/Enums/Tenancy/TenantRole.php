@@ -32,6 +32,21 @@ enum TenantRole: string
         return $this->canManageMembers();
     }
 
+    public function canManageLeads(): bool
+    {
+        return in_array($this, [self::Owner, self::Admin], true);
+    }
+
+    public function canWorkAssignedLeads(): bool
+    {
+        return $this === self::Staff;
+    }
+
+    public function usesCounsellorWorkspace(): bool
+    {
+        return $this === self::Staff;
+    }
+
     public function rank(): int
     {
         return match ($this) {

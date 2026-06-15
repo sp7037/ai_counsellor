@@ -1,10 +1,12 @@
 # Module Roadmap
 
-**Last updated:** 2026-06-15 (Module 5 complete)
+**Last updated:** 2026-06-15 (Module 7 complete)
 
 ## Principal reference
 
 Module sequence and exit gates are defined in [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.docx) §16.
+
+> **Roadmap reconciliation (2026-06-15):** The master document originally listed lead qualification as Module 6. Module 6 was delivered as **Super Admin Operations and Tenant Control Plane** (required for safe SaaS operations). The deferred lead-qualification scope is restored in **Module 7** together with the human agent workspace. Module numbering below preserves this history explicitly.
 
 ## Phase status legend
 
@@ -136,50 +138,72 @@ Delivered in place of the master document's "lead qualification" slot to provide
 - Super Admin email verification UX
 - Comprehensive authorization and isolation tests
 
-**Lead qualification** (course interest, PIN validation, OTP, etc.) is **deferred** to a later module after the human agent workspace.
+**Lead qualification** (course interest, PIN validation, OTP, etc.) from the original master Module 6 list is **partially deferred** within Module 7 — core lead CRM, deterministic scoring, and counsellor workspace are delivered; OTP/PIN-specific flows remain for a later module.
 
 Exit gate: Super Admin can operate tenants and monitor AI safely without weakening tenant isolation.
 
 ---
 
-## Module 6 (deferred) — Lead qualification
+## Module 6 (original master doc) — Lead qualification items
 
-**Status:** Deferred (was listed as Module 6 in master architecture §16)
+**Status:** Partially restored in Module 7; remainder deferred
 
-- Course interest
-- PIN-code validation
-- Qualification
-- Passing year
-- Subjects
-- Study mode
-- Study gap
-- Mobile OTP
-- Preliminary eligibility
-- Duplicate lead control
+The master architecture §16 listed these under Module 6. They are **not erased** from history:
 
-Exit gate: Structured lead is produced from tested conversations.
+| Item | Module 7 status |
+|------|-----------------|
+| Structured lead from conversations | **Delivered** (widget capture, offline intake, manual, conversation link) |
+| Qualification / preliminary eligibility | **Delivered** (deterministic engine; advisory score) |
+| Duplicate lead control | **Delivered** (capture_event_uuid / source_reference idempotency) |
+| Course interest | **Delivered** (service/programme interest fields) |
+| PIN-code validation | **Deferred** |
+| Passing year, subjects, study mode, study gap | **Deferred** (metadata extensibility only) |
+| Mobile OTP | **Deferred** |
 
 ---
 
-## Module 7 — Human agent workspace
+## Module 7 — Lead Qualification and Human Agent Workspace
+
+**Status:** Complete
+
+- Tenant-isolated lead model with governed lifecycle (stage, qualification, priority)
+- Deterministic qualification engine with explainable score components
+- Lead creation from widget capture, offline intake, and manual entry (idempotent)
+- Conversation linkage (`conversation_id` / `conversations.lead_id`)
+- Tenant Admin lead list, detail, filters, assignment
+- Counsellor (Staff) management and profiles
+- Assignment/reassignment history and in-app notifications
+- Counsellor workspace (`/app/{tenant}/workspace/*`) — separate from platform and tenant admin
+- Follow-up scheduling and counsellor workflow actions
+- Lead activity timeline (separate from security audit log)
+- Platform Super Admin excluded from routine lead handling
+
+**Not in Module 7:** live human chat takeover, suggested replies, AI provider qualification calls, OTP/PIN flows, qualification rules admin UI, email/SMS notifications.
+
+Exit gate: Tenant Admin can manage leads and counsellors; counsellors can work assigned leads without cross-tenant or cross-counsellor leakage.
+
+---
+
+## Module 8 — Human agent live conversations (formerly Module 7)
 
 **Status:** Not Started
+
+Renumbered from original roadmap "Module 7 — Human agent workspace" live-conversation items:
 
 - Live conversations
 - Human takeover
-- Assignment
-- Internal notes
 - Suggested replies
-- Follow-ups
 - Conversation summaries
 
-Exit gate: Agent can continue without losing context.
+Exit gate: Agent can continue live conversations without losing context.
 
 ---
 
-## Module 8 — Subscription and usage enforcement
+## Module 9 — Subscription and usage enforcement
 
 **Status:** Not Started
+
+Formerly Module 8 in this document.
 
 - Monthly and annual plans
 - AI token limits
@@ -216,7 +240,7 @@ Exit gate: Suspension and limit enforcement proven.
 
 ```
 Phase 0 (Complete) → Module 1 → Module 2 → Module 3 → Module 4 → Module 5
-    → Module 6 → Module 7 → Module 8 → Integrations → Industry templates → Enterprise
+    → Module 6 (control plane) → Module 7 (leads + workspace) → Module 8 (live agent) → Module 9 (billing) → Integrations → Industry templates → Enterprise
 ```
 
 Do not skip Module 1 (tenancy and suspension) before AI automation.

@@ -14,6 +14,7 @@ Route::middleware([HandleWidgetCors::class, ResolveWidgetSession::class])
             Route::get('config', [WidgetGatewayController::class, 'config']);
             Route::get('knowledge/search', [WidgetGatewayController::class, 'searchKnowledge']);
             Route::post('messages', [WidgetGatewayController::class, 'sendMessage']);
+            Route::post('leads', [WidgetGatewayController::class, 'captureLead']);
             Route::post('offline', [WidgetGatewayController::class, 'submitOffline']);
         });
     });

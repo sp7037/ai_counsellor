@@ -63,6 +63,11 @@ class Conversation extends Model
         return $this->belongsTo(Visitor::class);
     }
 
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);

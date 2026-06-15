@@ -6,6 +6,7 @@ use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Http\Controllers\Controller;
 use App\Models\WidgetSession;
 use App\Services\Configuration\WidgetPublicConfigService;
+use App\Services\Leads\LeadCaptureService;
 use App\Services\Widget\ConversationService;
 use App\Services\Widget\WidgetSessionService;
 use App\Services\Widget\WidgetTenantResolver;
@@ -19,6 +20,7 @@ class WidgetGatewayController extends Controller
         private readonly WidgetTenantResolver $tenantResolver,
         private readonly WidgetSessionService $sessionService,
         private readonly ConversationService $conversationService,
+        private readonly LeadCaptureService $leadCapture,
         private readonly WidgetPublicConfigService $publicConfigService,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
     ) {}
@@ -133,6 +135,32 @@ class WidgetGatewayController extends Controller
         ]);
     }
 
+    public function captureLead(Request $request): JsonResponse
+    {
+        /** @var WidgetSession $session */
+        $session = $request->attributes->get('widget_session');
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:120'],
+            'mobile' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'service_interest' => ['nullable', 'string', 'max:255'],
+            'enquiry_summary' => ['nullable', 'string', 'max:2000'],
+            'capture_event_uuid' => ['required', 'uuid'],
+        ]);
+
+        $lead = $this->leadCapture->captureFromWidget(
+            $session,
+            $validated,
+            $validated['capture_event_uuid'],
+        );
+
+        return response()->json([
+            'message' => 'Thank you. Your enquiry has been received.',
+            'lead_reference' => $lead->public_reference,
+        ]);
+    }
+
     public function submitOffline(Request $request): JsonResponse
     {
         /** @var WidgetSession $session */
@@ -156,12 +184,19 @@ class WidgetGatewayController extends Controller
             $validated['email'] ?? null,
         );
 
+        $lead = $this->leadCapture->captureFromOfflineIntake($session, [
+            'full_name' => $validated['name'] ?? 'Visitor',
+            'email' => $validated['email'] ?? null,
+            'enquiry_summary' => $validated['message'],
+        ], $intake->uuid);
+
         return response()->json([
             'message' => 'Your request has been received.',
             'intake' => [
                 'uuid' => $intake->uuid,
                 'created_at' => $intake->created_at?->toIso8601String(),
             ],
+            'lead_reference' => $lead->public_reference,
         ]);
     }
 }

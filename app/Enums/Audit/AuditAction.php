@@ -63,6 +63,23 @@ enum AuditAction: string
     case AiSecretReplaced = 'ai.secret_replaced';
     case PlatformSettingsUpdated = 'platform.settings_updated';
     case PlatformBypass = 'platform.bypass';
+    case LeadCreated = 'lead.created';
+    case LeadAssigned = 'lead.assigned';
+    case LeadReassigned = 'lead.reassigned';
+    case LeadStageChanged = 'lead.stage_changed';
+    case LeadQualificationChanged = 'lead.qualification_changed';
+    case LeadPriorityChanged = 'lead.priority_changed';
+    case LeadFollowUpCreated = 'lead.follow_up_created';
+    case LeadMarkedLost = 'lead.marked_lost';
+    case LeadMarkedInvalid = 'lead.marked_invalid';
+    case LeadConverted = 'lead.converted';
+    case LeadReopened = 'lead.reopened';
+    case LeadAdminOverride = 'lead.admin_override';
+    case CounsellorCreated = 'counsellor.created';
+    case CounsellorUpdated = 'counsellor.updated';
+    case CounsellorActivated = 'counsellor.activated';
+    case CounsellorDeactivated = 'counsellor.deactivated';
+    case LeadQualificationRulesUpdated = 'lead.qualification_rules_updated';
 
     public function label(): string
     {
@@ -126,6 +143,23 @@ enum AuditAction: string
             self::AiSecretReplaced => 'AI secret replaced',
             self::PlatformSettingsUpdated => 'Platform settings updated',
             self::PlatformBypass => 'Platform bypass',
+            self::LeadCreated => 'Lead created',
+            self::LeadAssigned => 'Lead assigned',
+            self::LeadReassigned => 'Lead reassigned',
+            self::LeadStageChanged => 'Lead stage changed',
+            self::LeadQualificationChanged => 'Lead qualification changed',
+            self::LeadPriorityChanged => 'Lead priority changed',
+            self::LeadFollowUpCreated => 'Lead follow-up created',
+            self::LeadMarkedLost => 'Lead marked lost',
+            self::LeadMarkedInvalid => 'Lead marked invalid',
+            self::LeadConverted => 'Lead converted',
+            self::LeadReopened => 'Lead reopened',
+            self::LeadAdminOverride => 'Lead admin override',
+            self::CounsellorCreated => 'Counsellor created',
+            self::CounsellorUpdated => 'Counsellor updated',
+            self::CounsellorActivated => 'Counsellor activated',
+            self::CounsellorDeactivated => 'Counsellor deactivated',
+            self::LeadQualificationRulesUpdated => 'Lead qualification rules updated',
         };
     }
 }

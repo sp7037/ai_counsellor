@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Module 6 — complete)
+**Last updated:** 2026-06-15 (Module 7 — complete)
 
 ## Principal reference
 
@@ -176,3 +176,21 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Lead qualification | Deferred — control plane delivered as Module 6 per roadmap reorder |
 
 **READY FOR MODULE 7**
+
+## Module 7 — Lead qualification and counsellor workspace (implemented)
+
+| Item | Decision |
+|------|----------|
+| Counsellor identity | Existing `TenantRole::Staff` + `counsellor_profiles` — no duplicate auth table |
+| Workspace routes | `/app/{tenant}/workspace/*` with dedicated layout; separate from `/platform/*` |
+| Assignment | Current `assigned_to` on `leads` + immutable `lead_assignments` history |
+| Qualification | Deterministic `LeadQualificationEngine` only; AI suggestions deferred |
+| Idempotency | `(tenant_id, capture_event_uuid)` and `(tenant_id, source, source_reference)` |
+| Deduplication | No mobile/email-only dedup; separate enquiries remain separate leads |
+| Activity vs audit | `lead_activities` (operational) vs `audit_logs` (security) — ADR-004 |
+| Notifications | In-app `lead_notifications` table only |
+| UI | Extend existing Flux tenant/workspace layouts — no second design system |
+
+**Test suite:** 174 tests, 479 assertions.
+
+**READY FOR MODULE 8**

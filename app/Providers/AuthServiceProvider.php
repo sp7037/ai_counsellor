@@ -12,6 +12,7 @@ use App\Models\Institution;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeFee;
 use App\Models\KnowledgeItem;
+use App\Models\Lead;
 use App\Models\Location;
 use App\Models\Service;
 use App\Models\Tenant;
@@ -19,6 +20,7 @@ use App\Models\TenantAiConfig;
 use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\TenantNote;
+use App\Models\User;
 use App\Models\WidgetKey;
 use App\Policies\AiRunPolicy;
 use App\Policies\AuditLogPolicy;
@@ -30,6 +32,7 @@ use App\Policies\InstitutionPolicy;
 use App\Policies\KnowledgeDocumentPolicy;
 use App\Policies\KnowledgeFeePolicy;
 use App\Policies\KnowledgeItemPolicy;
+use App\Policies\LeadPolicy;
 use App\Policies\LocationPolicy;
 use App\Policies\ServicePolicy;
 use App\Policies\TenantAiConfigPolicy;
@@ -66,6 +69,7 @@ class AuthServiceProvider extends ServiceProvider
         CourseInstitution::class => CourseInstitutionPolicy::class,
         AiRun::class => AiRunPolicy::class,
         AuditLog::class => AuditLogPolicy::class,
+        Lead::class => LeadPolicy::class,
     ];
 
     public function register(): void
@@ -86,5 +90,7 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('viewTenantKnowledge', [TenantKnowledgePolicy::class, 'viewAny']);
         Gate::define('manageTenantKnowledge', [TenantKnowledgePolicy::class, 'manage']);
         Gate::define('viewTenantAiConfiguration', [TenantAiConfigPolicy::class, 'viewAny']);
+        Gate::define('manageTenantLeads', fn (User $user, Tenant $tenant) => app(LeadPolicy::class)->viewAny($user, $tenant));
+        Gate::define('workCounsellorLeads', fn (User $user, Tenant $tenant) => $user->tenantRoleFor($tenant)?->canWorkAssignedLeads() ?? false);
     }
 }

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Tenancy\MembershipStatus;
 use App\Enums\Tenancy\TenantRole;
+use App\Models\TenantMembership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -60,6 +62,28 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('tenant.knowledge.documents', $tenant))->assertOk();
         $this->get(route('tenant.knowledge.course-institutions', $tenant))->assertOk();
         $this->get(route('tenant.ai.configuration', $tenant))->assertOk();
+        $this->get(route('tenant.leads.index', $tenant))->assertOk();
+        $this->get(route('tenant.counsellors.index', $tenant))->assertOk();
+
+        $counsellor = User::factory()->create(['password' => Hash::make('smoke-test-password-12')]);
+        TenantMembership::factory()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $counsellor->id,
+            'role' => TenantRole::Staff->value,
+            'status' => MembershipStatus::Active->value,
+        ]);
+
+        $this->post(route('logout'));
+
+        Volt::test('auth.login')
+            ->set('email', $counsellor->email)
+            ->set('password', 'smoke-test-password-12')
+            ->call('login')
+            ->assertHasNoErrors();
+
+        $this->get(route('workspace.dashboard', $tenant))->assertOk();
+        $this->get(route('workspace.leads.index', $tenant))->assertOk();
+        $this->get(route('workspace.follow-ups.index', $tenant))->assertOk();
     }
 
     public function test_unauthorized_http_access_is_denied(): void
@@ -75,5 +99,6 @@ class AuthenticatedHttpSmokeTest extends TestCase
 
         $this->get(route('platform.tenants.index'))->assertForbidden();
         $this->get(route('tenant.dashboard', $tenantB))->assertForbidden();
+        $this->get(route('tenant.leads.index', $tenantB))->assertForbidden();
     }
 }

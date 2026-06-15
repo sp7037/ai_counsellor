@@ -25,6 +25,11 @@ class PostLoginRedirect
         if ($memberships->count() === 1) {
             /** @var Tenant $tenant */
             $tenant = $memberships->first()->tenant;
+            $role = $user->tenantRoleFor($tenant);
+
+            if ($role?->usesCounsellorWorkspace()) {
+                return route('workspace.dashboard', $tenant);
+            }
 
             return route('tenant.dashboard', $tenant);
         }

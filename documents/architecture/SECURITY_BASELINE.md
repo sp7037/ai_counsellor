@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 6)
+**Last updated:** 2026-06-15 (Module 7)
 
 ## Principal reference
 
@@ -111,6 +111,20 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Support impersonation / “login as tenant” **not implemented** (ADR-003)
 - Usage reporting shows tokens and run counts only — no fabricated monetary cost
 - Super Admin uses dedicated platform layout; counsellor/staff roles denied platform routes
+
+## Module 7 enforcement (implemented)
+
+- Lead routes tenant-scoped via `BelongsToTenant`, `LeadPolicy`, and membership role checks
+- Platform super admins denied routine lead management and counsellor workspace (`LeadPolicy` returns false)
+- `EnsureTenantLeadManager` restricts lead admin to Owner/Admin; `EnsureCounsellorWorkspace` restricts workspace to Staff
+- Counsellors may view/update only leads currently assigned to them
+- Cross-tenant lead, assignment, and follow-up access rejected in services and policies
+- Widget `POST /widget/v1/leads` requires valid session + origin; rate-limited; idempotent via `capture_event_uuid`
+- Widget responses exclude internal notes, assignment data, qualification rules, and audit metadata
+- Deterministic qualification excludes prohibited sensitive attributes; score is advisory only
+- Deactivated counsellors blocked via membership status and workspace middleware
+- Assignment/reassignment, stage changes, and counsellor lifecycle events audited
+- Operational timeline (`lead_activities`) separate from security `audit_logs` (ADR-004)
 
 ## AI security
 

@@ -62,6 +62,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::prefix('ai')->name('ai.')->group(function () {
                 Volt::route('configuration', 'tenant.ai.configuration')->name('configuration');
             });
+
+            Route::middleware('tenant.lead.manager')->group(function () {
+                Volt::route('leads', 'tenant.leads.index')->name('leads.index');
+                Volt::route('leads/create', 'tenant.leads.create')->name('leads.create');
+                Volt::route('leads/{lead}', 'tenant.leads.show')->name('leads.show');
+                Volt::route('counsellors', 'tenant.counsellors.index')->name('counsellors.index');
+                Volt::route('counsellors/create', 'tenant.counsellors.create')->name('counsellors.create');
+            });
+        });
+
+    Route::prefix('app/{tenant}/workspace')
+        ->middleware(['tenant.resolve', 'counsellor.workspace'])
+        ->name('workspace.')
+        ->group(function () {
+            Volt::route('/', 'workspace.dashboard')->name('dashboard');
+            Volt::route('leads', 'workspace.leads.index')->name('leads.index');
+            Volt::route('leads/{lead}', 'workspace.leads.show')->name('leads.show');
+            Volt::route('follow-ups', 'workspace.follow-ups.index')->name('follow-ups.index');
         });
 });
 

@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 6 — complete)
+**Last updated:** 2026-06-15 (Module 7 — complete)
 
 ## Stack
 
@@ -297,6 +297,52 @@ Credential modes on `/app/{tenant}/ai/configuration`:
 - `tenant_key_with_explicit_platform_fallback`
 
 If provider configuration is missing or provider times out, the API returns a safe `system` fallback without leaking provider details or creating a successful assistant run.
+
+---
+
+## Module 7 — Leads and counsellor workspace (local)
+
+### Tenant Admin (Owner/Admin)
+
+| Page | Route |
+|------|-------|
+| Leads | `/app/{tenant_uuid}/leads` |
+| Create lead | `/app/{tenant_uuid}/leads/create` |
+| Counsellors | `/app/{tenant_uuid}/counsellors` |
+
+### Counsellor (Staff)
+
+Staff members are redirected to the workspace after login:
+
+| Page | Route |
+|------|-------|
+| Dashboard | `/app/{tenant_uuid}/workspace` |
+| My leads | `/app/{tenant_uuid}/workspace/leads` |
+| Follow-ups | `/app/{tenant_uuid}/workspace/follow-ups` |
+
+### Widget lead capture
+
+```
+POST http://127.0.0.1:8000/widget/v1/leads
+Authorization: Bearer {session_token}
+Origin: http://127.0.0.1:8000
+Content-Type: application/json
+
+{
+  "full_name": "Visitor Name",
+  "mobile": "9876543210",
+  "enquiry_summary": "Interested in study abroad",
+  "capture_event_uuid": "uuid-for-idempotency"
+}
+```
+
+Duplicate submissions with the same `capture_event_uuid` return the same `lead_reference` without creating a second lead.
+
+Automated coverage:
+
+```bat
+D:\php83\php.exe artisan test --filter=LeadQualificationWorkspaceTest
+```
 
 ---
 

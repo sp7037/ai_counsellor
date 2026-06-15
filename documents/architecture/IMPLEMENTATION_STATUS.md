@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 6 — complete)  
-**Current phase:** Module 6 complete; Module 7 not started
+**Last updated:** 2026-06-15 (Module 7 — complete)  
+**Current phase:** Module 7 complete; Module 8 not started
 
 ## Principal reference
 
@@ -22,10 +22,51 @@
 | Module 4 — Knowledge base | **Complete** | FAQs, fees, eligibility, documents, versioning, widget search |
 | Module 5 — AI orchestration | **Complete** | OpenAI adapter, provider abstraction, tenant AI config, AI runs, widget AI replies |
 | Module 6 — Super Admin control plane | **Complete** | Platform dashboard, tenant ops, AI monitoring, usage, audit, settings |
-| Module 6 (deferred) — Lead qualification | **Deferred** | Reordered after control plane delivery |
-| Module 7 — Human agent workspace | **Not Started** | |
-| Module 8 — Subscription and usage enforcement | **Not Started** | |
+| Module 6 (original master doc) — Lead qualification items | **Partially restored in Module 7** | OTP/PIN flows still deferred |
+| Module 7 — Lead qualification and counsellor workspace | **Complete** | Leads, assignment, workspace, follow-ups, deterministic scoring |
+| Module 8 — Human agent live conversations | **Not Started** | Renumbered from original Module 7 |
+| Module 9 — Subscription and usage enforcement | **Not Started** | Formerly Module 8 |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |
+
+---
+
+## Module 7 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Lead model with governed lifecycle (`LeadStage`, `LeadQualificationStatus`, `LeadPriority`)
+- Tables: `leads`, `lead_assignments`, `lead_activities`, `lead_notes`, `lead_follow_ups`, `lead_qualification_rules`, `counsellor_profiles`, `lead_notifications`
+- Deterministic `LeadQualificationEngine` with explainable score components (no sensitive attributes)
+- Idempotent widget lead capture (`POST /widget/v1/leads`) and offline intake integration
+- Tenant Admin UI: leads list/create/detail, counsellor management
+- Counsellor workspace at `/app/{tenant}/workspace/*` (Staff role only)
+- Assignment/reassignment with history, activity timeline, and in-app notifications
+- `LeadPolicy`, `EnsureTenantLeadManager`, `EnsureCounsellorWorkspace` — platform super admin denied from lead routes
+- Staff login redirects to workspace; Owner/Admin to tenant dashboard
+- **174 automated tests** total (12 new Module 7 tests)
+
+See [MODULE_7_SCHEMA.md](MODULE_7_SCHEMA.md) and [ADR-004](decisions/ADR-004-lead-qualification-and-workspace.md).
+
+### Explicitly deferred (Module 7 boundary)
+
+- AI provider qualification calls (deterministic only; suggestion fields reserved)
+- PIN/OTP/mobile verification from original master Module 6 list
+- Qualification rules admin UI
+- Conversation-to-lead admin UI button (service exists)
+- Live human takeover, suggested replies (Module 8)
+- Email/SMS notification delivery
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **174 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 8**
 
 ---
 
