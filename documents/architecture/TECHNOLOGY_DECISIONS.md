@@ -204,6 +204,8 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Widget sync | `GET /widget/v1/messages/poll?after={uuid}` — public roles only |
 | Suggested replies | Deferred; `ai_runs.purpose` reserved |
 
+**Test suite:** 182 tests, 503 assertions.
+
 ## Module 9 — Subscription and usage enforcement (implemented)
 
 | Item | Decision |
@@ -214,8 +216,6 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | AI limits | `tenant_usage_counters` reserve/confirm before provider call |
 | Widget | Safe unavailable messaging; no billing leakage |
 | Maintenance | `subscriptions:maintain` (daily schedule) |
-
-| Payment processing | **Deferred** to Module 10 — manual platform administration only |
 
 **Test suite:** 198 tests, 532 assertions.
 
