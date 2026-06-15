@@ -1,6 +1,6 @@
 # Module Roadmap
 
-**Last updated:** 2026-06-15 (Module 4 complete)
+**Last updated:** 2026-06-15 (Module 5 complete)
 
 ## Principal reference
 
@@ -102,7 +102,7 @@ Exit gate: Only published tenant content is retrievable.
 
 ## Module 5 — AI orchestration
 
-**Status:** Not Started
+**Status:** Complete
 
 - AI provider interface
 - OpenAI adapter

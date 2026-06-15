@@ -51,6 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('documents/{document}/download', KnowledgeDocumentDownloadController::class)
                     ->name('documents.download');
             });
+
+            Route::prefix('ai')->name('ai.')->group(function () {
+                Volt::route('configuration', 'tenant.ai.configuration')->name('configuration');
+            });
         });
 });
 

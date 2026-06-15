@@ -10,7 +10,7 @@ Route::middleware([HandleWidgetCors::class, 'throttle:'.config('widget.rate_limi
 
 Route::middleware([HandleWidgetCors::class, ResolveWidgetSession::class])
     ->group(function (): void {
-        Route::middleware('throttle:'.config('widget.rate_limit.messages', '60,1'))->group(function (): void {
+        Route::middleware('throttle:'.config('ai.rate_limit.messages', config('widget.rate_limit.messages', '60,1')))->group(function (): void {
             Route::get('config', [WidgetGatewayController::class, 'config']);
             Route::get('knowledge/search', [WidgetGatewayController::class, 'searchKnowledge']);
             Route::post('messages', [WidgetGatewayController::class, 'sendMessage']);

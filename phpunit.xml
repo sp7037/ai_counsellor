@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="AI_DEFAULT_PROVIDER" value="fake"/>
+        <env name="OPENAI_ENABLED" value="false"/>
     </php>
 </phpunit>

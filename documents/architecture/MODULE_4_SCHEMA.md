@@ -239,9 +239,9 @@ Prefix: `/app/{tenant}/knowledge`
 - Automated eligibility decisions
 - Rich HTML CMS
 
-## Deferred to Module 5
+## Deferred to Module 5 (implemented in next phase)
 
-- AI provider adapters and tool calling
-- Knowledge retrieval integration in chat responses
-- Prompt versioning and guardrails
-- Usage and cost logging for AI calls
+- AI provider adapters and guarded orchestration (completed in Module 5)
+- Knowledge retrieval integration in widget chat responses (completed in Module 5)
+- Prompt safety guardrails and bounded context assembly (completed in Module 5)
+- Usage/cost foundation logging via AI run records (completed in Module 5)

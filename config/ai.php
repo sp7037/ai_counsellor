@@ -1,0 +1,34 @@
+<?php
+
+return [
+    'default_provider' => env('AI_DEFAULT_PROVIDER', 'openai'),
+    'request_timeout_seconds' => (int) env('AI_REQUEST_TIMEOUT', 15),
+    'connect_timeout_seconds' => (int) env('AI_CONNECT_TIMEOUT', 5),
+    'max_input_chars' => 8000,
+    'max_output_chars' => 3000,
+    'max_history_messages' => 12,
+    'max_knowledge_items' => 6,
+    'knowledge_excerpt_chars' => 280,
+    'max_temperature' => 1.2,
+    'min_temperature' => 0.0,
+    'max_output_tokens_limit' => 1200,
+    'rate_limit' => [
+        'messages' => env('AI_RATE_LIMIT_MESSAGES', '30,1'),
+    ],
+    'providers' => [
+        'fake' => [
+            'model' => env('FAKE_AI_MODEL', 'fake-model'),
+            'temperature' => 0.0,
+            'max_output_tokens' => 200,
+            'enabled' => (bool) env('FAKE_AI_ENABLED', true),
+        ],
+        'openai' => [
+            'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+            'api_key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+            'temperature' => (float) env('OPENAI_TEMPERATURE', 0.2),
+            'max_output_tokens' => (int) env('OPENAI_MAX_OUTPUT_TOKENS', 400),
+            'enabled' => (bool) env('OPENAI_ENABLED', true),
+        ],
+    ],
+];

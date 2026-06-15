@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Module 4 — complete)
+**Last updated:** 2026-06-15 (Module 5 — complete)
 
 ## Principal reference
 
@@ -146,4 +146,20 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 
 **Test suite:** 102 tests, 237 assertions (Module 4 adds 10 knowledge tests).
 
-**READY FOR MODULE 5**
+## Module 5 — AI orchestration (implemented)
+
+| Item | Decision |
+|------|----------|
+| Provider contract | `AiProviderContract` + provider-neutral DTOs |
+| First provider | OpenAI via Laravel HTTP client (`OpenAiProvider`) |
+| Tests without API cost | Built-in `FakeAiProvider`, defaulted in phpunit env |
+| Prompting | `AiPromptBuilder` with separated system/tenant/knowledge/user context |
+| Retrieval | Existing `KnowledgeRetrievalContract` only (published tenant content) |
+| Secrets | Tenant key encrypted at rest in `tenant_ai_configs.encrypted_api_key`; env fallback supported |
+| Usage logging | `ai_runs` table stores status, latency, and token usage |
+| Widget integration | `/widget/v1/messages` now returns assistant/system fallback based on orchestrator result |
+| Dependencies | No new Composer/NPM packages |
+
+**Test suite:** 108 tests, 255 assertions (Module 5 adds 6 AI orchestration tests).
+
+**READY FOR MODULE 6**

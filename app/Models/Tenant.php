@@ -137,4 +137,14 @@ class Tenant extends Model
     {
         return $this->hasMany(Location::class);
     }
+
+    public function aiConfig(): HasOne
+    {
+        return $this->hasOne(TenantAiConfig::class);
+    }
+
+    public function aiRuns(): HasMany
+    {
+        return $this->hasMany(AiRun::class);
+    }
 }

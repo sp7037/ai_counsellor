@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 4 — complete)
+**Last updated:** 2026-06-15 (Module 5 — complete)
 
 ## Stack
 
@@ -245,6 +245,37 @@ Origin: http://127.0.0.1:8000
 Only **published** knowledge items appear in search results. Drafts and archived content are excluded.
 
 Automated coverage: `D:\php83\php.exe artisan test --filter=KnowledgeBaseTest`
+
+## Module 5 AI orchestration (local)
+
+Tenant owners/admins manage AI settings at `/app/{tenant_uuid}/ai/configuration`.
+
+Recommended local `.env` placeholders:
+
+| Variable | Example |
+|----------|---------|
+| `AI_DEFAULT_PROVIDER` | `openai` |
+| `AI_REQUEST_TIMEOUT` | `15` |
+| `OPENAI_API_KEY` | `your-openai-api-key` |
+| `OPENAI_MODEL` | `gpt-4o-mini` |
+
+For local/offline automated tests, the suite uses a fake provider (`AI_DEFAULT_PROVIDER=fake` in `phpunit.xml`) so tests do not call real external APIs.
+
+Widget AI reply endpoint remains:
+
+```
+POST http://127.0.0.1:8000/widget/v1/messages
+Authorization: Bearer {session_token}
+Origin: http://127.0.0.1:8000
+Content-Type: application/json
+
+{
+  "body": "What are your fees?",
+  "request_id": "uuid-optional-idempotency-key"
+}
+```
+
+If provider configuration is missing or provider times out, the API returns a safe fallback response without leaking provider details.
 
 ---
 

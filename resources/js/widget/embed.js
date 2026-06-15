@@ -146,14 +146,15 @@
     }
 
     async function sendMessage(body) {
+        const requestId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const data = await api('/messages', {
             method: 'POST',
-            body: JSON.stringify({ body }),
+            body: JSON.stringify({ body, request_id: requestId }),
         });
 
         state.messages.push(
             { role: 'visitor', body: data.visitor_message.body },
-            { role: 'system', body: data.reply.body },
+            { role: data.reply.role || 'system', body: data.reply.body },
         );
         renderMessages();
     }

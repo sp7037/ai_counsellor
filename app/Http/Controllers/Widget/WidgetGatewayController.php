@@ -104,10 +104,15 @@ class WidgetGatewayController extends Controller
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:'.config('widget.max_message_length', 4000)],
+            'request_id' => ['nullable', 'uuid'],
         ]);
 
         try {
-            $result = $this->conversationService->addVisitorMessage($session, $validated['body']);
+            $result = $this->conversationService->addVisitorMessage(
+                $session,
+                $validated['body'],
+                $validated['request_id'] ?? null,
+            );
         } catch (ValidationException $exception) {
             throw $exception;
         }
@@ -120,10 +125,10 @@ class WidgetGatewayController extends Controller
                 'created_at' => $result['visitor_message']->created_at?->toIso8601String(),
             ],
             'reply' => [
-                'uuid' => $result['system_reply']->uuid,
-                'role' => $result['system_reply']->role->value,
-                'body' => $result['system_reply']->body,
-                'created_at' => $result['system_reply']->created_at?->toIso8601String(),
+                'uuid' => $result['reply']->uuid,
+                'role' => $result['reply']->role->value,
+                'body' => $result['reply']->body,
+                'created_at' => $result['reply']->created_at?->toIso8601String(),
             ],
         ]);
     }

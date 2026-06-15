@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 4 — complete)  
-**Current phase:** Module 4 complete; Module 5 not started
+**Last updated:** 2026-06-15 (Module 5 — complete)  
+**Current phase:** Module 5 complete; Module 6 not started
 
 ## Principal reference
 
@@ -20,7 +20,7 @@
 | Module 2 — Embeddable chat widget | **Complete** | Widget gateway, keys, domains, sessions, admin UI, demo pages |
 | Module 3 — Tenant configuration | **Complete** | Branding, catalogue, office hours, widget public config |
 | Module 4 — Knowledge base | **Complete** | FAQs, fees, eligibility, documents, versioning, widget search |
-| Module 5 — AI orchestration | **Not Started** | |
+| Module 5 — AI orchestration | **Complete** | OpenAI adapter, provider abstraction, tenant AI config, AI runs, widget AI replies |
 | Module 6 — Lead qualification | **Not Started** | |
 | Module 7 — Human agent workspace | **Not Started** | |
 | Module 8 — Subscription and usage enforcement | **Not Started** | |
@@ -257,6 +257,46 @@ See [MODULE_4_SCHEMA.md](MODULE_4_SCHEMA.md).
 | Pint | Pass |
 
 **READY FOR MODULE 5**
+
+---
+
+## Module 5 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Provider abstraction (`AiProviderContract`) + DTOs (`AiRequest`, `AiResponse`, `AiMessage`, `AiUsage`)
+- OpenAI adapter (`OpenAiProvider`) and test-safe fake provider (`FakeAiProvider`)
+- Tenant AI configuration (`ai_providers`, `tenant_ai_configs`) with encrypted tenant key support
+- AI execution records (`ai_runs`) with status, latency, and token usage
+- Prompt builder with platform policy, tenant policy, bounded history, and bounded knowledge context
+- Widget message orchestration (`AiConversationOrchestrator`) integrated into `/widget/v1/messages`
+- Safe fallback handling for timeout/auth/rate-limit/provider errors
+- Idempotency using `request_id` / `request_uuid` to prevent duplicate assistant replies
+- Tenant admin AI configuration page at `/app/{tenant}/ai/configuration`
+- Audit actions for AI config update and secret replacement
+- **108 automated tests** total (6 new Module 5 tests)
+
+See [MODULE_5_SCHEMA.md](MODULE_5_SCHEMA.md).
+
+### Explicitly deferred (Module 5 boundary)
+
+- Lead qualification workflows, OTP verification, and deduplication logic (Module 6)
+- Human agent workspace and real-time takeover tooling (Module 7)
+- Subscription quota/billing enforcement (Module 8)
+- Additional provider adapters (Gemini, Claude, DeepSeek)
+- Tool execution framework beyond guarded retrieval in this phase
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **108 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 6**
 
 ---
 

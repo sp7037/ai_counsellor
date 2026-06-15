@@ -13,6 +13,7 @@ use App\Models\KnowledgeItem;
 use App\Models\Location;
 use App\Models\Service;
 use App\Models\Tenant;
+use App\Models\TenantAiConfig;
 use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\TenantNote;
@@ -27,6 +28,7 @@ use App\Policies\KnowledgeFeePolicy;
 use App\Policies\KnowledgeItemPolicy;
 use App\Policies\LocationPolicy;
 use App\Policies\ServicePolicy;
+use App\Policies\TenantAiConfigPolicy;
 use App\Policies\TenantConfigurationPolicy;
 use App\Policies\TenantDomainPolicy;
 use App\Policies\TenantKnowledgePolicy;
@@ -43,6 +45,7 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
         Tenant::class => TenantPolicy::class,
+        TenantAiConfig::class => TenantAiConfigPolicy::class,
         TenantMembership::class => TenantMembershipPolicy::class,
         TenantNote::class => TenantNotePolicy::class,
         WidgetKey::class => WidgetKeyPolicy::class,
@@ -76,5 +79,6 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manageTenantConfiguration', [TenantConfigurationPolicy::class, 'manage']);
         Gate::define('viewTenantKnowledge', [TenantKnowledgePolicy::class, 'viewAny']);
         Gate::define('manageTenantKnowledge', [TenantKnowledgePolicy::class, 'manage']);
+        Gate::define('viewTenantAiConfiguration', [TenantAiConfigPolicy::class, 'viewAny']);
     }
 }

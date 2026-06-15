@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 4)
+**Last updated:** 2026-06-15 (Module 5)
 
 ## Principal reference
 
@@ -55,6 +55,18 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Catalogue links (`service_id`, `course_id`, etc.) validated tenant-scoped; cross-tenant attachment returns 404
 - Staff may view knowledge admin pages but cannot create, publish, archive, upload or delete
 - Widget `GET /widget/v1/knowledge/search` requires valid session + origin; production localhost rejected when `WIDGET_ALLOW_LOCAL_ORIGINS` is false or absent
+
+## Module 5 enforcement (implemented)
+
+- AI provider access isolated behind `AiProviderContract`; provider-specific payloads stay inside adapters
+- Widget AI flow resolves tenant from existing widget key/session/origin pipeline only
+- Prompt construction separates trusted policy from untrusted user/knowledge text and bounds history/context sizes
+- Knowledge context for AI uses `KnowledgeRetrievalContract` (published-only, tenant-scoped, no drafts/private files)
+- Tenant AI secrets are encrypted at rest in `tenant_ai_configs`; raw keys are never returned after save
+- AI failures (timeout/auth/rate-limit/provider) return safe fallback without exposing provider internals
+- Assistant output persisted as plain text and rendered as text in widget
+- Idempotency key (`request_id`) maps to `ai_runs.request_uuid` to prevent duplicate assistant replies
+- AI config changes and secret replacement are audited with redacted metadata
 
 ## Secrets and credentials
 

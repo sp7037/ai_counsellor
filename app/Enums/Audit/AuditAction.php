@@ -59,6 +59,8 @@ enum AuditAction: string
     case EligibilityArchived = 'eligibility.archived';
     case CourseInstitutionCreated = 'course_institution.created';
     case CourseInstitutionUpdated = 'course_institution.updated';
+    case AiConfigurationUpdated = 'ai.configuration_updated';
+    case AiSecretReplaced = 'ai.secret_replaced';
     case PlatformBypass = 'platform.bypass';
 
     public function label(): string
@@ -119,6 +121,8 @@ enum AuditAction: string
             self::EligibilityArchived => 'Eligibility archived',
             self::CourseInstitutionCreated => 'Course institution created',
             self::CourseInstitutionUpdated => 'Course institution updated',
+            self::AiConfigurationUpdated => 'AI configuration updated',
+            self::AiSecretReplaced => 'AI secret replaced',
             self::PlatformBypass => 'Platform bypass',
         };
     }

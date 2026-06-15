@@ -68,7 +68,7 @@ class WidgetGatewayTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_visitor_can_send_message_and_receive_stub_reply(): void
+    public function test_visitor_can_send_message_and_receive_ai_reply(): void
     {
         ['key' => $key] = $this->createWidgetReadyTenant();
 
@@ -86,7 +86,8 @@ class WidgetGatewayTest extends TestCase
             'Origin' => 'http://127.0.0.1:8000',
             'Authorization' => 'Bearer '.$token,
         ])->assertOk()
-            ->assertJsonPath('reply.body', 'Thanks for your message. Our team will respond shortly.');
+            ->assertJsonPath('reply.role', 'assistant')
+            ->assertJsonPath('reply.body', 'AI reply: Hello there');
 
         $this->assertDatabaseHas('messages', ['body' => 'Hello there']);
     }
