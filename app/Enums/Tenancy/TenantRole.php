@@ -42,6 +42,11 @@ enum TenantRole: string
         return $this->canManageMembers();
     }
 
+    public function canManageIntegrations(): bool
+    {
+        return $this->canManageMembers();
+    }
+
     public function canWorkAssignedLeads(): bool
     {
         return $this === self::Staff;

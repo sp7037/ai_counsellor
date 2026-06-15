@@ -36,5 +36,7 @@
         <env name="OPENAI_ENABLED" value="false"/>
         <env name="PAYMENT_ENVIRONMENT" value="test"/>
         <env name="FAKE_PAYMENT_ENABLED" value="true"/>
+        <env name="FAKE_MESSAGING_ENABLED" value="true"/>
+        <env name="FAKE_MESSAGING_APP_SECRET" value="fake_app_secret_for_tests"/>
     </php>
 </phpunit>

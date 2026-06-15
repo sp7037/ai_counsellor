@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 10)
+**Last updated:** 2026-06-15 (Module 11)
 
 ## Principal reference
 
@@ -161,6 +161,19 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Test/live mode stored on orders/payments; fake provider used in automated tests (no real API calls)
 
 See [ADR-007](decisions/ADR-007-payments-and-billing-boundary.md).
+
+## Module 11 enforcement (implemented)
+
+- Tenant-owned WhatsApp credentials encrypted at rest; never returned to browser or logs
+- Webhook HMAC verification on raw body; unknown phone-number IDs ignored safely
+- Tenant resolved only from configured `phone_number_id`
+- Inbound/outbound idempotency via provider message and webhook event IDs
+- `whatsapp_integration` entitlement enforced on configuration, webhooks, and outbound
+- Operational `messaging_events` separate from security audit log
+- Platform Super Admin sees health metadata only (no tokens, no message bodies)
+- Fake messaging provider for tests; no real Meta API calls in CI
+
+See [ADR-008](decisions/ADR-008-whatsapp-messaging-boundary.md).
 
 ## AI security
 

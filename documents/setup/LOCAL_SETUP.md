@@ -455,6 +455,59 @@ Manual platform subscription assignment (Module 9) remains available and separat
 
 ---
 
+## Module 11 — WhatsApp (local)
+
+Webhook URLs:
+
+```
+http://127.0.0.1:8000/webhooks/messaging/meta
+```
+
+For automated tests only:
+
+```
+http://127.0.0.1:8000/webhooks/messaging/fake
+```
+
+### Tenant setup
+
+1. Professional or Enterprise plan with `whatsapp_integration` entitlement
+2. Tenant Admin → **Integrations → WhatsApp**
+3. Enter Meta **Phone number ID**, access token, and app secret
+4. Copy webhook URL and verify token into the Meta developer app
+5. Subscribe to `messages` webhook field
+
+### Meta developer app (production checklist — not verified in CI)
+
+- Create Meta app with WhatsApp product
+- Configure callback URL and verify token
+- Add `messages` webhook subscription
+- Request required permissions and complete Meta business verification separately
+- Use test phone numbers in development
+
+### Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `MESSAGING_DEFAULT_PROVIDER` | `meta` (default) |
+| `MESSAGING_SERVICE_WINDOW_HOURS` | Customer-care window (default 24) |
+| `FAKE_MESSAGING_ENABLED` | `true` in `phpunit.xml` for tests |
+| `FAKE_MESSAGING_APP_SECRET` | HMAC secret for fake webhook tests |
+
+### Processing model
+
+Inbound webhooks are verified, deduplicated, and processed **synchronously** in the HTTP request. No queue worker is required for local development.
+
+### Messaging module tests
+
+```bat
+D:\php83\php.exe artisan test tests/Feature/Messaging/MessagingModuleTest.php
+```
+
+No production Meta credentials or external API calls are used in automated tests.
+
+---
+
 ## Backup locations
 
 | Item | Path |

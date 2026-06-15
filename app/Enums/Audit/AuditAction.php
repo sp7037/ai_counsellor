@@ -105,6 +105,10 @@ enum AuditAction: string
     case PlanPricingUpdated = 'plan.pricing_updated';
     case PaymentSecretReplaced = 'payment.secret_replaced';
     case PaymentSettingsUpdated = 'payment.settings_updated';
+    case MessagingCredentialReplaced = 'messaging.credential_replaced';
+    case MessagingIntegrationConfigured = 'messaging.integration_configured';
+    case MessagingIntegrationEnabled = 'messaging.integration_enabled';
+    case MessagingIntegrationDisabled = 'messaging.integration_disabled';
 
     public function label(): string
     {
@@ -210,6 +214,10 @@ enum AuditAction: string
             self::PlanPricingUpdated => 'Plan pricing updated',
             self::PaymentSecretReplaced => 'Payment secret replaced',
             self::PaymentSettingsUpdated => 'Payment settings updated',
+            self::MessagingCredentialReplaced => 'Messaging credential replaced',
+            self::MessagingIntegrationConfigured => 'Messaging integration configured',
+            self::MessagingIntegrationEnabled => 'Messaging integration enabled',
+            self::MessagingIntegrationDisabled => 'Messaging integration disabled',
         };
     }
 }

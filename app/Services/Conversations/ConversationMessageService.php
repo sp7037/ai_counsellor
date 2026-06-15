@@ -2,13 +2,16 @@
 
 namespace App\Services\Conversations;
 
+use App\Enums\Conversations\ConversationChannel;
 use App\Enums\Conversations\ConversationMode;
 use App\Enums\Conversations\MessageRole;
+use App\Exceptions\Messaging\MessagingException;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\WidgetSession;
 use App\Services\AI\AiIdempotencyCoordinator;
+use App\Services\Messaging\OutboundMessageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +22,7 @@ class ConversationMessageService
         private readonly ConversationReadStateService $readState,
         private readonly ConversationNotificationService $notifications,
         private readonly AiIdempotencyCoordinator $idempotency,
+        private readonly OutboundMessageService $outbound,
     ) {}
 
     public function sendCounsellorMessage(
@@ -62,6 +66,14 @@ class ConversationMessageService
                 'last_message_at' => now(),
                 'last_human_message_at' => now(),
             ]);
+
+            if ($conversation->channel === ConversationChannel::WhatsApp) {
+                try {
+                    $this->outbound->sendCounsellorReply($conversation, $message);
+                } catch (MessagingException) {
+                    // Delivery state is recorded on the message; counsellor message remains visible.
+                }
+            }
 
             return $message;
         });

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Tenant\KnowledgeDocumentDownloadController;
 use App\Http\Controllers\Tenant\PaymentVerificationController;
+use App\Http\Controllers\Webhooks\MessagingWebhookController;
 use App\Http\Controllers\Webhooks\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -13,6 +14,11 @@ Route::get('/', function () {
 Route::post('/webhooks/payments/{provider}', PaymentWebhookController::class)
     ->middleware('throttle:'.config('payments.webhook_rate_limit', '120,1'))
     ->name('webhooks.payments');
+
+Route::match(['get', 'post'], '/webhooks/messaging/{provider}', MessagingWebhookController::class)
+    ->where('provider', 'meta|fake')
+    ->middleware('throttle:'.config('messaging.webhook_rate_limit', '240,1'))
+    ->name('webhooks.messaging');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('app/select-tenant', 'tenant.select')->name('tenant.select');
@@ -37,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Volt::route('payments', 'platform.payments.index')->name('payments.index');
             Volt::route('payments/{payment}', 'platform.payments.show')->name('payments.show');
             Volt::route('payment-orders', 'platform.payment-orders.index')->name('payment-orders.index');
+            Volt::route('integrations', 'platform.integrations.index')->name('integrations.index');
             Volt::route('tenants/{tenant}/payments', 'platform.tenants.payments')->name('tenants.payments');
         });
 
@@ -86,6 +93,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 Route::prefix('ai')->name('ai.')->group(function () {
                     Volt::route('configuration', 'tenant.ai.configuration')->name('configuration');
+                });
+
+                Route::middleware('tenant.integrations')->prefix('integrations')->name('integrations.')->group(function () {
+                    Volt::route('/', 'tenant.integrations.index')->name('index');
+                    Volt::route('whatsapp', 'tenant.integrations.whatsapp')->name('whatsapp');
+                    Volt::route('whatsapp/templates', 'tenant.integrations.whatsapp-templates')->name('whatsapp.templates');
+                    Volt::route('whatsapp/events', 'tenant.integrations.whatsapp-events')->name('whatsapp.events');
                 });
 
                 Route::middleware('tenant.lead.manager')->group(function () {

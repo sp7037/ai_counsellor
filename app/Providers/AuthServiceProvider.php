@@ -22,6 +22,7 @@ use App\Models\Tenant;
 use App\Models\TenantAiConfig;
 use App\Models\TenantDomain;
 use App\Models\TenantMembership;
+use App\Models\TenantMessagingIntegration;
 use App\Models\TenantNote;
 use App\Models\User;
 use App\Models\WidgetKey;
@@ -47,6 +48,7 @@ use App\Policies\TenantConfigurationPolicy;
 use App\Policies\TenantDomainPolicy;
 use App\Policies\TenantKnowledgePolicy;
 use App\Policies\TenantMembershipPolicy;
+use App\Policies\TenantMessagingIntegrationPolicy;
 use App\Policies\TenantNotePolicy;
 use App\Policies\TenantPolicy;
 use App\Policies\TenantWidgetSettingsPolicy;
@@ -80,6 +82,7 @@ class AuthServiceProvider extends ServiceProvider
         Plan::class => PlanPolicy::class,
         PaymentOrder::class => PaymentOrderPolicy::class,
         Payment::class => PaymentPolicy::class,
+        TenantMessagingIntegration::class => TenantMessagingIntegrationPolicy::class,
         Subscription::class => SubscriptionPolicy::class,
     ];
 

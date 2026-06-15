@@ -53,6 +53,7 @@ class PlansSeeder extends Seeder
                     [PlanFeature::HumanHandoff, true, 20],
                     [PlanFeature::UsageReporting, true, null],
                     [PlanFeature::CustomAiCredentials, true, null],
+                    [PlanFeature::WhatsAppIntegration, true, null],
                 ],
             ],
             'enterprise' => [
@@ -70,6 +71,7 @@ class PlansSeeder extends Seeder
                     [PlanFeature::CustomAiCredentials, true, null],
                     [PlanFeature::PlatformCredentialFallback, true, null],
                     [PlanFeature::DataExport, true, null],
+                    [PlanFeature::WhatsAppIntegration, true, null],
                 ],
             ],
         ];
@@ -88,6 +90,8 @@ class PlansSeeder extends Seeder
             );
 
             if ($plan->entitlements()->exists()) {
+                $this->syncEntitlements($plan, $definition['features']);
+
                 continue;
             }
 
@@ -100,6 +104,26 @@ class PlansSeeder extends Seeder
                     'limit_period' => $feature->limitMetric()?->periodType()->value ?? LimitPeriod::BillingPeriod->value,
                 ]);
             }
+        }
+    }
+
+    /**
+     * @param  array<int, array{0: PlanFeature, 1: bool, 2: int|null}>  $features
+     */
+    private function syncEntitlements(Plan $plan, array $features): void
+    {
+        foreach ($features as [$feature, $enabled, $limit]) {
+            PlanEntitlement::query()->updateOrCreate(
+                [
+                    'plan_id' => $plan->id,
+                    'feature' => $feature->value,
+                ],
+                [
+                    'enabled' => $enabled,
+                    'limit_value' => $limit,
+                    'limit_period' => $feature->limitMetric()?->periodType()->value ?? LimitPeriod::BillingPeriod->value,
+                ],
+            );
         }
     }
 }

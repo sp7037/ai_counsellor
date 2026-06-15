@@ -241,13 +241,35 @@ Exit gate: Verified payment activates subscription exactly once; entitlement bou
 
 **READY FOR MODULE 11**
 
-## Post–Module 10 integrations
+## Module 11 — WhatsApp
 
-**Status:** Not Started (all)
+**Status:** Complete
+
+Roadmap scope: **Outbound messaging integration** (authoritative title: **WhatsApp**).
+
+Delivered scope (broader than roadmap summary):
+
+- Meta WhatsApp Cloud API via provider-neutral messaging layer
+- Tenant-owned encrypted credentials and integration admin UI
+- Webhook verification and signed inbound processing (`/webhooks/messaging/meta`)
+- Inbound message → conversation/lead linkage, AI and human handoff reuse
+- Outbound counsellor/AI replies with 24-hour session window enforcement
+- Template metadata and sends outside the service window
+- Delivery status webhooks (sent/delivered/read/failed)
+- Platform integration health visibility (no tokens or message bodies)
+- `whatsapp_integration` entitlement on Professional/Enterprise plans
+- Fake provider for automated tests (`/webhooks/messaging/fake`)
+
+Exit gate: Signed webhooks idempotent; cross-tenant isolation; entitlement enforcement; no unofficial automation.
+
+**READY FOR MODULE 12 (Email)**
+
+## Post–Module 11 integrations
+
+**Status:** Not Started (remaining)
 
 | Module | Scope |
 |--------|-------|
-| WhatsApp | Outbound messaging integration |
 | Email | Transactional and notification email |
 | Appointments | Booking and availability |
 | Document collection | Upload and processing workflows |

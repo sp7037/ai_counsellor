@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'fingerprint_hash', 'first_seen_at', 'last_seen_at'])]
+#[Fillable(['uuid', 'tenant_id', 'fingerprint_hash', 'first_seen_at', 'last_seen_at'])]
 class Visitor extends Model
 {
     use BelongsToTenant;

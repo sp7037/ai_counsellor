@@ -236,3 +236,18 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 **Test suite:** 222 tests, 584 assertions.
 
 **READY FOR MODULE 11**
+
+## Module 11 — WhatsApp (implemented)
+
+| Item | Decision |
+|------|----------|
+| Provider | Meta WhatsApp Cloud API; `FakeMessagingProvider` for tests |
+| Abstraction | `MessagingProviderContract` + messaging services (ADR-008) |
+| Webhooks | `GET|POST /webhooks/messaging/{provider}`; phone-number tenant resolution |
+| Credentials | Per-tenant encrypted token + app secret |
+| Session window | 24-hour Meta customer-care policy; templates outside window |
+| Processing | Synchronous (no queue worker required locally) |
+
+**Test suite:** 247 tests, 659 assertions.
+
+**READY FOR MODULE 12 (Email)**

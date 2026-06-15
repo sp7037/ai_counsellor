@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 10 — complete)  
-**Current phase:** Module 10 complete; Module 11 not started
+**Last updated:** 2026-06-15 (Module 11 — complete)  
+**Current phase:** Module 11 complete; Module 12 not started
 
 ## Principal reference
 
@@ -27,6 +27,7 @@
 | Module 8 — Human agent live conversations | **Complete** | Handoff, ownership, counsellor chat, widget polling, admin supervision |
 | Module 9 — Subscription and usage enforcement | **Complete** | Entitlements, limits, manual billing, platform plan admin |
 | Module 10 — Payments | **Complete** | Razorpay/fake provider, checkout, webhooks, plan pricing, receipts |
+| Module 11 — WhatsApp | **Complete** | Meta Cloud API, webhooks, inbound/outbound, templates, delivery status |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |
 
 ---
@@ -171,7 +172,43 @@ See [MODULE_10_SCHEMA.md](MODULE_10_SCHEMA.md) and [ADR-007](decisions/ADR-007-p
 | `npm run build` | Success |
 | Pint | Pass |
 
-**READY FOR MODULE 11 (not started)**
+**READY FOR MODULE 11**
+
+## Module 11 — Completion summary (2026-06-15)
+
+### Delivered
+
+- Provider-neutral messaging layer (`MessagingProviderContract`, `MetaWhatsAppCloudProvider`, `FakeMessagingProvider`)
+- Tables: `tenant_messaging_integrations`, `messaging_contacts`, `messaging_templates`, `messaging_webhook_events`, `messaging_events`
+- Channel extensions on `conversations` and `messages` (WhatsApp channel, delivery state, provider IDs)
+- Webhook routes `GET|POST /webhooks/messaging/{provider}` with HMAC verification and phone-number tenant resolution
+- Inbound processing reusing `InboundMessageProcessor`, `LeadCreationService`, `AiConversationOrchestrator`, handoff services
+- Outbound processing with 24-hour session window and template sends
+- Tenant integration UI (`/app/{tenant}/integrations/whatsapp`, templates, events)
+- Platform integration health index (masked phone, no secrets)
+- `PlanFeature::WhatsAppIntegration` on Professional/Enterprise
+- **247 automated tests** (25 new Module 11 tests)
+
+See [MODULE_11_SCHEMA.md](MODULE_11_SCHEMA.md) and [ADR-008](decisions/ADR-008-whatsapp-messaging-boundary.md).
+
+### Deferred
+
+- Provider template sync API (manual metadata entry in Module 11)
+- Visual template designer
+- Queue-based webhook workers (synchronous processing documented)
+- Marketing consent automation
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **247 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 12 (Email — not started)**
 
 ---
 

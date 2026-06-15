@@ -85,7 +85,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 <x-slot:heading>Conversation supervision</x-slot:heading>
 <div class="grid gap-6 lg:grid-cols-3">
     <div class="lg:col-span-2 grid gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <div class="text-sm text-zinc-400">{{ $conversation->mode->label() }} · {{ $conversation->uuid }}</div>
+        <div class="text-sm text-zinc-400">{{ $conversation->channel->label() }} · {{ $conversation->mode->label() }} · {{ $conversation->uuid }}</div>
         <div class="grid max-h-96 gap-2 overflow-y-auto">
             @foreach ($conversation->messages as $message)
                 <div class="rounded bg-zinc-950 p-2 text-sm"><span class="text-zinc-500">{{ $message->role->label() }}:</span> {{ $message->body }}</div>

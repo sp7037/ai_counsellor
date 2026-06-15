@@ -10,6 +10,7 @@
         ['label' => 'AI Settings', 'route' => 'tenant.ai.configuration'],
         ['label' => 'Members', 'route' => 'tenant.members.index'],
         ['label' => 'Widget', 'route' => 'tenant.widget.index'],
+        ['label' => 'Integrations', 'route' => 'tenant.integrations.index'],
     ];
 @endphp
 <nav class="grid gap-1 text-sm">

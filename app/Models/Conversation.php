@@ -14,11 +14,16 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'uuid',
+    'tenant_id',
     'visitor_id',
     'lead_id',
     'human_owner_id',
     'target_counsellor_id',
     'handoff_request_uuid',
+    'messaging_integration_id',
+    'messaging_contact_id',
+    'external_channel_reference',
+    'last_inbound_provider_message_id',
     'channel',
     'status',
     'mode',
@@ -95,6 +100,16 @@ class Conversation extends Model
     public function humanOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'human_owner_id');
+    }
+
+    public function messagingIntegration(): BelongsTo
+    {
+        return $this->belongsTo(TenantMessagingIntegration::class, 'messaging_integration_id');
+    }
+
+    public function messagingContact(): BelongsTo
+    {
+        return $this->belongsTo(MessagingContact::class, 'messaging_contact_id');
     }
 
     public function targetCounsellor(): BelongsTo

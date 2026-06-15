@@ -9,6 +9,7 @@ enum LeadSource: string
     case OfflineIntake = 'offline_intake';
     case Manual = 'manual';
     case ConversationConversion = 'conversation_conversion';
+    case WhatsApp = 'whatsapp';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum LeadSource: string
             self::OfflineIntake => 'Offline intake',
             self::Manual => 'Manual entry',
             self::ConversationConversion => 'Conversation conversion',
+            self::WhatsApp => 'WhatsApp',
         };
     }
 }

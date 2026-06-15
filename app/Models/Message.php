@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use App\Enums\Conversations\MessageRole;
+use App\Enums\Messaging\MessageDeliveryState;
+use App\Enums\Messaging\MessageDirection;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'request_uuid', 'tenant_id', 'conversation_id', 'role', 'sender_user_id', 'sender_display_name', 'body', 'metadata'])]
+#[Fillable(['uuid', 'request_uuid', 'tenant_id', 'conversation_id', 'role', 'sender_user_id', 'sender_display_name', 'body', 'metadata', 'direction', 'provider_message_id', 'delivery_state', 'template_name', 'reply_to_provider_message_id', 'delivery_failure_category'])]
 class Message extends Model
 {
     use BelongsToTenant;
@@ -33,6 +35,8 @@ class Message extends Model
     {
         return [
             'role' => MessageRole::class,
+            'direction' => MessageDirection::class,
+            'delivery_state' => MessageDeliveryState::class,
             'metadata' => 'array',
             'created_at' => 'datetime',
         ];

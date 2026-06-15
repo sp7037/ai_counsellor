@@ -39,6 +39,7 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('platform.system-health.index'))->assertOk();
         $this->get(route('platform.tenants.show', $tenant))->assertOk();
         $this->get(route('platform.plans.index'))->assertOk();
+        $this->get(route('platform.integrations.index'))->assertOk();
 
         $this->post(route('logout'));
 
@@ -64,6 +65,8 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('tenant.knowledge.documents', $tenant))->assertOk();
         $this->get(route('tenant.knowledge.course-institutions', $tenant))->assertOk();
         $this->get(route('tenant.ai.configuration', $tenant))->assertOk();
+        $this->get(route('tenant.integrations.index', $tenant))->assertOk();
+        $this->get(route('tenant.integrations.whatsapp', $tenant))->assertOk();
         $this->get(route('tenant.leads.index', $tenant))->assertOk();
         $this->get(route('tenant.counsellors.index', $tenant))->assertOk();
         $this->get(route('tenant.conversations.index', $tenant))->assertOk();

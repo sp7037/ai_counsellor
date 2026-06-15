@@ -17,6 +17,7 @@ enum PlanFeature: string
     case ApiAccess = 'api_access';
     case AdvancedQualification = 'advanced_qualification';
     case SuggestedReplies = 'suggested_replies';
+    case WhatsAppIntegration = 'whatsapp_integration';
 
     public function label(): string
     {
@@ -34,6 +35,7 @@ enum PlanFeature: string
             self::ApiAccess => 'API access',
             self::AdvancedQualification => 'Advanced qualification',
             self::SuggestedReplies => 'Suggested replies',
+            self::WhatsAppIntegration => 'WhatsApp integration',
         };
     }
 
