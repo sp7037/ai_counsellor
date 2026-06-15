@@ -9,6 +9,8 @@ use App\Models\Message;
 use App\Services\Knowledge\KnowledgeItemService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Livewire\Volt\Volt;
 use Tests\TestCase;
 
 class AiOrchestrationTest extends TestCase
@@ -135,5 +137,32 @@ class AiOrchestrationTest extends TestCase
         $this->withTenantContext($userA, $tenantA);
 
         $this->get(route('tenant.ai.configuration', $tenantB))->assertForbidden();
+    }
+
+    public function test_tenant_ai_secret_is_encrypted_at_rest_and_not_returned_in_response(): void
+    {
+        ['tenant' => $tenant, 'user' => $owner] = $this->createTenantWithMember(role: TenantRole::Owner);
+        $this->actingAs($owner);
+        $this->withTenantContext($owner, $tenant);
+
+        Volt::test('tenant.ai.configuration', ['tenant' => $tenant])
+            ->set('provider', 'openai')
+            ->set('model', 'gpt-4o-mini')
+            ->set('temperature', 0.2)
+            ->set('maxOutputTokens', 400)
+            ->set('timeoutSeconds', 15)
+            ->set('enabled', true)
+            ->set('replaceSecret', true)
+            ->set('apiKey', 'sk-test-secret-1234')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $raw = DB::table('tenant_ai_configs')->where('tenant_id', $tenant->id)->value('encrypted_api_key');
+        $this->assertNotNull($raw);
+        $this->assertNotSame('sk-test-secret-1234', $raw);
+
+        $this->get(route('tenant.ai.configuration', $tenant))
+            ->assertOk()
+            ->assertDontSee('sk-test-secret-1234');
     }
 }
