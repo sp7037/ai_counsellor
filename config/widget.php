@@ -9,7 +9,7 @@ return [
         'messages' => env('WIDGET_RATE_LIMIT_MESSAGES', '60,1'),
     ],
 
-    'allow_local_origins' => (bool) env('WIDGET_ALLOW_LOCAL_ORIGINS', true),
+    'allow_local_origins' => env('WIDGET_ALLOW_LOCAL_ORIGINS'),
 
     'local_origins' => [
         'http://127.0.0.1:8000',

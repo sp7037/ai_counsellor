@@ -206,10 +206,18 @@ Optional `.env` overrides:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `WIDGET_ALLOW_LOCAL_ORIGINS` | `true` | Allow localhost embed without verified domain |
+| `WIDGET_ALLOW_LOCAL_ORIGINS` | unset (fail-closed outside local/testing) | Set `true` only for local embed testing |
 | `WIDGET_SESSION_TTL_MINUTES` | `120` | Widget session lifetime |
 
 Gateway API base: `http://127.0.0.1:8000/widget/v1`
+
+**Production:** set `WIDGET_ALLOW_LOCAL_ORIGINS=false` and verify all embed domains in the tenant widget admin UI.
+
+## Module 3 configuration (local)
+
+Tenant owners/admins configure branding, assistant, office hours and catalogues at `/app/{tenant_uuid}/configuration`.
+
+After `php artisan storage:link`, uploaded logos are served from `public/storage/tenant-logos/…`.
 
 ---
 

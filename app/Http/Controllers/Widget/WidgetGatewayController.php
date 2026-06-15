@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Widget;
 
 use App\Http\Controllers\Controller;
 use App\Models\WidgetSession;
+use App\Services\Configuration\WidgetPublicConfigService;
 use App\Services\Widget\ConversationService;
 use App\Services\Widget\WidgetSessionService;
 use App\Services\Widget\WidgetTenantResolver;
@@ -17,6 +18,7 @@ class WidgetGatewayController extends Controller
         private readonly WidgetTenantResolver $tenantResolver,
         private readonly WidgetSessionService $sessionService,
         private readonly ConversationService $conversationService,
+        private readonly WidgetPublicConfigService $publicConfigService,
     ) {}
 
     public function startSession(Request $request): JsonResponse
@@ -43,6 +45,8 @@ class WidgetGatewayController extends Controller
             $validated['fingerprint'] ?? null,
         );
 
+        $publicConfig = $this->publicConfigService->forTenant($resolved['tenant']);
+
         return response()->json([
             'session_token' => $result['token'],
             'conversation_uuid' => $result['conversation']->uuid,
@@ -50,6 +54,7 @@ class WidgetGatewayController extends Controller
             'offline_message' => $result['settings']->offline_message,
             'offline_form_enabled' => $result['settings']->offline_form_enabled,
             'expires_at' => $result['session']->expires_at->toIso8601String(),
+            'configuration' => $publicConfig,
         ]);
     }
 
@@ -59,11 +64,14 @@ class WidgetGatewayController extends Controller
         $session = $request->attributes->get('widget_session');
         $settings = $this->sessionService->resolveSettings($session->tenant);
 
+        $publicConfig = $this->publicConfigService->forTenant($session->tenant);
+
         return response()->json([
             'conversation_uuid' => $session->conversation->uuid,
             'offline_message' => $settings->offline_message,
             'offline_form_enabled' => $settings->offline_form_enabled,
             'messages' => $this->conversationService->listMessages($session->conversation),
+            'configuration' => $publicConfig,
         ]);
     }
 

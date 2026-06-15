@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
     'legal_name',
     'email',
     'phone',
+    'timezone',
+    'locale',
     'status',
     'activated_at',
     'suspended_at',
@@ -104,5 +106,35 @@ class Tenant extends Model
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    public function settings(): HasOne
+    {
+        return $this->hasOne(TenantSettings::class);
+    }
+
+    public function officeHours(): HasMany
+    {
+        return $this->hasMany(TenantOfficeHour::class);
+    }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class);
+    }
+
+    public function institutions(): HasMany
+    {
+        return $this->hasMany(Institution::class);
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
     }
 }

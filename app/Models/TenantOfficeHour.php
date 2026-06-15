@@ -2,25 +2,24 @@
 
 namespace App\Models;
 
-use App\Enums\Configuration\WidgetPosition;
+use App\Enums\Configuration\DayOfWeek;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['welcome_message', 'offline_message', 'offline_form_enabled', 'widget_position', 'welcome_delay_seconds'])]
-class TenantWidgetSettings extends Model
+#[Fillable(['day_of_week', 'opens_at', 'closes_at', 'is_closed'])]
+class TenantOfficeHour extends Model
 {
     use BelongsToTenant;
 
-    protected $table = 'tenant_widget_settings';
+    protected $table = 'tenant_office_hours';
 
     protected function casts(): array
     {
         return [
-            'offline_form_enabled' => 'boolean',
-            'widget_position' => WidgetPosition::class,
-            'welcome_delay_seconds' => 'integer',
+            'day_of_week' => DayOfWeek::class,
+            'is_closed' => 'boolean',
         ];
     }
 

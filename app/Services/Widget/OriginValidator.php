@@ -23,7 +23,15 @@ class OriginValidator
 
     public function isAllowedLocalOrigin(?string $origin): bool
     {
-        if (! config('widget.allow_local_origins')) {
+        $configured = config('widget.allow_local_origins');
+
+        if ($configured === null) {
+            $allowed = app()->environment('local', 'testing');
+        } else {
+            $allowed = filter_var($configured, FILTER_VALIDATE_BOOL);
+        }
+
+        if (! $allowed) {
             return false;
         }
 

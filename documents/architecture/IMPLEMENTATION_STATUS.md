@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 2 — complete)  
-**Current phase:** Module 2 complete; Module 3 not started
+**Last updated:** 2026-06-15 (Module 3 — complete)  
+**Current phase:** Module 3 complete; Module 4 not started
 
 ## Principal reference
 
@@ -18,7 +18,7 @@
 | Phase 0B — Modernise technical foundation | **Complete** | Corrective pass: npm audit clean, auth decision updated |
 | Module 1 — SaaS foundation | **Complete** | Auth, tenancy, isolation, platform/tenant dashboards, tests |
 | Module 2 — Embeddable chat widget | **Complete** | Widget gateway, keys, domains, sessions, admin UI, demo pages |
-| Module 3 — Tenant configuration | **Not Started** | |
+| Module 3 — Tenant configuration | **Complete** | Branding, catalogue, office hours, widget public config |
 | Module 4 — Knowledge base | **Not Started** | |
 | Module 5 — AI orchestration | **Not Started** | |
 | Module 6 — Lead qualification | **Not Started** | |
@@ -202,6 +202,23 @@ See [MODULE_2_SCHEMA.md](MODULE_2_SCHEMA.md).
 | Pint | Pass (`vendor/bin/pint`) |
 
 **READY FOR MODULE 3**
+
+---
+
+## Module 3 — Completion summary (2026-06-15)
+
+### Delivered
+
+- `tenant_settings`, `tenant_office_hours`, `services`, `courses`, `institutions`, `locations`
+- Tenant timezone/locale columns
+- Configuration admin UI at `/app/{tenant}/configuration/*`
+- Logo upload security, office hours evaluator, widget public config extension
+- Production-safe `WIDGET_ALLOW_LOCAL_ORIGINS` behaviour
+- **92 automated tests** total (10 new Module 3 tests)
+
+See [MODULE_3_SCHEMA.md](MODULE_3_SCHEMA.md).
+
+**READY FOR MODULE 4**
 
 ---
 

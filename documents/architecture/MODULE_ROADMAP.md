@@ -1,6 +1,6 @@
 # Module Roadmap
 
-**Last updated:** 2026-06-15 (Module 2 complete)
+**Last updated:** 2026-06-15 (Module 3 complete)
 
 ## Principal reference
 
@@ -70,17 +70,15 @@ Exit gate: Works on at least PHP/static/WordPress test pages (`public/widget-dem
 
 ## Module 3 — Tenant configuration
 
-**Status:** Not Started
+**Status:** Complete
 
-- Branding
-- Assistant identity
-- Welcome messages
-- Languages
-- Office hours
-- Services
-- Courses
-- Locations
-- Human-transfer settings
+- Branding, logo, colours, widget position
+- Assistant identity and AI disclosure
+- Welcome/offline messages and languages
+- Human-transfer settings (configuration only)
+- Office hours with tenant timezone
+- Services, courses, institutions, locations catalogues
+- Public widget configuration API extension
 
 Exit gate: Tenant admin can configure without code changes.
 

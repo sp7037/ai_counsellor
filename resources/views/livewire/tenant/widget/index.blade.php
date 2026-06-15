@@ -4,9 +4,7 @@ use App\Models\Tenant;
 use App\Models\TenantDomain;
 use App\Models\WidgetKey;
 use App\Services\Widget\TenantDomainService;
-use App\Services\Widget\TenantWidgetSettingsService;
 use App\Services\Widget\WidgetKeyService;
-use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -17,24 +15,10 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public string $domain = '';
 
-    public string $welcomeMessage = '';
-
-    public string $offlineMessage = '';
-
-    public bool $offlineFormEnabled = true;
-
     public function mount(Tenant $tenant): void
     {
         $this->authorize('viewAny', [WidgetKey::class, $tenant]);
         $this->tenant = $tenant;
-
-        $settings = $tenant->widgetSettings;
-
-        if ($settings) {
-            $this->welcomeMessage = (string) $settings->welcome_message;
-            $this->offlineMessage = (string) $settings->offline_message;
-            $this->offlineFormEnabled = (bool) $settings->offline_form_enabled;
-        }
     }
 
     public function with(): array
@@ -118,23 +102,6 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->authorize('delete', $record);
         $service->remove($record, auth()->user());
     }
-
-    public function saveSettings(TenantWidgetSettingsService $service): void
-    {
-        Gate::authorize('manageWidgetSettings', $this->tenant);
-
-        $validated = $this->validate([
-            'welcomeMessage' => ['required', 'string', 'max:500'],
-            'offlineMessage' => ['required', 'string', 'max:500'],
-            'offlineFormEnabled' => ['boolean'],
-        ]);
-
-        $service->update($this->tenant, [
-            'welcome_message' => $validated['welcomeMessage'],
-            'offline_message' => $validated['offlineMessage'],
-            'offline_form_enabled' => $validated['offlineFormEnabled'],
-        ]);
-    }
 }; ?>
 
 <x-slot:heading>Chat widget — {{ $tenant->name }}</x-slot:heading>
@@ -208,15 +175,8 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     </section>
 
-    @can('manageWidgetSettings', $tenant)
-        <section class="grid gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <flux:heading size="md">Widget messages</flux:heading>
-            <form wire:submit="saveSettings" class="grid gap-3">
-                <flux:input wire:model="welcomeMessage" label="Welcome message" />
-                <flux:input wire:model="offlineMessage" label="Offline message" />
-                <flux:checkbox wire:model="offlineFormEnabled" label="Enable offline form" />
-                <flux:button type="submit" variant="primary">Save settings</flux:button>
-            </form>
-        </section>
-    @endcan
+    <p class="text-sm text-zinc-500">
+        Welcome messages, assistant identity and branding are managed under
+        <a href="{{ route('tenant.configuration.index', $tenant) }}" class="text-blue-400 underline" wire:navigate>Configuration</a>.
+    </p>
 </div>

@@ -202,6 +202,10 @@ Built by Vite entry `resources/js/widget/embed.js` → `public/build/widget.js`.
 
 Module 1 regression suites remain unchanged and passing.
 
+## Module 3 extension
+
+Module 3 extends `/widget/v1/session` and `/widget/v1/config` with a public `configuration` object (branding, catalogue, availability). See [MODULE_3_SCHEMA.md](MODULE_3_SCHEMA.md).
+
 ## Local configuration
 
 See `config/widget.php`:

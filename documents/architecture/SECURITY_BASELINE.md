@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 2)
+**Last updated:** 2026-06-15 (Module 3)
 
 ## Principal reference
 
@@ -31,6 +31,16 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Widget key rotation/revocation and domain verify/remove audited
 - Tenant admin widget mutations authorized in policies; cross-tenant UUID/ID lookups return 404 under tenant scope
 - Suspended/cancelled/pending tenants rejected at widget session start
+- `WIDGET_ALLOW_LOCAL_ORIGINS` unset defaults to allow localhost **only** in `local`/`testing`; production must not rely on localhost bypass
+
+## Module 3 enforcement (implemented)
+
+- Tenant configuration mutations centralized in dedicated services with validation and audit
+- Logo uploads: JPEG/PNG/WebP only, server-side MIME verification, 2 MB limit, random filenames under `tenant-logos/{tenant_uuid}/`
+- All tenant-facing text sanitized with `strip_tags` before storage
+- Widget public `configuration` payload excludes internal IDs, secrets and admin metadata
+- Catalogue CRUD tenant-scoped; staff cannot mutate configuration
+- Office hours evaluated in tenant IANA timezone, not server default alone
 
 ## Secrets and credentials
 
