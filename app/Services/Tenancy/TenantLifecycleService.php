@@ -64,6 +64,7 @@ class TenantLifecycleService
             'activated_at' => now(),
             'suspended_at' => null,
             'suspension_reason' => null,
+            'suspended_by' => null,
         ]);
 
         $this->auditLogger->log(
@@ -82,6 +83,7 @@ class TenantLifecycleService
             'status' => TenantStatus::Suspended->value,
             'suspended_at' => now(),
             'suspension_reason' => $reason,
+            'suspended_by' => $actor?->id,
         ]);
 
         $this->auditLogger->log(
@@ -108,6 +110,7 @@ class TenantLifecycleService
             'activated_at' => $tenant->activated_at ?? now(),
             'suspended_at' => null,
             'suspension_reason' => null,
+            'suspended_by' => null,
         ]);
 
         $this->auditLogger->log(

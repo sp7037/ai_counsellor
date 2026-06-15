@@ -1,6 +1,6 @@
 # Security Baseline
 
-**Last updated:** 2026-06-15 (Module 5)
+**Last updated:** 2026-06-15 (Module 6)
 
 ## Principal reference
 
@@ -99,6 +99,18 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - **Domain whitelist** must be validated server-side for widget sessions.
 - Authorisation policies must verify tenant ownership even when a record ID is known.
 - Cross-tenant analytics available only to platform roles.
+
+## Module 6 enforcement (implemented)
+
+- Dedicated `App\Services\Platform\*` services for cross-tenant reads; `TenantContext` not set for platform aggregates
+- All `/platform/*` routes require `auth`, `verified`, and `platform.admin` middleware
+- `AiRunPolicy` and `AuditLogPolicy` gate platform inspection of runs and audit logs
+- Tenant suspension requires reason, sets `suspended_by`, audits `tenant.suspended`; data preserved
+- Platform settings store secrets encrypted; password-style replacement only; never echoed to browser or audit cleartext
+- AI operations and audit viewers show redacted metadata only (no prompts, provider bodies, or API keys)
+- Support impersonation / “login as tenant” **not implemented** (ADR-003)
+- Usage reporting shows tokens and run counts only — no fabricated monetary cost
+- Super Admin uses dedicated platform layout; counsellor/staff roles denied platform routes
 
 ## AI security
 

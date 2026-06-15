@@ -29,6 +29,12 @@ class AuthenticatedHttpSmokeTest extends TestCase
             ->assertHasNoErrors();
 
         $this->get(route('platform.tenants.index'))->assertOk();
+        $this->get(route('platform.overview'))->assertOk();
+        $this->get(route('platform.ai-operations.index'))->assertOk();
+        $this->get(route('platform.usage.index'))->assertOk();
+        $this->get(route('platform.audit-logs.index'))->assertOk();
+        $this->get(route('platform.settings.index'))->assertOk();
+        $this->get(route('platform.system-health.index'))->assertOk();
         $this->get(route('platform.tenants.show', $tenant))->assertOk();
 
         $this->post(route('logout'));

@@ -30,7 +30,12 @@ new #[Layout('components.layouts.auth')] class extends Component {
 }; ?>
 
 <div class="mt-4 flex flex-col gap-6">
-    <x-auth-header title="Verify your email" description="Please verify your email address before continuing." />
+    <x-auth-header
+        title="Verify your email"
+        :description="auth()->user()->isPlatformSuperAdmin()
+            ? 'Verify your email to access the Platform Super Admin control plane.'
+            : 'Please verify your email address before continuing.'"
+    />
 
     @if (session('status') === 'verification-link-sent')
         <div class="text-center text-sm font-medium text-green-600">

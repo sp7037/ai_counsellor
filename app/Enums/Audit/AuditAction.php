@@ -61,6 +61,7 @@ enum AuditAction: string
     case CourseInstitutionUpdated = 'course_institution.updated';
     case AiConfigurationUpdated = 'ai.configuration_updated';
     case AiSecretReplaced = 'ai.secret_replaced';
+    case PlatformSettingsUpdated = 'platform.settings_updated';
     case PlatformBypass = 'platform.bypass';
 
     public function label(): string
@@ -123,6 +124,7 @@ enum AuditAction: string
             self::CourseInstitutionUpdated => 'Course institution updated',
             self::AiConfigurationUpdated => 'AI configuration updated',
             self::AiSecretReplaced => 'AI secret replaced',
+            self::PlatformSettingsUpdated => 'Platform settings updated',
             self::PlatformBypass => 'Platform bypass',
         };
     }

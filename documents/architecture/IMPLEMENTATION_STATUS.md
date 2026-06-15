@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 5 — complete)  
-**Current phase:** Module 5 complete; Module 6 not started
+**Last updated:** 2026-06-15 (Module 6 — complete)  
+**Current phase:** Module 6 complete; Module 7 not started
 
 ## Principal reference
 
@@ -21,7 +21,8 @@
 | Module 3 — Tenant configuration | **Complete** | Branding, catalogue, office hours, widget public config |
 | Module 4 — Knowledge base | **Complete** | FAQs, fees, eligibility, documents, versioning, widget search |
 | Module 5 — AI orchestration | **Complete** | OpenAI adapter, provider abstraction, tenant AI config, AI runs, widget AI replies |
-| Module 6 — Lead qualification | **Not Started** | |
+| Module 6 — Super Admin control plane | **Complete** | Platform dashboard, tenant ops, AI monitoring, usage, audit, settings |
+| Module 6 (deferred) — Lead qualification | **Deferred** | Reordered after control plane delivery |
 | Module 7 — Human agent workspace | **Not Started** | |
 | Module 8 — Subscription and usage enforcement | **Not Started** | |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |

@@ -10,7 +10,7 @@ class PostLoginRedirect
     public function intendedUrl(User $user): string
     {
         if ($user->isPlatformSuperAdmin()) {
-            return route('platform.tenants.index');
+            return route('platform.overview');
         }
 
         $memberships = $user->activeMemberships()

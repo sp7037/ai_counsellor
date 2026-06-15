@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
     'activated_at',
     'suspended_at',
     'suspension_reason',
+    'suspended_by',
     'created_by',
 ])]
 class Tenant extends Model
@@ -68,6 +69,11 @@ class Tenant extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function suspendedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suspended_by');
     }
 
     public function users(): BelongsToMany

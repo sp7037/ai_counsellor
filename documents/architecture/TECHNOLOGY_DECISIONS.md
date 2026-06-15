@@ -1,6 +1,6 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Module 5 — complete)
+**Last updated:** 2026-06-15 (Module 6 — complete)
 
 ## Principal reference
 
@@ -161,6 +161,18 @@ D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000
 | Widget integration | `/widget/v1/messages` now returns assistant/system fallback based on orchestrator result |
 | Dependencies | No new Composer/NPM packages |
 
-**Test suite:** 146 tests, 390 assertions (Module 5 corrective pass adds idempotency, isolation, prompt safety, secret leakage, provider HTTP, and usage integrity suites).
+**Test suite:** 162 tests, 455 assertions (Module 6 adds platform control plane authorization, tenant ops, AI monitoring, usage, audit, and secret-leakage suites).
 
-**READY FOR MODULE 6**
+## Module 6 — Super Admin control plane (implemented)
+
+| Item | Decision |
+|------|----------|
+| UI | Extend existing Flux/dark layout via `components.layouts.platform` sidebar — no second admin theme |
+| Data layer | `App\Services\Platform\*` for intentional platform-scoped queries |
+| Tenant suspension | Reversible; `suspended_by` FK; audited; enforced via `allowsTenantAccess()` |
+| Platform settings | `platform_settings` key/value table; encrypted platform OpenAI key |
+| Support access | Not implemented in Module 6 (ADR-003) |
+| Cost reporting | Tokens and runs only — no pricing config, no currency display |
+| Lead qualification | Deferred — control plane delivered as Module 6 per roadmap reorder |
+
+**READY FOR MODULE 7**

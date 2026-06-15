@@ -1,6 +1,6 @@
 # Local Setup (XAMPP + PHP 8.3)
 
-**Last updated:** 2026-06-15 (Module 5 — complete)
+**Last updated:** 2026-06-15 (Module 6 — complete)
 
 ## Stack
 
@@ -166,14 +166,27 @@ D:\php83\php.exe artisan platform:create-super-admin --name="Admin" --email=admi
 set PLATFORM_BOOTSTRAP_PASSWORD=
 ```
 
-Log in at `/login`, then manage tenants at `/platform/tenants`.
+Log in at `/login`, then open the Platform Super Admin control plane at `/platform` (overview).
+
+Platform routes (all require verified super-admin account):
+
+| Path | Purpose |
+|------|---------|
+| `/platform` | Overview dashboard |
+| `/platform/tenants` | Tenant management |
+| `/platform/ai-operations` | AI run monitoring |
+| `/platform/usage` | Token and run usage |
+| `/platform/audit-logs` | Audit log viewer |
+| `/platform/settings` | Platform settings |
+| `/platform/failed-runs` | Failed AI runs (filtered) |
+| `/platform/system-health` | System health checks |
 
 ### HTTP smoke verification
 
 1. `D:\php83\php.exe artisan serve --host=127.0.0.1 --port=8000`
 2. Open `http://127.0.0.1:8000/` and `/login` (expect 200)
 3. Authenticate via the Livewire login form
-4. Verify platform (`/platform/tenants`) and tenant (`/app/{uuid}/dashboard`) pages
+4. Verify platform (`/platform`) and tenant (`/app/{uuid}/dashboard`) pages
 5. Automated: `D:\php83\php.exe artisan test --filter=AuthenticatedHttpSmokeTest`
 
 ---

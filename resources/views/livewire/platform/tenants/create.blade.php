@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.platform')] class extends Component {
     public string $name = '';
 
     public string $slug = '';

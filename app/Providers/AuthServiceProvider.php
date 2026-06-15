@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\AiRun;
+use App\Models\AuditLog;
 use App\Models\Conversation;
 use App\Models\Course;
 use App\Models\CourseInstitution;
@@ -18,6 +20,8 @@ use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\TenantNote;
 use App\Models\WidgetKey;
+use App\Policies\AiRunPolicy;
+use App\Policies\AuditLogPolicy;
 use App\Policies\ConversationPolicy;
 use App\Policies\CourseInstitutionPolicy;
 use App\Policies\CoursePolicy;
@@ -60,6 +64,8 @@ class AuthServiceProvider extends ServiceProvider
         EligibilityRule::class => EligibilityRulePolicy::class,
         KnowledgeDocument::class => KnowledgeDocumentPolicy::class,
         CourseInstitution::class => CourseInstitutionPolicy::class,
+        AiRun::class => AiRunPolicy::class,
+        AuditLog::class => AuditLogPolicy::class,
     ];
 
     public function register(): void

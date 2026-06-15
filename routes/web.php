@@ -15,9 +15,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('platform.admin')
         ->name('platform.')
         ->group(function () {
+            Volt::route('/', 'platform.overview')->name('overview');
             Volt::route('tenants', 'platform.tenants.index')->name('tenants.index');
             Volt::route('tenants/create', 'platform.tenants.create')->name('tenants.create');
             Volt::route('tenants/{tenant}', 'platform.tenants.show')->name('tenants.show');
+            Volt::route('ai-operations', 'platform.ai-operations.index')->name('ai-operations.index');
+            Volt::route('usage', 'platform.usage.index')->name('usage.index');
+            Volt::route('audit-logs', 'platform.audit-logs.index')->name('audit-logs.index');
+            Volt::route('settings', 'platform.settings.index')->name('settings.index');
+            Volt::route('failed-runs', 'platform.failed-runs.index')->name('failed-runs.index');
+            Volt::route('system-health', 'platform.system-health.index')->name('system-health.index');
         });
 
     Route::prefix('app/{tenant}')

@@ -118,9 +118,33 @@ Exit gate: Model cannot bypass tool/service validation.
 
 ---
 
-## Module 6 — Lead qualification
+## Module 6 — Super Admin Operations and Tenant Control Plane
 
-**Status:** Not Started
+**Status:** Complete
+
+Delivered in place of the master document's "lead qualification" slot to provide safe SaaS operations before lead workflows:
+
+- Platform overview dashboard (real aggregates)
+- Tenant directory with search, filter, pagination, detail tabs
+- Tenant suspend/reactivate with reason, `suspended_by`, audit
+- AI operations monitoring (safe metadata only)
+- Usage reporting (tokens and runs — no fabricated cost)
+- Audit log viewer (read-only)
+- Platform settings (encrypted platform credential, no secret echo)
+- System health checks
+- Platform sidebar layout extending existing Flux theme
+- Super Admin email verification UX
+- Comprehensive authorization and isolation tests
+
+**Lead qualification** (course interest, PIN validation, OTP, etc.) is **deferred** to a later module after the human agent workspace.
+
+Exit gate: Super Admin can operate tenants and monitor AI safely without weakening tenant isolation.
+
+---
+
+## Module 6 (deferred) — Lead qualification
+
+**Status:** Deferred (was listed as Module 6 in master architecture §16)
 
 - Course interest
 - PIN-code validation
