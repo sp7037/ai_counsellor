@@ -1,6 +1,10 @@
 # cPanel Limitations
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Phase 0B — blocked)
+
+## PHP version note
+
+cPanel hosts often run PHP 8.1–8.3. After Phase 0B, the application will target **PHP 8.3+** and **Laravel 12**. Verify host PHP version before any cPanel deployment. Laravel 9 (current interim stack) must not be deployed to production.
 
 ## Position in deployment strategy
 

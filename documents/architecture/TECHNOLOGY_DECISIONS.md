@@ -1,89 +1,114 @@
 # Technology Decisions
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Phase 0B — blocked)
 
 ## Principal reference
 
 See [AI_COUNSELLOR_MASTER_ARCHITECTURE.docx](AI_COUNSELLOR_MASTER_ARCHITECTURE.docx) for full stack rationale.
 
-## Selected versions (local XAMPP environment)
+---
 
-| Component | Selected version | Reason |
-|-----------|------------------|--------|
-| PHP | 8.0.30 (XAMPP) | Installed CLI version; Laravel 10+ requires PHP 8.1+ |
-| Laravel | 9.x (skeleton 9.0.0, framework 9.52.21) | Latest Laravel line compatible with PHP 8.0.30 |
-| Composer | 2.10.1 | Installed to `D:\xampp\php\composer` during Phase 0 |
-| MariaDB | 10.4.32 (XAMPP) | Available via XAMPP; MySQL-compatible |
-| Node.js | 22.22.0 | Available for frontend asset builds |
-| npm | 10.2.4 | Bundled with Node.js |
+## Current runtime (unchanged — Phase 0B blocked)
 
-## Stack decisions
+| Component | Current version | Status |
+|-----------|-----------------|--------|
+| PHP | 8.0.30 (`D:\xampp\php\php.exe`) | **EOL — blocker** |
+| Laravel | 9.52.21 | **EOL — must replace** |
+| Composer | 2.10.1 (`D:\xampp\php\composer`) | OK |
+| MariaDB | 10.4.32 (XAMPP) | OK locally; not running during audit |
+| Node.js | 22.22.0 | OK for Vite |
+| npm | 10.2.4 | OK |
+| Frontend build | Laravel Mix 6 | **Obsolete — must replace with Vite** |
 
-| Layer | Decision | Notes |
-|-------|----------|-------|
-| Backend | Laravel 9 | Strong auth, queues, policies, validation; matches PHP 8.0 |
-| Database | MariaDB / MySQL | Single primary database, tenant-scoped tables (`tenant_id`) |
-| Admin UI | Blade + Livewire (planned) | Not installed in Phase 0; install in Module 1 |
-| Public widget | Vanilla JavaScript (planned) | Framework-neutral embed; Module 2 |
-| Cache / queues (local) | File / sync | Redis planned for VPS production |
-| Real-time (production) | Laravel Reverb or fallback | Not configured in Phase 0 |
-| AI providers | Adapter layer (planned) | OpenAI first; Module 5 only |
-| Local dev | XAMPP on Windows | `D:\xampp` |
-| Production target | VPS / cloud (primary) | cPanel as limited secondary |
+## Planned runtime (after Phase 0B)
 
-## Version constraints and upgrade path
+| Component | Target version | Reason |
+|-----------|----------------|--------|
+| PHP | **8.3.x or 8.4.x** | Supported release; Laravel 12 requirement |
+| Laravel | **12.x** (latest stable patch) | New project; security support; Vite included |
+| Frontend | **Vite** | Official modern Laravel asset pipeline; works with Node 22 |
+| Livewire | 3.x (Module 1) | Compatible with Laravel 11/12; install later |
+| MariaDB | 10.4+ local | MySQL-compatible schema only |
+| Redis / Reverb | Production VPS | Not required for Phase 0B |
 
-### PHP upgrade recommendation
+## Reason for modernisation (Phase 0B)
 
-XAMPP currently ships PHP 8.0.30, which is end-of-life. For long-term support and Laravel 10/11:
+| Problem | Impact |
+|---------|--------|
+| PHP 8.0 EOL | No security patches |
+| Laravel 9 EOL | 13 `composer audit` advisories |
+| Laravel Mix + Node 22 | Build fails (`webpack/lib/SizeFormatHelpers`) |
+| Missing `intl` extension | Blocks Laravel 10+ |
+| No business code yet | Safest time for clean skeleton rebuild |
 
-1. Upgrade XAMPP PHP to **8.2+** when feasible, or
-2. Use a separate PHP 8.2+ installation for this project.
+## PHP executable audit (2026-06-15)
 
-Until upgrade, remain on **Laravel 9** and monitor security advisories (`composer audit`).
+Only one PHP installation found:
 
-### Laravel selection rationale
+```text
+D:\xampp\php\php.exe → PHP 8.0.30
+```
 
-- **Laravel 11** requires PHP 8.2+ — not compatible with current PHP.
-- **Laravel 10** requires PHP 8.1+ — not compatible with current PHP.
-- **Laravel 9** supports PHP 8.0.2+ — selected.
+Searched without result: `D:\php`, `D:\php83`, `D:\php84`, `C:\php`, Laragon, WAMP.
 
-Composer security blocking prevented installing the latest Laravel 9 skeleton without `--no-security-blocking`. The installed framework resolves to 9.52.21 with known advisories; plan a controlled upgrade after PHP is updated.
+**Phase 0B did not proceed.** See [PHP_UPGRADE_GUIDE.md](../setup/PHP_UPGRADE_GUIDE.md).
 
-### Database
+## Laravel version selection (planned)
 
-- Local database name (prepared, not auto-created): `ai_counsellor`
-- Default XAMPP credentials: `root` with empty password
-- Production target: MySQL 8+ or managed compatible MySQL
+When PHP 8.3+ is available:
 
-## Packages intentionally not installed (Phase 0)
+1. Verify latest **stable** Laravel 12.x on https://laravel.com/docs
+2. Confirm compatibility: Blade, Vite, Breeze, Livewire 3, queues, Redis, Reverb
+3. Use clean `create-project` — do not multi-hop upgrade from Laravel 9
+4. If Laravel 12 has unexpected blockers, fall back to latest stable Laravel 11.x with documented ADR
 
-- Livewire
-- Laravel Reverb
-- Redis client packages beyond defaults
-- OpenAI / AI SDK packages
-- Payment, WhatsApp, or email integration packages
-- React or SPA frameworks
+Do not use beta, RC, or nightly releases.
 
-## Environment configuration
+## Composer execution
+
+Composer is not on system PATH:
+
+```powershell
+<PHP83_PATH>\php.exe D:\xampp\php\composer <command>
+```
+
+Example after PHP upgrade:
+
+```powershell
+D:\xampp\php\php.exe D:\xampp\php\composer create-project laravel/laravel:^12.0 temp --prefer-dist
+```
+
+## PHP extensions required
+
+| Extension | PHP 8.0 status | Required |
+|-----------|----------------|----------|
+| ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, session, tokenizer, xml, zip, bcmath | Present | Yes |
+| intl | **Missing** | Yes |
+
+## Stack decisions (unchanged intent)
+
+| Layer | Decision |
+|-------|----------|
+| Database | MariaDB/MySQL; tenant-scoped tables |
+| Admin UI | Blade + Livewire (Module 1) |
+| Public widget | Vanilla JavaScript (Module 2) |
+| Local dev | XAMPP on Windows |
+| Production | VPS/cloud primary; cPanel limited |
+
+## Packages not installed
+
+- Livewire, Reverb, Breeze, tenancy packages, permissions packages
+- OpenAI, payments, WhatsApp, React, Vue
+
+## Environment configuration (current Laravel 9)
 
 | Setting | Value |
 |---------|-------|
-| Application timezone | `Asia/Kolkata` |
+| Application timezone | `Asia/Kolkata` (`config/app.php`) |
 | Application locale | `en` |
 | Local URL | `http://localhost/ai_counsellor/public` |
-| Log level (local) | `debug` via `LOG_CHANNEL=stack` |
+| Database (prepared) | `ai_counsellor` — not created |
 
-## Composer usage on this machine
+## Authentication (Module 1 plan)
 
-Composer is not on the system PATH. Use:
-
-```powershell
-php D:\xampp\php\composer <command>
-```
-
-From the project root:
-
-```powershell
-cd D:\xampp\htdocs\ai_counsellor
-```
+Laravel **Breeze (Blade stack)** — see [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md).

@@ -1,6 +1,14 @@
 # VPS Production Requirements
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Phase 0B — blocked)
+
+## PHP version requirement (updated)
+
+| Environment | PHP requirement |
+|-------------|-----------------|
+| Local (after Phase 0B) | **8.3+** |
+| Production VPS | **8.3+** (8.2 minimum for Laravel 11; Laravel 12 preferred) |
+| Current interim stack | 8.0.30 — **not production-ready** |
 
 ## Primary production target
 
@@ -11,7 +19,7 @@ AI Counsellor is designed for **managed VPS or cloud VM/container** deployment. 
 | Service | Requirement |
 |---------|-------------|
 | Web server | Nginx (preferred) or Apache with `public/` document root |
-| PHP | 8.2+ recommended (8.1 minimum for Laravel 10+ after upgrade) |
+| PHP | **8.3+** required (Laravel 12 target after Phase 0B) |
 | PHP-FPM | Required for Nginx |
 | Database | MySQL 8+ or managed compatible MySQL |
 | Cache / queues | Redis 6+ |
@@ -102,12 +110,14 @@ When load increases, separate:
 
 ## PHP version upgrade path
 
-Current local development uses PHP 8.0 / Laravel 9. Before production launch:
+Phase 0B is **blocked** — PHP 8.3+ not available locally. Current stack: PHP 8.0.30 / Laravel 9.52.21.
 
-1. Upgrade to PHP 8.2+
-2. Upgrade to Laravel 10 or 11
-3. Re-run full test suite and security audit
-4. Update [TECHNOLOGY_DECISIONS.md](../architecture/TECHNOLOGY_DECISIONS.md)
+Before production or Module 1:
+
+1. Install PHP 8.3+ per [PHP_UPGRADE_GUIDE.md](../setup/PHP_UPGRADE_GUIDE.md)
+2. Complete Phase 0B (Laravel 12 + Vite clean skeleton)
+3. Re-run `composer audit` and full test suite
+4. Update this document with verified versions
 
 ## Observability
 

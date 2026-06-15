@@ -23,6 +23,8 @@ All development agents must read it before making architectural or feature chang
 | [MODULE_ROADMAP.md](architecture/MODULE_ROADMAP.md) | Module sequence and status |
 | [AGENT_INSTRUCTIONS.md](agents/AGENT_INSTRUCTIONS.md) | Mandatory rules for all development agents |
 | [CHANGE_REPORT_TEMPLATE.md](agents/CHANGE_REPORT_TEMPLATE.md) | Completion report format |
+| [AUTHENTICATION_DECISION.md](architecture/AUTHENTICATION_DECISION.md) | Module 1 auth approach (Breeze Blade; not implemented) |
+| [PHP_UPGRADE_GUIDE.md](setup/PHP_UPGRADE_GUIDE.md) | Owner guide to unblock Phase 0B (PHP 8.3+ required) |
 | [LOCAL_SETUP.md](setup/LOCAL_SETUP.md) | XAMPP local development setup |
 | [CPANEL_LIMITATIONS.md](setup/CPANEL_LIMITATIONS.md) | Restricted cPanel deployment notes |
 | [VPS_PRODUCTION_REQUIREMENTS.md](setup/VPS_PRODUCTION_REQUIREMENTS.md) | Primary production environment requirements |

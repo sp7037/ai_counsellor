@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15  
-**Current phase:** Phase 0 complete; Module 1 not started
+**Last updated:** 2026-06-15 (Phase 0B — blocked)  
+**Current phase:** Phase 0B blocked pending PHP 8.3+; Module 1 not started
 
 ## Principal reference
 
@@ -13,9 +13,10 @@
 
 | Phase / Module | Status | Notes |
 |----------------|--------|-------|
-| Phase 0 — Project audit, environment, documentation | **Complete** | This assignment |
-| Phase 1A — Laravel foundation installation | **Complete** | Laravel 9 installed |
-| Module 1 — SaaS foundation | **Not Started** | Plan below |
+| Phase 0 — Project audit, environment, documentation | **Complete** | Laravel 9 baseline |
+| Phase 1A — Laravel foundation installation | **Complete** | Superseded by Phase 0B requirement |
+| Phase 0B — Modernise technical foundation | **Blocked** | PHP 8.3+ not available on machine |
+| Module 1 — SaaS foundation | **Not Started** | Do not begin until Phase 0B completes |
 | Module 2 — Embeddable chat widget | **Not Started** | |
 | Module 3 — Tenant configuration | **Not Started** | |
 | Module 4 — Knowledge base | **Not Started** | |
@@ -54,6 +55,65 @@
 
 - Database `ai_counsellor` **not auto-created** — credentials prepared in `.env`
 - Default Laravel migrations exist but **not run** (no database created yet)
+
+---
+
+## Phase 0B — Modernisation (2026-06-15)
+
+### Status: **BLOCKED**
+
+Phase 0B could not complete because **no PHP 8.3 or newer executable** was found on this machine.
+
+### Preservation completed
+
+| Action | Result |
+|--------|--------|
+| Filesystem backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` (excludes `vendor/`, `node_modules/`, `storage/logs/`) |
+| `.env` backup | `ai_counsellor_phase0_backup\.env.backup` |
+| Git baseline commit | `776a25b` — `chore: preserve phase 0 architecture and Laravel 9 baseline` |
+| `documents/` preserved | Intact — all architecture and agent docs retained |
+
+### PHP audit results
+
+| Path | Version |
+|------|---------|
+| `D:\xampp\php\php.exe` (only install found) | **8.0.30** |
+| `D:\php`, `D:\php83`, `D:\php84`, `C:\php` | Not found |
+
+**Missing extension on PHP 8.0:** `intl` (required for Laravel 10+)
+
+### Work not performed (blocked)
+
+- Clean Laravel 12 skeleton installation
+- Vite migration (Laravel Mix still present)
+- `npm run build` on modern stack
+- Database creation and default migrations on modern stack
+- Composer/npm audit on modern dependencies
+
+### Planned target (when PHP 8.3+ available)
+
+| Component | Planned version |
+|-----------|-----------------|
+| PHP | 8.3.x or 8.4.x |
+| Laravel | 12.x latest stable patch |
+| Frontend | Vite (remove Laravel Mix) |
+| Node.js | 22.22.0 (current — compatible with Vite) |
+
+See [PHP_UPGRADE_GUIDE.md](../setup/PHP_UPGRADE_GUIDE.md) for owner upgrade steps.
+
+### Authentication decision (documented, not implemented)
+
+See [AUTHENTICATION_DECISION.md](AUTHENTICATION_DECISION.md) — Laravel Breeze (Blade) planned for Module 1.
+
+### Current stack security (Laravel 9 baseline)
+
+- `composer audit`: **13 advisories** on 7 packages (including high-severity Symfony issues)
+- `npm audit`: vulnerabilities in `axios` (dev dependency) and `elliptic` (transitive)
+- Framework cannot be patched to a supported release without PHP 8.2+
+
+### Module 1 readiness
+
+**BLOCKED — DO NOT START MODULE 1** until Phase 0B completes.
 
 ---
 

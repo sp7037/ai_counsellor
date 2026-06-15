@@ -1,16 +1,28 @@
 # Local Setup (XAMPP)
 
-**Last updated:** 2026-06-15 (Phase 0)
+**Last updated:** 2026-06-15 (Phase 0B — blocked)
 
-## Prerequisites
+## ⚠ Phase 0B blocker
 
-| Requirement | Expected value |
-|-------------|----------------|
-| XAMPP path | `D:\xampp` |
-| PHP | 8.0.30+ (CLI: `D:\xampp\php\php.exe`) |
-| MariaDB | 10.4.x (XAMPP) |
-| Composer | `D:\xampp\php\composer` |
-| Node.js | 18+ recommended (22.x installed) |
+**PHP 8.3+ is not installed on this machine.** Phase 0B modernisation (Laravel 12 + Vite) cannot proceed.
+
+**Do not start Module 1** until [PHP_UPGRADE_GUIDE.md](PHP_UPGRADE_GUIDE.md) is completed and Phase 0B is re-run.
+
+Current stack remains **PHP 8.0.30 + Laravel 9.52.21 + Laravel Mix** for reference only.
+
+---
+
+## Prerequisites (target after upgrade)
+
+| Requirement | Current | Target |
+|-------------|---------|--------|
+| XAMPP path | `D:\xampp` | Same or `D:\xampp84` |
+| PHP | 8.0.30 | **8.3+** |
+| Laravel | 9.52.21 | **12.x** |
+| Frontend | Laravel Mix 6 | **Vite** |
+| MariaDB | 10.4.x | 10.4.x+ |
+| Composer | `D:\xampp\php\composer` | Same (use new PHP path) |
+| Node.js | 22.22.0 | 22.x (OK for Vite) |
 
 ## Project location
 
@@ -24,31 +36,27 @@ D:\xampp\htdocs\ai_counsellor
 http://localhost/ai_counsellor/public
 ```
 
-Ensure Apache is running in XAMPP Control Panel.
+Ensure Apache and MySQL are running in XAMPP Control Panel.
 
-## Initial setup steps
+## Backup locations
 
-### 1. Clone or open project
+| Item | Path |
+|------|------|
+| Phase 0 filesystem backup | `D:\xampp\htdocs\ai_counsellor_phase0_backup` |
+| Git baseline | commit `776a25b` |
 
-Project root must contain `artisan`, `composer.json`, and `public/index.php`.
+---
 
-### 2. Install PHP dependencies
+## Current stack setup (Laravel 9 — interim only)
+
+### Install PHP dependencies
 
 ```powershell
 cd D:\xampp\htdocs\ai_counsellor
 php D:\xampp\php\composer install
 ```
 
-### 3. Environment file
-
-Copy example if `.env` does not exist:
-
-```powershell
-copy .env.example .env
-php artisan key:generate
-```
-
-Configured local values:
+### Environment file
 
 | Variable | Value |
 |----------|-------|
@@ -56,94 +64,70 @@ Configured local values:
 | `APP_URL` | http://localhost/ai_counsellor/public |
 | `DB_DATABASE` | ai_counsellor |
 | `DB_USERNAME` | root |
-| `DB_PASSWORD` | (empty, default XAMPP) |
+| `DB_PASSWORD` | (empty) |
 | `LOG_LEVEL` | debug |
 
-Timezone is set in `config/app.php` to `Asia/Kolkata`. Locale defaults to `en`.
+Timezone: `Asia/Kolkata` in `config/app.php`. Locale: `en`.
 
-### 4. Create database (manual)
+### Create database (manual)
 
-XAMPP MariaDB does not auto-create the application database. In phpMyAdmin (`http://localhost/phpmyadmin`) or CLI:
+Start MySQL in XAMPP, then:
 
 ```sql
 CREATE DATABASE ai_counsellor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Then run migrations when Module 1 delivers them:
+Migrations not run on modern stack yet. Default Laravel 9 migrations exist but database was not confirmed during Phase 0B (MySQL was stopped).
 
-```powershell
-php artisan migrate
-```
-
-### 5. Install frontend dependencies (optional for Phase 0)
-
-```powershell
-npm install
-npm run production
-```
-
-Laravel 9 uses Laravel Mix; the production script is `npm run production` (there is no `npm run build` script).
-
-**Known issue (2026-06-15):** Node.js 22.x may be incompatible with the default Laravel 9 `laravel-mix@6` / webpack toolchain (`Cannot find module 'webpack/lib/SizeFormatHelpers'`). Frontend asset compilation is not required for Phase 0. Options for a later fix:
-
-- Use Node 18 LTS via `nvm` for this project, or
-- Upgrade to Vite when moving to Laravel 10+.
-
-Or for development with hot reload (same Node caveat may apply):
-
-```powershell
-npm run dev
-```
-
-### 6. Verify installation
+### Verify current installation
 
 ```powershell
 php artisan --version
-php artisan about
 php artisan test
 ```
 
-Open `http://localhost/ai_counsellor/public` — expect HTTP 200 and Laravel welcome page.
+Expected: Laravel 9.52.21; 2 tests pass.
+
+### Frontend (current — broken on Node 22)
+
+```powershell
+npm install
+npm run production   # Laravel 9 / Mix — fails on Node 22
+```
+
+After Phase 0B:
+
+```powershell
+npm install
+npm run build        # Vite — Laravel 12+
+```
+
+---
 
 ## Composer not on PATH
 
-Use the full invocation:
-
 ```powershell
-php D:\xampp\php\composer install
-php D:\xampp\php\composer update
+<PHP_PATH>\php.exe D:\xampp\php\composer install
 ```
 
-## Storage permissions
+After PHP upgrade, replace `<PHP_PATH>` with PHP 8.3+ executable.
 
-On Windows/XAMPP, ensure `storage/` and `bootstrap/cache/` are writable by the web server user.
+## PHPUnit testing note
 
-```powershell
-php artisan storage:link
-```
-
-## Local services (Phase 0 defaults)
-
-| Service | Local setting |
-|---------|---------------|
-| Cache | `file` |
-| Queue | `sync` |
-| Session | `file` |
-| Broadcast | `log` |
-
-Redis is not required locally until queue/cache features are developed. Production uses Redis (see [VPS_PRODUCTION_REQUIREMENTS.md](VPS_PRODUCTION_REQUIREMENTS.md)).
+`phpunit.xml` sets `APP_URL=http://localhost` for tests because subdirectory `APP_URL` breaks feature tests.
 
 ## Troubleshooting
 
 | Issue | Resolution |
 |-------|------------|
-| 404 on homepage | Use `/public` URL or configure Apache virtual host document root to `public/` |
+| Phase 0B blocked | Follow [PHP_UPGRADE_GUIDE.md](PHP_UPGRADE_GUIDE.md) |
+| 404 on homepage | Use `/public` URL |
 | `composer` not found | Use `php D:\xampp\php\composer` |
-| Database connection refused | Start MySQL in XAMPP Control Panel |
-| `SQLSTATE[1049]` unknown database | Create `ai_counsellor` database manually |
-| APP_KEY missing | Run `php artisan key:generate` |
+| MySQL connection refused | Start MySQL in XAMPP Control Panel |
+| Mix build fails | Expected on Node 22; resolved by Phase 0B Vite migration |
+| Missing `intl` | Enable in `php.ini` on PHP 8.3+ install |
 
 ## Security reminder
 
 - Never commit `.env`
-- Use empty root password only for local XAMPP; use strong credentials in production
+- Local XAMPP root password empty is for development only
