@@ -1,7 +1,7 @@
 # Implementation Status
 
-**Last updated:** 2026-06-15 (Module 8 — complete)  
-**Current phase:** Module 8 complete; Module 9 not started
+**Last updated:** 2026-06-15 (Module 9 — complete)  
+**Current phase:** Module 9 complete; Module 10 not started
 
 ## Principal reference
 
@@ -25,7 +25,7 @@
 | Module 6 (original master doc) — Lead qualification items | **Partially restored in Module 7** | OTP/PIN flows still deferred |
 | Module 7 — Lead qualification and counsellor workspace | **Complete** | Leads, assignment, workspace, follow-ups, deterministic scoring |
 | Module 8 — Human agent live conversations | **Complete** | Handoff, ownership, counsellor chat, widget polling, admin supervision |
-| Module 9 — Subscription and usage enforcement | **Not Started** | Formerly Module 8 |
+| Module 9 — Subscription and usage enforcement | **Complete** | Entitlements, limits, manual billing, platform plan admin |
 | Later modules | **Not Started** | See [MODULE_ROADMAP.md](MODULE_ROADMAP.md) |
 
 ---
@@ -101,6 +101,38 @@ See [MODULE_8_SCHEMA.md](MODULE_8_SCHEMA.md) and [ADR-005](decisions/ADR-005-hum
 | Pint | Pass |
 
 **READY FOR MODULE 9**
+
+## Module 9 — Completion summary (2026-06-15)
+
+### Delivered
+
+- `PlanFeature` enum and `plans` / `plan_features` catalogue
+- `SubscriptionLifecycleService` with governed transitions and `subscription_events`
+- `EntitlementResolver` + `UsageTrackingService` (reserve/confirm/release)
+- Middleware: `EnsureTenantOperational`, `EnsureFeatureEntitled`, `EnsureCounsellorSubscription`
+- Service guards: AI, knowledge, leads, counsellors, human handoff, widget
+- Tenant `/subscription` page; platform `/platform/plans` and tenant subscription admin
+- `PlansSeeder`, `subscriptions:maintain` command
+- **198 automated tests** (16 new Module 9 tests)
+
+See [MODULE_9_SCHEMA.md](MODULE_9_SCHEMA.md) and [ADR-006](decisions/ADR-006-subscription-and-usage-enforcement.md).
+
+### Deferred
+
+- Payment gateway checkout, invoices, webhooks (Module 10 — Payments)
+- Fabricated pricing display
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `php artisan test` | **198 passed** |
+| `composer audit` | 0 advisories |
+| `npm audit` | 0 vulnerabilities |
+| `npm run build` | Success |
+| Pint | Pass |
+
+**READY FOR MODULE 10**
 
 ---
 

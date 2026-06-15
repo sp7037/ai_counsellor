@@ -383,7 +383,25 @@ Rebuild widget after changes: `npm run build` (updates `public/build/widget.js`)
 Automated coverage:
 
 ```bat
-D:\php83\php.exe artisan test --filter=HumanAgentLiveConversationsTest
+D:\php83\php.exe artisan test --filter=SubscriptionEnforcementTest
+```
+
+## Module 9 — Subscription and usage enforcement
+
+Seed plans locally:
+
+```bat
+D:\php83\php.exe artisan db:seed --class=PlansSeeder
+```
+
+Assign trial or activate via platform UI: `/platform/tenants/{tenant}/subscription`
+
+Tenant subscription page: `/app/{tenant_uuid}/subscription` (accessible when expired)
+
+Maintenance command (also scheduled daily):
+
+```bat
+D:\php83\php.exe artisan subscriptions:maintain
 ```
 
 ---

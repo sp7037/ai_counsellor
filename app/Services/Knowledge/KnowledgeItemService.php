@@ -3,13 +3,16 @@
 namespace App\Services\Knowledge;
 
 use App\Enums\Audit\AuditAction;
+use App\Enums\Billing\PlanFeature;
 use App\Enums\Knowledge\KnowledgeItemStatus;
 use App\Enums\Knowledge\KnowledgeItemType;
+use App\Exceptions\Billing\EntitlementDeniedException;
 use App\Models\KnowledgeItem;
 use App\Models\KnowledgeVersion;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Billing\EntitlementResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -18,10 +21,17 @@ class KnowledgeItemService
     public function __construct(
         private readonly KnowledgeContentSanitizer $sanitizer,
         private readonly AuditLogger $auditLogger,
+        private readonly EntitlementResolver $entitlements,
     ) {}
 
     public function createDraft(Tenant $tenant, array $data, User $actor): KnowledgeItem
     {
+        try {
+            $this->entitlements->assertAllowed($tenant, PlanFeature::KnowledgeBase);
+        } catch (EntitlementDeniedException $exception) {
+            throw ValidationException::withMessages(['title' => $exception->getMessage()]);
+        }
+
         if (KnowledgeItem::query()->where('tenant_id', $tenant->id)->count() >= config('knowledge.max_items', 500)) {
             throw ValidationException::withMessages(['title' => 'Maximum knowledge items reached.']);
         }

@@ -85,6 +85,23 @@ enum AuditAction: string
     case ConversationClosed = 'conversation.closed';
     case ConversationReopened = 'conversation.reopened';
     case ConversationAiResumed = 'conversation.ai_resumed';
+    case PlanCreated = 'plan.created';
+    case PlanUpdated = 'plan.updated';
+    case PlanActivated = 'plan.activated';
+    case PlanDeactivated = 'plan.deactivated';
+    case SubscriptionAssigned = 'subscription.assigned';
+    case SubscriptionTrialStarted = 'subscription.trial_started';
+    case SubscriptionTrialExtended = 'subscription.trial_extended';
+    case SubscriptionActivated = 'subscription.activated';
+    case SubscriptionGraceApplied = 'subscription.grace_applied';
+    case SubscriptionPastDue = 'subscription.past_due';
+    case SubscriptionExpired = 'subscription.expired';
+    case SubscriptionCancelScheduled = 'subscription.cancel_scheduled';
+    case SubscriptionCancelled = 'subscription.cancelled';
+    case SubscriptionRestored = 'subscription.restored';
+    case SubscriptionPlanChanged = 'subscription.plan_changed';
+    case EntitlementOverrideApplied = 'entitlement.override_applied';
+    case EntitlementOverrideRemoved = 'entitlement.override_removed';
 
     public function label(): string
     {
@@ -170,6 +187,23 @@ enum AuditAction: string
             self::ConversationClosed => 'Conversation closed',
             self::ConversationReopened => 'Conversation reopened',
             self::ConversationAiResumed => 'Conversation AI resumed',
+            self::PlanCreated => 'Plan created',
+            self::PlanUpdated => 'Plan updated',
+            self::PlanActivated => 'Plan activated',
+            self::PlanDeactivated => 'Plan deactivated',
+            self::SubscriptionAssigned => 'Subscription assigned',
+            self::SubscriptionTrialStarted => 'Subscription trial started',
+            self::SubscriptionTrialExtended => 'Subscription trial extended',
+            self::SubscriptionActivated => 'Subscription activated',
+            self::SubscriptionGraceApplied => 'Subscription grace applied',
+            self::SubscriptionPastDue => 'Subscription past due',
+            self::SubscriptionExpired => 'Subscription expired',
+            self::SubscriptionCancelScheduled => 'Subscription cancellation scheduled',
+            self::SubscriptionCancelled => 'Subscription cancelled',
+            self::SubscriptionRestored => 'Subscription restored',
+            self::SubscriptionPlanChanged => 'Subscription plan changed',
+            self::EntitlementOverrideApplied => 'Entitlement override applied',
+            self::EntitlementOverrideRemoved => 'Entitlement override removed',
         };
     }
 }

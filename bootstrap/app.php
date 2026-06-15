@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Middleware\ClearTenantContext;
+use App\Http\Middleware\EnsureCounsellorSubscription;
 use App\Http\Middleware\EnsureCounsellorWorkspace;
+use App\Http\Middleware\EnsureFeatureEntitled;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureTenantLeadManager;
+use App\Http\Middleware\EnsureTenantOperational;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ResolveTenant;
 use Illuminate\Foundation\Application;
@@ -27,8 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'platform.admin' => EnsurePlatformAdmin::class,
             'tenant.resolve' => ResolveTenant::class,
+            'tenant.operational' => EnsureTenantOperational::class,
+            'tenant.feature' => EnsureFeatureEntitled::class,
             'tenant.lead.manager' => EnsureTenantLeadManager::class,
             'counsellor.workspace' => EnsureCounsellorWorkspace::class,
+            'counsellor.subscription' => EnsureCounsellorSubscription::class,
             'user.active' => EnsureUserIsActive::class,
         ]);
 

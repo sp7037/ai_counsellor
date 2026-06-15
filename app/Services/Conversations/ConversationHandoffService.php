@@ -17,10 +17,12 @@ use App\Models\TenantSettings;
 use App\Models\User;
 use App\Models\WidgetSession;
 use App\Services\Audit\AuditLogger;
+use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Leads\LeadAssignmentService;
 use App\Services\Leads\LeadCreationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ConversationHandoffService
 {
@@ -31,6 +33,7 @@ class ConversationHandoffService
         private readonly LeadCreationService $leadCreation,
         private readonly LeadAssignmentService $leadAssignment,
         private readonly AuditLogger $audit,
+        private readonly WidgetEntitlementService $widgetEntitlements,
     ) {}
 
     /**
@@ -67,6 +70,14 @@ class ConversationHandoffService
                 'lead' => $conversation->lead,
                 'replay' => true,
             ];
+        }
+
+        $handoffEntitlement = $this->widgetEntitlements->canRequestHandoff($session->tenant);
+
+        if (! $handoffEntitlement->isAllowed()) {
+            throw new AccessDeniedHttpException(
+                config('subscriptions.widget_unavailable_message'),
+            );
         }
 
         $result = DB::transaction(function () use ($conversation, $handoffRequestUuid, $leadInput): array {

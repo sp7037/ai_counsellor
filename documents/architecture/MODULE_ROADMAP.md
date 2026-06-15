@@ -208,24 +208,22 @@ Exit gate: Agent can continue live conversations without losing context.
 
 ## Module 9 — Subscription and usage enforcement
 
-**Status:** Not Started
+**Status:** Complete
 
-Formerly Module 8 in this document.
-
-- Monthly and annual plans
-- AI token limits
-- Conversation limits
-- Agent-seat limits
-- Expiry
-- Grace period
-- Suspension
-- Usage reports
+- Platform plans and feature catalogue (`PlanFeature` enum)
+- Manual subscription lifecycle (trial, active, grace, past due, expired, cancelled)
+- `EntitlementResolver` with request-scoped cache
+- AI usage reservation before provider calls
+- Knowledge, lead, counsellor, and handoff limits
+- Widget safe unavailable behaviour
+- Tenant subscription page (accessible when expired)
+- Platform plan and tenant subscription administration
+- `subscriptions:maintain` scheduled command
+- Payment gateway **deferred**
 
 Exit gate: Suspension and limit enforcement proven.
 
----
-
-## Later modules
+**READY FOR MODULE 10 (Payments)**
 
 **Status:** Not Started (all)
 

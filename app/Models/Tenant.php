@@ -153,4 +153,14 @@ class Tenant extends Model
     {
         return $this->hasMany(AiRun::class);
     }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    public function entitlementOverrides(): HasMany
+    {
+        return $this->hasMany(TenantEntitlementOverride::class);
+    }
 }

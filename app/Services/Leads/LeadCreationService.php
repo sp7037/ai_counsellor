@@ -3,14 +3,17 @@
 namespace App\Services\Leads;
 
 use App\Enums\Audit\AuditAction;
+use App\Enums\Billing\PlanFeature;
 use App\Enums\Leads\LeadActivityType;
 use App\Enums\Leads\LeadSource;
 use App\Enums\Leads\LeadStage;
+use App\Exceptions\Billing\EntitlementDeniedException;
 use App\Models\Conversation;
 use App\Models\Lead;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Billing\EntitlementResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +23,7 @@ class LeadCreationService
         private readonly LeadQualificationEngine $qualification,
         private readonly LeadActivityLogger $activity,
         private readonly AuditLogger $audit,
+        private readonly EntitlementResolver $entitlements,
     ) {}
 
     /**
@@ -55,6 +59,12 @@ class LeadCreationService
                 if ($existing !== null) {
                     return $existing;
                 }
+            }
+
+            try {
+                $this->entitlements->assertAllowed($tenant, PlanFeature::LeadManagement);
+            } catch (EntitlementDeniedException $exception) {
+                throw ValidationException::withMessages(['lead' => $exception->getMessage()]);
             }
 
             $lead = new Lead([

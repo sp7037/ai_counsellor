@@ -2,6 +2,7 @@
     $items = [
         ['label' => 'Overview', 'route' => 'platform.overview'],
         ['label' => 'Tenants', 'route' => 'platform.tenants.index'],
+        ['label' => 'Plans', 'route' => 'platform.plans.index'],
         ['label' => 'AI Operations', 'route' => 'platform.ai-operations.index'],
         ['label' => 'Usage', 'route' => 'platform.usage.index'],
         ['label' => 'Audit Logs', 'route' => 'platform.audit-logs.index'],

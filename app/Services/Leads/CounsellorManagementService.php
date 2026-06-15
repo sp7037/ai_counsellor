@@ -3,12 +3,15 @@
 namespace App\Services\Leads;
 
 use App\Enums\Audit\AuditAction;
+use App\Enums\Billing\PlanFeature;
 use App\Enums\Tenancy\TenantRole;
+use App\Exceptions\Billing\EntitlementDeniedException;
 use App\Models\CounsellorProfile;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Billing\EntitlementResolver;
 use App\Services\Tenancy\MembershipLifecycleService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -19,6 +22,7 @@ class CounsellorManagementService
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly MembershipLifecycleService $memberships,
+        private readonly EntitlementResolver $entitlements,
     ) {}
 
     /**
@@ -26,6 +30,12 @@ class CounsellorManagementService
      */
     public function create(Tenant $tenant, array $input, array $profile, User $actor): TenantMembership
     {
+        try {
+            $this->entitlements->assertAllowed($tenant, PlanFeature::CounsellorWorkspace);
+        } catch (EntitlementDeniedException $exception) {
+            throw ValidationException::withMessages(['email' => $exception->getMessage()]);
+        }
+
         return DB::transaction(function () use ($tenant, $input, $profile, $actor): TenantMembership {
             $email = strtolower(trim((string) $input['email']));
 

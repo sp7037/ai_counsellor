@@ -2,6 +2,7 @@
     $tenant = $tenant ?? request()->route('tenant');
     $items = [
         ['label' => 'Dashboard', 'route' => 'tenant.dashboard'],
+        ['label' => 'Subscription', 'route' => 'tenant.subscription'],
         ['label' => 'Leads', 'route' => 'tenant.leads.index'],
         ['label' => 'Counsellors', 'route' => 'tenant.counsellors.index'],
         ['label' => 'Conversations', 'route' => 'tenant.conversations.index'],

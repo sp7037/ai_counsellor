@@ -138,6 +138,15 @@ Full security, privacy, and compliance controls are defined in [AI_COUNSELLOR_MA
 - Handoff idempotency via `handoff_request_uuid`; message idempotency via `request_uuid`
 - Conversation operational history (`conversation_activities`) separate from security audit log (ADR-005)
 
+## Module 9 enforcement (implemented)
+
+- `EntitlementResolver` is the single authority for feature and limit checks
+- Tenant suspension checked before subscription status
+- AI usage reserved in `tenant_usage_counters` before provider calls
+- Subscription page remains accessible when commercially expired
+- Widget responses exclude billing/plan internals
+- Payment gateway integration deferred (ADR-006)
+
 ## AI security
 
 - AI providers must **never** receive unrestricted database credentials.

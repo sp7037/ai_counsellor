@@ -3,6 +3,8 @@
 namespace App\Services\Widget;
 
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
+use App\Enums\Billing\PlanFeature;
+use App\Enums\Billing\UsageMetric;
 use App\Enums\Conversations\ConversationMode;
 use App\Enums\Conversations\ConversationStatus;
 use App\Enums\Conversations\MessageRole;
@@ -12,6 +14,9 @@ use App\Models\TenantSettings;
 use App\Models\WidgetSession;
 use App\Services\AI\AiConversationOrchestrator;
 use App\Services\AI\AiIdempotencyCoordinator;
+use App\Services\Billing\EntitlementResolver;
+use App\Services\Billing\UsageTrackingService;
+use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Conversations\ConversationMessageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,6 +29,9 @@ class ConversationService
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
         private readonly AiIdempotencyCoordinator $idempotency,
         private readonly ConversationMessageService $conversationMessages,
+        private readonly WidgetEntitlementService $widgetEntitlements,
+        private readonly EntitlementResolver $entitlements,
+        private readonly UsageTrackingService $usage,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
@@ -69,6 +77,36 @@ class ConversationService
             ];
         }
 
+        $aiEntitlement = $this->widgetEntitlements->canUseAi($session->tenant);
+
+        if (! $aiEntitlement->isAllowed()) {
+            $visitorMessage = $resolved['visitor_message'];
+
+            return [
+                'visitor_message' => $visitorMessage,
+                'reply' => null,
+                'mode' => $conversation->mode->value,
+            ];
+        }
+
+        $subscription = $this->entitlements->subscriptionFor($session->tenant);
+        $limit = $this->entitlements->featureLimit($session->tenant, PlanFeature::AiResponses);
+        $reserved = $subscription !== null && $this->usage->reserve(
+            $session->tenant,
+            UsageMetric::AiRuns,
+            $subscription,
+            1,
+            $limit,
+        );
+
+        if ($subscription !== null && ! $reserved) {
+            return [
+                'visitor_message' => $resolved['visitor_message'],
+                'reply' => null,
+                'mode' => $conversation->mode->value,
+            ];
+        }
+
         $knowledge = $this->knowledgeRetrieval->searchPublished(
             $session->tenant,
             $body,
@@ -83,6 +121,14 @@ class ConversationService
             knowledge: $knowledge,
             requestUuid: $resolved['request_uuid'],
         );
+
+        if ($subscription !== null) {
+            if ($aiResult['status'] === 'success' && is_string($aiResult['content'])) {
+                $this->usage->confirmReservation($session->tenant, UsageMetric::AiRuns, $subscription);
+            } else {
+                $this->usage->releaseReservation($session->tenant, UsageMetric::AiRuns, $subscription);
+            }
+        }
 
         $reply = DB::transaction(function () use ($session, $conversation, $aiResult): Message {
             $conversation->update([

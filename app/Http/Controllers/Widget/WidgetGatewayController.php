@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Widget;
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Http\Controllers\Controller;
 use App\Models\WidgetSession;
+use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Configuration\WidgetPublicConfigService;
 use App\Services\Conversations\ConversationHandoffService;
 use App\Services\Conversations\ConversationMessageService;
@@ -27,6 +28,7 @@ class WidgetGatewayController extends Controller
         private readonly ConversationMessageService $conversationMessages,
         private readonly WidgetPublicConfigService $publicConfigService,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
+        private readonly WidgetEntitlementService $widgetEntitlements,
     ) {}
 
     public function startSession(Request $request): JsonResponse
@@ -43,6 +45,15 @@ class WidgetGatewayController extends Controller
             $request->headers->get('Origin'),
             $request->headers->get('Referer'),
         );
+
+        $availability = $this->widgetEntitlements->widgetAvailability($resolved['tenant']);
+
+        if (! $availability['available']) {
+            return response()->json([
+                'code' => $availability['code'],
+                'message' => $availability['message'],
+            ], 403)->header('Cache-Control', 'no-store, private');
+        }
 
         $result = $this->sessionService->start(
             $resolved['tenant'],
@@ -63,6 +74,7 @@ class WidgetGatewayController extends Controller
             'offline_form_enabled' => $result['settings']->offline_form_enabled,
             'expires_at' => $result['session']->expires_at->toIso8601String(),
             'configuration' => $publicConfig,
+            'widget_mode' => $availability['mode'],
         ]);
     }
 
@@ -210,6 +222,13 @@ class WidgetGatewayController extends Controller
             'after' => ['nullable', 'uuid'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:'.config('conversations.max_poll_messages', 50)],
         ]);
+
+        if (! $this->widgetEntitlements->canPollHumanConversation($session->tenant)) {
+            return response()->json([
+                'mode' => $session->conversation->mode->value,
+                'messages' => [],
+            ])->header('Cache-Control', 'no-store, private');
+        }
 
         $messages = $this->conversationMessages->listPublicMessages(
             $session->conversation,

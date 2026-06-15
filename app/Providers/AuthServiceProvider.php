@@ -14,7 +14,9 @@ use App\Models\KnowledgeFee;
 use App\Models\KnowledgeItem;
 use App\Models\Lead;
 use App\Models\Location;
+use App\Models\Plan;
 use App\Models\Service;
+use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\TenantAiConfig;
 use App\Models\TenantDomain;
@@ -34,7 +36,9 @@ use App\Policies\KnowledgeFeePolicy;
 use App\Policies\KnowledgeItemPolicy;
 use App\Policies\LeadPolicy;
 use App\Policies\LocationPolicy;
+use App\Policies\PlanPolicy;
 use App\Policies\ServicePolicy;
+use App\Policies\SubscriptionPolicy;
 use App\Policies\TenantAiConfigPolicy;
 use App\Policies\TenantConfigurationPolicy;
 use App\Policies\TenantDomainPolicy;
@@ -70,6 +74,8 @@ class AuthServiceProvider extends ServiceProvider
         AiRun::class => AiRunPolicy::class,
         AuditLog::class => AuditLogPolicy::class,
         Lead::class => LeadPolicy::class,
+        Plan::class => PlanPolicy::class,
+        Subscription::class => SubscriptionPolicy::class,
     ];
 
     public function register(): void

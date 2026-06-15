@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Billing\EntitlementResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -79,6 +80,7 @@ class TenantLifecycleService
 
     public function suspend(Tenant $tenant, string $reason, ?User $actor = null): Tenant
     {
+        app(EntitlementResolver::class)->clearCache();
         $tenant->update([
             'status' => TenantStatus::Suspended->value,
             'suspended_at' => now(),
