@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+    Options -Indexes
+    RewriteEngine On
+
+    RewriteCond public/$1 -f
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    RewriteRule ^ index.php [L]
+</IfModule>
