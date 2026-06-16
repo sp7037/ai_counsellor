@@ -8,10 +8,9 @@ if (PHP_VERSION_ID < 80300) {
     echo '</head><body>';
     echo '<h1>PHP 8.3 required</h1>';
     echo '<p>Apache is using PHP <strong>'.htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8').'</strong>. This app needs PHP 8.3 or newer.</p>';
-    echo '<p>For local development, use the built-in server:</p>';
-    echo '<pre>cd /d D:\\xampp\\htdocs\\ai_counsellor
-D:\\php83\\php.exe artisan serve --host=127.0.0.1 --port=8000</pre>';
-    echo '<p>Then open <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>.</p>';
+    echo '<p>For local development, use the Laravel development server from the project root:</p>';
+    echo '<pre>php artisan serve</pre>';
+    echo '<p>Ensure the web server document root points to the <code>public/</code> directory.</p>';
     echo '</body></html>';
     exit;
 }

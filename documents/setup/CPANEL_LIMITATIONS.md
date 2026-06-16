@@ -75,3 +75,7 @@ Choose VPS/cloud when the tenant requires:
 ## Documentation obligation
 
 Any module using Redis, Reverb, or persistent workers must document a cPanel-compatible fallback in its completion report.
+
+## Staging deployment
+
+See [CPANEL_STAGING_DEPLOYMENT.md](../deployment/CPANEL_STAGING_DEPLOYMENT.md) for step-by-step cPanel staging instructions.

@@ -109,6 +109,8 @@ When load increases, separate:
 
 **Do not deploy** to VPS or production without explicit project owner instruction. This document defines requirements only.
 
+Operational steps: [VPS_PRODUCTION_DEPLOYMENT.md](../deployment/VPS_PRODUCTION_DEPLOYMENT.md).
+
 ## PHP version path
 
 Phase 0B **complete** — PHP 8.3.31 + Laravel 13.15.0 in production use for new development.

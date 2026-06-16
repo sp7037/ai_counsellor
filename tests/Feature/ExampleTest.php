@@ -17,4 +17,13 @@ class ExampleTest extends TestCase
     {
         $this->get(route('login'))->assertOk();
     }
+
+    public function test_health_endpoint_is_available_without_secrets(): void
+    {
+        $response = $this->get('/up');
+
+        $response->assertOk();
+        $response->assertDontSee('APP_KEY');
+        $response->assertDontSee('password');
+    }
 }

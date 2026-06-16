@@ -28,6 +28,9 @@ All development agents must read it before making architectural or feature chang
 | [LOCAL_SETUP.md](setup/LOCAL_SETUP.md) | XAMPP local development setup |
 | [CPANEL_LIMITATIONS.md](setup/CPANEL_LIMITATIONS.md) | Restricted cPanel deployment notes |
 | [VPS_PRODUCTION_REQUIREMENTS.md](setup/VPS_PRODUCTION_REQUIREMENTS.md) | Primary production environment requirements |
+| [CPANEL_STAGING_DEPLOYMENT.md](deployment/CPANEL_STAGING_DEPLOYMENT.md) | Step-by-step cPanel staging deploy |
+| [VPS_PRODUCTION_DEPLOYMENT.md](deployment/VPS_PRODUCTION_DEPLOYMENT.md) | Ubuntu/Nginx/Supervisor production deploy |
+| [DEPLOYMENT_CHECKLIST.md](deployment/DEPLOYMENT_CHECKLIST.md) | Pre/post deploy verification checklist |
 
 ## Product scope
 
