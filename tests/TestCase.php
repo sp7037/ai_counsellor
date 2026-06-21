@@ -11,7 +11,6 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\TenantAiConfig;
-use App\Models\TenantDomain;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Models\WidgetKey;
@@ -94,16 +93,14 @@ abstract class TestCase extends BaseTestCase
         app(TenantContext::class)->resolveForUser($result['user'], $result['tenant']);
         app(TenantContext::class)->enforceIsolation();
 
-        $key = WidgetKey::query()->create([
-            'tenant_id' => $result['tenant']->id,
+        $key = $result['tenant']->widgetKeys()->create([
             'public_key' => 'wk_test_'.str()->random(24),
             'name' => 'Test key',
             'status' => WidgetKeyStatus::Active->value,
             'created_by' => $result['user']->id,
         ]);
 
-        $domain = TenantDomain::query()->create([
-            'tenant_id' => $result['tenant']->id,
+        $domain = $result['tenant']->domains()->create([
             'domain' => '127.0.0.1',
             'status' => TenantDomainStatus::Verified->value,
             'verified_at' => now(),

@@ -6,6 +6,7 @@ use App\Enums\Conversations\MessageRole;
 use App\Enums\Tenancy\TenantRole;
 use App\Models\AiRun;
 use App\Models\Message;
+use App\Services\AI\TenantAiConfigService;
 use App\Services\Knowledge\KnowledgeItemService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -95,6 +96,55 @@ class AiOrchestrationTest extends TestCase
         $this->withTenantContext($staff, $tenant);
 
         $this->get(route('tenant.ai.configuration', $tenant))->assertForbidden();
+    }
+
+    public function test_tenant_ai_config_upsert_persists_tenant_id_without_tenant_context(): void
+    {
+        app(TenantContext::class)->clear();
+
+        ['tenant' => $tenant, 'user' => $owner] = $this->createTenantWithMember(role: TenantRole::Owner);
+        $this->actingAs($owner);
+
+        $config = app(TenantAiConfigService::class)->upsert($tenant, [
+            'provider' => 'fake',
+            'model' => 'fake-model',
+            'temperature' => 0.2,
+            'max_output_tokens' => 400,
+            'timeout_seconds' => 15,
+            'enabled' => true,
+            'credential_mode' => 'platform_managed',
+        ], $owner);
+
+        $this->assertSame($tenant->id, $config->tenant_id);
+        $this->assertDatabaseHas('tenant_ai_configs', [
+            'id' => $config->id,
+            'tenant_id' => $tenant->id,
+            'model' => 'fake-model',
+        ]);
+    }
+
+    public function test_tenant_admin_save_ai_configuration_persists_tenant_id(): void
+    {
+        app(TenantContext::class)->clear();
+
+        ['tenant' => $tenant, 'user' => $owner] = $this->createTenantWithMember(role: TenantRole::Owner);
+        $this->actingAs($owner);
+
+        Volt::test('tenant.ai.configuration', ['tenant' => $tenant])
+            ->set('provider', 'fake')
+            ->set('model', 'fake-model')
+            ->set('temperature', 0.2)
+            ->set('maxOutputTokens', 400)
+            ->set('timeoutSeconds', 15)
+            ->set('enabled', true)
+            ->set('credentialMode', 'platform_managed')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('tenant_ai_configs', [
+            'tenant_id' => $tenant->id,
+            'model' => 'fake-model',
+        ]);
     }
 
     public function test_private_draft_knowledge_is_not_exposed_to_ai_prompt_retrieval(): void

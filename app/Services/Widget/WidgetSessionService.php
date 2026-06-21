@@ -57,7 +57,7 @@ class WidgetSessionService
                 'widget_key_id' => $widgetKey->id,
                 'origin_domain' => $originDomain,
                 'token_hash' => hash('sha256', $plainToken),
-                'expires_at' => now()->addMinutes(config('widget.session_ttl_minutes', 120)),
+                'expires_at' => now()->addMinutes(max(5, (int) config('widget.session_ttl_minutes', 120))),
             ]);
 
             $settings = $this->resolveSettings($tenant);
@@ -81,15 +81,26 @@ class WidgetSessionService
 
     public function findByToken(string $plainToken): ?WidgetSession
     {
+        $token = trim($plainToken);
+
+        if ($token === '') {
+            return null;
+        }
+
         return WidgetSession::query()
-            ->where('token_hash', hash('sha256', $plainToken))
+            ->where('token_hash', hash('sha256', $token))
             ->where('expires_at', '>', now())
             ->first();
     }
 
     public function touch(WidgetSession $session): void
     {
-        $session->update(['last_used_at' => now()]);
+        $ttlMinutes = max(5, (int) config('widget.session_ttl_minutes', 120));
+
+        $session->update([
+            'last_used_at' => now(),
+            'expires_at' => now()->addMinutes($ttlMinutes),
+        ]);
     }
 
     public function resolveSettings(Tenant $tenant): TenantWidgetSettings
@@ -97,7 +108,7 @@ class WidgetSessionService
         return TenantWidgetSettings::query()->firstOrCreate(
             ['tenant_id' => $tenant->id],
             [
-                'welcome_message' => 'Hello! How can we help you today?',
+                'welcome_message' => (string) config('widget.default_welcome_message', 'Hello! I am your AI counsellor. Ask me about services, admission, eligibility, fees, documents, or counselling support.'),
                 'offline_message' => 'We are currently offline. Leave your details and we will get back to you.',
                 'offline_form_enabled' => true,
             ],

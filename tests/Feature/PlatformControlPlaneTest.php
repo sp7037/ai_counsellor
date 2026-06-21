@@ -231,6 +231,25 @@ class PlatformControlPlaneTest extends TestCase
         ]);
     }
 
+    public function test_platform_settings_can_store_widget_powered_by_configuration(): void
+    {
+        $admin = User::factory()->platformSuperAdmin()->create();
+        $this->actingAs($admin);
+
+        Volt::test('platform.settings.index')
+            ->set('widget_powered_by_enabled', true)
+            ->set('widget_powered_by_label', 'Powered by SR Worlds AI')
+            ->set('widget_powered_by_logo_url', 'https://cdn.example.test/platform-logo.png')
+            ->set('widget_launcher_logo_url', 'https://cdn.example.test/launcher-logo.png')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('platform_settings', ['key' => 'widget_powered_by_enabled']);
+        $this->assertDatabaseHas('platform_settings', ['key' => 'widget_powered_by_label']);
+        $this->assertDatabaseHas('platform_settings', ['key' => 'widget_powered_by_logo_url']);
+        $this->assertDatabaseHas('platform_settings', ['key' => 'widget_launcher_logo_url']);
+    }
+
     public function test_audit_log_viewer_is_read_only(): void
     {
         $admin = User::factory()->platformSuperAdmin()->create();

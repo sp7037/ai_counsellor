@@ -22,7 +22,7 @@ class ConversationDirectoryService
         int $perPage = 15,
     ): LengthAwarePaginator {
         $query = $this->baseQuery($tenant)
-            ->with(['lead:id,public_reference,full_name,service_interest,stage,priority,assigned_to', 'humanOwner:id,name', 'visitor:id,display_name'])
+            ->with(['lead:id,public_reference,full_name,service_interest,stage,priority,assigned_to', 'humanOwner:id,name', 'visitor:id,uuid'])
             ->where(function (Builder $builder) use ($counsellor): void {
                 $builder->where('human_owner_id', $counsellor->id)
                     ->orWhere(function (Builder $waiting) use ($counsellor): void {
@@ -47,7 +47,7 @@ class ConversationDirectoryService
         int $perPage = 15,
     ): LengthAwarePaginator {
         $query = $this->baseQuery($tenant)
-            ->with(['lead:id,public_reference,full_name,service_interest,stage,priority,assigned_to', 'humanOwner:id,name', 'visitor:id,display_name', 'targetCounsellor:id,name']);
+            ->with(['lead:id,public_reference,full_name,service_interest,stage,priority,assigned_to', 'humanOwner:id,name', 'visitor:id,uuid', 'targetCounsellor:id,name']);
 
         return $this->applyFilters($query, $filters)->paginate($perPage);
     }
@@ -107,7 +107,9 @@ class ConversationDirectoryService
                     ->orWhereHas('lead', fn (Builder $lead) => $lead
                         ->where('full_name', 'like', $term)
                         ->orWhere('public_reference', 'like', $term))
-                    ->orWhereHas('visitor', fn (Builder $visitor) => $visitor->where('display_name', 'like', $term));
+                    ->orWhereHas('visitor', fn (Builder $visitor) => $visitor
+                        ->where('uuid', 'like', $term)
+                        ->orWhereRaw('CAST(id AS CHAR) LIKE ?', [$term]));
             });
         }
 

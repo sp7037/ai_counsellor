@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Tenant;
+use App\Services\Billing\EntitlementResolver;
 use App\Services\Platform\PlatformAuditLogService;
 use App\Services\Platform\PlatformTenantDirectoryService;
 use App\Services\Platform\PlatformUsageReportingService;
@@ -28,14 +29,20 @@ new #[Layout('components.layouts.platform')] class extends Component {
         PlatformTenantDirectoryService $directory,
         PlatformUsageReportingService $usage,
         PlatformAuditLogService $audit,
+        EntitlementResolver $entitlements,
     ): array {
         $detail = $directory->tenantDetail($this->tenant);
+        $subscription = $entitlements->subscriptionFor($this->tenant)?->load('plan');
 
         return [
             'detail' => $detail,
             'usage' => $usage->tenantSummary($this->tenant->id),
             'auditLogs' => $audit->paginate(['tenant_id' => $this->tenant->id], 10),
             'memberships' => $this->tenant->memberships()->with('user')->get(),
+            'subscription' => $subscription,
+            'effectiveStatus' => $subscription?->effectiveStatus(),
+            'hasOperationalAccess' => $subscription !== null
+                && $subscription->effectiveStatus()->allowsOperationalAccess(),
         ];
     }
 
@@ -106,6 +113,81 @@ new #[Layout('components.layouts.platform')] class extends Component {
                     <flux:button wire:click="$set('confirm_suspend', true)" variant="danger">Suspend tenant</flux:button>
                 @endcan
             </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <flux:heading size="md">Subscription</flux:heading>
+                    <p class="mt-1 text-sm text-zinc-400">Assign or change the tenant billing plan without Razorpay.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @if ($subscription)
+                        <flux:button href="{{ route('platform.tenants.subscription', $tenant) }}" wire:navigate size="sm" variant="primary">
+                            Change subscription
+                        </flux:button>
+                    @else
+                        <flux:button href="{{ route('platform.tenants.subscription', $tenant) }}" wire:navigate size="sm" variant="primary">
+                            Assign subscription
+                        </flux:button>
+                    @endif
+                </div>
+            </div>
+
+            @if ($subscription)
+                <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <dt class="text-zinc-500">Plan</dt>
+                        <dd class="font-medium text-white">{{ $subscription->plan->name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Status</dt>
+                        <dd>{{ $effectiveStatus?->label() ?? $subscription->status->label() }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Billing interval</dt>
+                        <dd>{{ ucfirst($subscription->plan->billing_interval) }}</dd>
+                    </div>
+                    @if ($subscription->current_period_started_at)
+                        <div>
+                            <dt class="text-zinc-500">Started</dt>
+                            <dd>{{ $subscription->current_period_started_at->format('d M Y') }}</dd>
+                        </div>
+                    @endif
+                    @if ($subscription->trial_ends_at)
+                        <div>
+                            <dt class="text-zinc-500">Trial ends</dt>
+                            <dd>{{ $subscription->trial_ends_at->format('d M Y') }}</dd>
+                        </div>
+                    @endif
+                    @if ($subscription->current_period_ends_at)
+                        <div>
+                            <dt class="text-zinc-500">Period ends</dt>
+                            <dd>{{ $subscription->current_period_ends_at->format('d M Y') }}</dd>
+                        </div>
+                    @endif
+                    @if ($subscription->cancelled_at)
+                        <div>
+                            <dt class="text-zinc-500">Cancelled</dt>
+                            <dd>{{ $subscription->cancelled_at->format('d M Y') }}</dd>
+                        </div>
+                    @endif
+                    <div>
+                        <dt class="text-zinc-500">Entitlements</dt>
+                        <dd>
+                            @if ($hasOperationalAccess)
+                                <flux:badge color="green" size="sm">Active</flux:badge>
+                            @else
+                                <flux:badge color="red" size="sm">Restricted</flux:badge>
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+            @else
+                <x-subscription-notice class="mt-4">
+                    No subscription assigned. The tenant cannot use paid features until you assign a trial or plan.
+                </x-subscription-notice>
+            @endif
         </div>
 
         @if ($confirm_suspend)

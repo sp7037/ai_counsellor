@@ -38,6 +38,7 @@ class AuthenticatedHttpSmokeTest extends TestCase
         $this->get(route('platform.settings.index'))->assertOk();
         $this->get(route('platform.system-health.index'))->assertOk();
         $this->get(route('platform.tenants.show', $tenant))->assertOk();
+        $this->get(route('platform.tenants.subscription', $tenant))->assertOk();
         $this->get(route('platform.plans.index'))->assertOk();
         $this->get(route('platform.integrations.index'))->assertOk();
 

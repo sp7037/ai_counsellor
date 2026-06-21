@@ -8,7 +8,7 @@ use App\Services\AI\TenantAiConfigService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.tenant')] class extends Component {
     public Tenant $tenant;
 
     public string $provider = 'openai';
@@ -43,6 +43,19 @@ new #[Layout('components.layouts.app')] class extends Component {
             $this->timeoutSeconds = (int) $config->timeout_seconds;
             $this->enabled = (bool) $config->enabled;
             $this->credentialMode = $config->credential_mode?->value ?? AiCredentialMode::PlatformManaged->value;
+        }
+    }
+
+    public function updatedProvider(string $provider): void
+    {
+        $defaults = [
+            'openai' => 'gpt-4o-mini',
+            'deepseek' => 'deepseek-v4-flash',
+            'fake' => 'fake-model',
+        ];
+
+        if (isset($defaults[$provider])) {
+            $this->model = $defaults[$provider];
         }
     }
 

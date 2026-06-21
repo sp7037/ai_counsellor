@@ -8,7 +8,8 @@ use App\Services\Widget\WidgetKeyService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.tenant')] class extends Component
+{
     public Tenant $tenant;
 
     public string $keyName = 'Default widget key';
@@ -45,7 +46,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function rotateKey(string $keyUuid, WidgetKeyService $service): void
     {
-        $key = WidgetKey::query()->where('uuid', $keyUuid)->first();
+        $key = $this->tenant->widgetKeys()->where('uuid', $keyUuid)->first();
 
         if ($key === null) {
             abort(404);
@@ -57,7 +58,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function revokeKey(string $keyUuid, WidgetKeyService $service): void
     {
-        $key = WidgetKey::query()->where('uuid', $keyUuid)->first();
+        $key = $this->tenant->widgetKeys()->where('uuid', $keyUuid)->first();
 
         if ($key === null) {
             abort(404);
@@ -81,7 +82,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function verifyDomain(int $domainId, TenantDomainService $service): void
     {
-        $record = TenantDomain::query()->find($domainId);
+        $record = $this->tenant->domains()->find($domainId);
 
         if ($record === null) {
             abort(404);
@@ -93,7 +94,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function removeDomain(int $domainId, TenantDomainService $service): void
     {
-        $record = TenantDomain::query()->find($domainId);
+        $record = $this->tenant->domains()->find($domainId);
 
         if ($record === null) {
             abort(404);
@@ -134,7 +135,12 @@ new #[Layout('components.layouts.app')] class extends Component {
                                 <flux:button wire:click="revokeKey('{{ $key->uuid }}')" size="sm" variant="danger">Revoke</flux:button>
                             @endcan
                         </div>
-                        <pre class="mt-3 overflow-x-auto rounded bg-zinc-950 p-2 text-xs text-zinc-300">&lt;script async src="{{ asset('build/widget.js') }}" data-widget-key="{{ $key->public_key }}" data-gateway="{{ $gatewayBase }}"&gt;&lt;/script&gt;</pre>
+                        <pre class="mt-3 whitespace-pre-wrap break-all rounded bg-zinc-950 p-2 text-xs text-zinc-300">&lt;script
+  async
+  src="{{ asset('build/widget.js') }}"
+  data-widget-key="{{ $key->public_key }}"
+  data-gateway="{{ $gatewayBase }}"&gt;
+&lt;/script&gt;</pre>
                     @endif
                 </div>
             @empty
@@ -153,12 +159,12 @@ new #[Layout('components.layouts.app')] class extends Component {
         @endcan
         <div class="grid gap-3">
             @forelse ($domains as $record)
-                <div class="flex items-center justify-between rounded border border-zinc-800 p-3 text-sm">
-                    <div>
+                <div class="flex flex-col gap-2 rounded border border-zinc-800 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
                         <div class="font-medium text-white">{{ $record->domain }}</div>
                         <div class="text-zinc-500">Status: {{ $record->status->label() }}</div>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         @can('verify', $record)
                             @if ($record->status->value === 'pending')
                                 <flux:button wire:click="verifyDomain({{ $record->id }})" size="sm">Verify</flux:button>

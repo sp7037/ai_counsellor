@@ -9,12 +9,14 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.tenant')] class extends Component {
     use WithFileUploads;
 
     public Tenant $tenant;
 
     public string $displayName = '';
+
+    public string $assistantName = 'AI Counsellor';
 
     public string $primaryColor = '#2563EB';
 
@@ -37,6 +39,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         $widgetSettings = $resolver->widgetSettings($tenant);
 
         $this->displayName = (string) ($settings->display_name ?? $tenant->name);
+        $this->assistantName = (string) ($settings->assistant_name ?: ($settings->display_name ?: 'AI Counsellor'));
         $this->primaryColor = (string) $settings->primary_color;
         $this->accentColor = $settings->accent_color;
         $this->widgetPosition = $widgetSettings->widget_position?->value ?? WidgetPosition::BottomRight->value;
@@ -62,6 +65,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         $this->validate([
             'displayName' => ['required', 'string', 'max:120'],
+            'assistantName' => ['required', 'string', 'max:120'],
             'primaryColor' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'accentColor' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'widgetPosition' => ['required', 'in:bottom_right,bottom_left'],
@@ -71,6 +75,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         $service->update($this->tenant, [
             'display_name' => $this->displayName,
+            'assistant_name' => $this->assistantName,
             'primary_color' => $this->primaryColor,
             'accent_color' => $this->accentColor,
             'widget_position' => $this->widgetPosition,
@@ -121,6 +126,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         <form wire:submit="save" class="grid gap-4 rounded border border-zinc-800 bg-zinc-900 p-4">
             <flux:input wire:model="displayName" label="Display name" required />
+            <flux:input wire:model="assistantName" label="Assistant name (widget header)" required />
             <flux:input wire:model="primaryColor" label="Primary colour" required />
             <flux:input wire:model="accentColor" label="Accent colour" />
             <flux:select wire:model="widgetPosition" label="Widget position">

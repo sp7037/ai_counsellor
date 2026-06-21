@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Audit\AuditAction;
 use App\Enums\Tenancy\TenantRole;
+use App\Models\TenantSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -52,6 +53,7 @@ class TenantConfigurationTest extends TestCase
 
         Volt::test('tenant.configuration.branding', ['tenant' => $tenant])
             ->set('displayName', 'SR World Counselling')
+            ->set('assistantName', 'Admissions Assistant')
             ->set('primaryColor', '#112233')
             ->call('save')
             ->assertHasNoErrors();
@@ -72,6 +74,26 @@ class TenantConfigurationTest extends TestCase
             ->set('logoUpload', $file)
             ->call('uploadLogo')
             ->assertHasErrors(['logoUpload']);
+    }
+
+    public function test_logo_upload_persists_logo_path_for_tenant_settings(): void
+    {
+        Storage::fake('public');
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Owner);
+        $this->actingAs($user);
+        $this->withTenantContext($user, $tenant);
+
+        $file = UploadedFile::fake()->image('tenant-logo.png', 180, 180);
+
+        Volt::test('tenant.configuration.branding', ['tenant' => $tenant])
+            ->set('logoUpload', $file)
+            ->call('uploadLogo')
+            ->assertHasNoErrors();
+
+        $logoPath = (string) TenantSettings::query()->where('tenant_id', $tenant->id)->value('logo_path');
+        $this->assertNotSame('', $logoPath);
+        $this->assertStringContainsString('tenant-logos/'.$tenant->uuid.'/', $logoPath);
+        Storage::disk('public')->assertExists($logoPath);
     }
 
     public function test_office_hours_update_is_audited(): void

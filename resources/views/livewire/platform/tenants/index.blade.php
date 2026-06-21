@@ -89,7 +89,10 @@ new #[Layout('components.layouts.platform')] class extends Component {
                         <td class="hidden md:table-cell px-4 py-3">{{ $tenant->conversations_count }}</td>
                         <td class="hidden xl:table-cell px-4 py-3">{{ $tenant->last_activity_at ? \Illuminate\Support\Carbon::parse($tenant->last_activity_at)->diffForHumans() : '—' }}</td>
                         <td class="px-4 py-3 text-right">
-                            <flux:button href="{{ route('platform.tenants.show', $tenant) }}" wire:navigate size="sm" variant="ghost">View</flux:button>
+                            <div class="flex justify-end gap-2">
+                                <flux:button href="{{ route('platform.tenants.subscription', $tenant) }}" wire:navigate size="sm" variant="ghost">Subscription</flux:button>
+                                <flux:button href="{{ route('platform.tenants.show', $tenant) }}" wire:navigate size="sm" variant="ghost">View</flux:button>
+                            </div>
                         </td>
                     </tr>
                 @empty

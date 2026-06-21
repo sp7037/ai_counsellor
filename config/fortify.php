@@ -163,7 +163,7 @@ return [
 
     'features' => [
         Features::resetPasswords(),
-        Features::emailVerification(),
+        // Email verification routes live in routes/auth.php (Volt notice + custom verify controller).
         Features::updateProfileInformation(),
         Features::updatePasswords(),
     ],

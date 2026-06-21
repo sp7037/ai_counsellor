@@ -159,6 +159,21 @@ class HumanAgentLiveConversationsTest extends TestCase
         $this->actingAs($admin)->get(route('tenant.conversations.index', $tenant))->assertOk();
     }
 
+    public function test_tenant_conversations_index_renders_when_visitor_has_no_display_name_column(): void
+    {
+        $setup = $this->createWidgetReadyTenant();
+        $token = $this->widgetSessionToken($setup['key']);
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'hello',
+            'request_id' => (string) Str::uuid(),
+        ], $this->widgetHeaders($token))->assertOk();
+
+        $this->actingAs($setup['user'])
+            ->get(route('tenant.conversations.index', $setup['tenant']))
+            ->assertOk();
+    }
+
     /**
      * @return array<string, string>
      */

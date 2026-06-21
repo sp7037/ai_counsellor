@@ -8,7 +8,7 @@ use App\Services\Configuration\TenantCatalogueService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.tenant')] class extends Component {
     public Tenant $tenant;
 
     public string $name = '';

@@ -16,7 +16,10 @@
 @endphp
 
 <nav class="grid gap-1 text-sm">
-    <a href="{{ route('platform.overview') }}" class="mb-3 text-base font-semibold text-white" wire:navigate>{{ config('app.name') }}</a>
+    <div class="mb-4 border-b border-zinc-800 pb-4">
+        <x-app-logo :href="route('platform.overview')" size="sidebar" />
+        <p class="mt-2 text-xs uppercase tracking-wide text-zinc-500">Platform Super Admin</p>
+    </div>
     @foreach ($items as $item)
         <a
             href="{{ route($item['route']) }}"

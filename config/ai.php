@@ -15,6 +15,8 @@ return [
     'allowed_models' => [
         'gpt-4o-mini',
         'gpt-4o',
+        'deepseek-v4-flash',
+        'deepseek-v4-pro',
         'fake-model',
     ],
     'http_retries' => 0,
@@ -35,6 +37,14 @@ return [
             'temperature' => (float) env('OPENAI_TEMPERATURE', 0.2),
             'max_output_tokens' => (int) env('OPENAI_MAX_OUTPUT_TOKENS', 400),
             'enabled' => (bool) env('OPENAI_ENABLED', true),
+        ],
+        'deepseek' => [
+            'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com'),
+            'api_key' => env('DEEPSEEK_API_KEY'),
+            'model' => env('DEEPSEEK_MODEL', 'deepseek-v4-flash'),
+            'temperature' => (float) env('DEEPSEEK_TEMPERATURE', 0.2),
+            'max_output_tokens' => (int) env('DEEPSEEK_MAX_OUTPUT_TOKENS', 400),
+            'enabled' => (bool) env('DEEPSEEK_ENABLED', true),
         ],
     ],
 ];

@@ -23,16 +23,23 @@ class TenantDomainService
         $normalized = $this->originValidator->normalizeDomain($domain);
 
         if ($normalized === '') {
-            throw ValidationException::withMessages(['domain' => 'Enter a valid domain.']);
+            throw ValidationException::withMessages(['domain' => 'Enter a valid domain without wildcards.']);
+        }
+
+        if ($tenant->domains()->where('domain', $normalized)->exists()) {
+            throw ValidationException::withMessages(['domain' => 'This domain is already allowed for your organisation.']);
         }
 
         return DB::transaction(function () use ($tenant, $normalized, $actor): TenantDomain {
-            $record = TenantDomain::query()->create([
-                'tenant_id' => $tenant->id,
+            $record = $tenant->domains()->make([
                 'domain' => $normalized,
-                'status' => TenantDomainStatus::Pending->value,
+                'status' => TenantDomainStatus::Verified->value,
+                'verified_at' => now(),
                 'created_by' => $actor->id,
             ]);
+            $record->tenant()->associate($tenant);
+            $this->ensureTenantOwnership($record, $tenant);
+            $record->save();
 
             $this->auditLogger->log(
                 AuditAction::TenantDomainCreated,
@@ -42,8 +49,23 @@ class TenantDomainService
                 $actor,
             );
 
+            $this->auditLogger->log(
+                AuditAction::TenantDomainVerified,
+                $record,
+                $tenant->id,
+                ['domain' => $normalized, 'status' => $record->status->value, 'auto_verified' => true],
+                $actor,
+            );
+
             return $record;
         });
+    }
+
+    private function ensureTenantOwnership(TenantDomain $domain, Tenant $tenant): void
+    {
+        if ($domain->tenant_id !== $tenant->id) {
+            throw new \RuntimeException('Tenant domain must belong to the resolved tenant.');
+        }
     }
 
     public function verify(TenantDomain $domain, User $actor): TenantDomain

@@ -42,7 +42,7 @@ class WidgetEntitlementService
             return [
                 'available' => false,
                 'mode' => 'unavailable',
-                'message' => config('subscriptions.widget_unavailable_message'),
+                'message' => $this->unavailableMessage($result->outcome),
                 'code' => $result->outcome->safeWidgetCode(),
             ];
         }
@@ -97,5 +97,17 @@ class WidgetEntitlementService
         }
 
         return true;
+    }
+
+    private function unavailableMessage(EntitlementOutcome $outcome): string
+    {
+        return match ($outcome) {
+            EntitlementOutcome::FeatureNotIncluded,
+            EntitlementOutcome::NoSubscription,
+            EntitlementOutcome::SubscriptionExpired,
+            EntitlementOutcome::LimitReached => 'Widget feature is not enabled for this tenant.',
+            EntitlementOutcome::TenantSuspended => config('subscriptions.widget_unavailable_message'),
+            default => config('subscriptions.widget_unavailable_message'),
+        };
     }
 }

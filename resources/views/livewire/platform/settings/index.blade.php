@@ -12,9 +12,23 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
     public string $support_email = '';
 
+    public bool $widget_powered_by_enabled = true;
+
+    public string $widget_powered_by_label = '';
+
+    public string $widget_powered_by_logo_url = '';
+
+    public string $widget_launcher_logo_url = '';
+
     public string $platform_api_key = '';
 
+    public string $platform_deepseek_api_key = '';
+
     public bool $platform_credential_configured = false;
+
+    public bool $openai_credential_configured = false;
+
+    public bool $deepseek_credential_configured = false;
 
     public bool $payment_enabled = true;
 
@@ -38,7 +52,13 @@ new #[Layout('components.layouts.platform')] class extends Component {
         $this->default_provider = (string) ($current['default_provider'] ?? '');
         $this->default_fallback_message = (string) ($current['default_fallback_message'] ?? '');
         $this->support_email = (string) ($current['support_email'] ?? '');
+        $this->widget_powered_by_enabled = (bool) ($current['widget_powered_by_enabled'] ?? true);
+        $this->widget_powered_by_label = (string) ($current['widget_powered_by_label'] ?? 'Powered by SR Worlds AI');
+        $this->widget_powered_by_logo_url = (string) ($current['widget_powered_by_logo_url'] ?? '');
+        $this->widget_launcher_logo_url = (string) ($current['widget_launcher_logo_url'] ?? '');
         $this->platform_credential_configured = (bool) $current['platform_credential_configured'];
+        $this->openai_credential_configured = (bool) ($current['openai_credential_configured'] ?? false);
+        $this->deepseek_credential_configured = (bool) ($current['deepseek_credential_configured'] ?? false);
 
         $payment = $payments->safeSummary();
         $this->payment_enabled = (bool) $payment['payment_enabled'];
@@ -51,10 +71,15 @@ new #[Layout('components.layouts.platform')] class extends Component {
     public function save(PlatformSettingsService $settings, PaymentCredentialsService $payments): void
     {
         $this->validate([
-            'default_provider' => ['nullable', 'string', 'max:50'],
+            'default_provider' => ['nullable', 'string', 'max:50', 'in:openai,deepseek,fake'],
             'default_fallback_message' => ['nullable', 'string', 'max:2000'],
             'support_email' => ['nullable', 'email', 'max:255'],
+            'widget_powered_by_enabled' => ['required', 'boolean'],
+            'widget_powered_by_label' => ['nullable', 'string', 'max:120'],
+            'widget_powered_by_logo_url' => ['nullable', 'url', 'max:2048'],
+            'widget_launcher_logo_url' => ['nullable', 'url', 'max:2048'],
             'platform_api_key' => ['nullable', 'string', 'max:500'],
+            'platform_deepseek_api_key' => ['nullable', 'string', 'max:500'],
             'payment_environment' => ['required', 'in:test,live'],
             'payment_provider' => ['required', 'in:fake,razorpay'],
             'payment_key_id' => ['nullable', 'string', 'max:255'],
@@ -66,7 +91,12 @@ new #[Layout('components.layouts.platform')] class extends Component {
             'default_provider' => $this->default_provider ?: null,
             'default_fallback_message' => $this->default_fallback_message ?: null,
             'support_email' => $this->support_email ?: null,
+            'widget_powered_by_enabled' => $this->widget_powered_by_enabled,
+            'widget_powered_by_label' => $this->widget_powered_by_label ?: null,
+            'widget_powered_by_logo_url' => $this->widget_powered_by_logo_url ?: null,
+            'widget_launcher_logo_url' => $this->widget_launcher_logo_url ?: null,
             'platform_api_key' => $this->platform_api_key,
+            'platform_deepseek_api_key' => $this->platform_deepseek_api_key,
         ], auth()->user());
 
         $payments->updateSettings([
@@ -78,8 +108,10 @@ new #[Layout('components.layouts.platform')] class extends Component {
             'payment_webhook_secret' => $this->payment_webhook_secret,
         ], auth()->user(), app(\App\Services\Audit\AuditLogger::class));
 
-        $this->reset('platform_api_key', 'payment_key_secret', 'payment_webhook_secret');
+        $this->reset('platform_api_key', 'platform_deepseek_api_key', 'payment_key_secret', 'payment_webhook_secret');
         $this->platform_credential_configured = $settings->platformCredentialConfigured();
+        $this->openai_credential_configured = $settings->platformCredentialConfigured('openai');
+        $this->deepseek_credential_configured = $settings->platformCredentialConfigured('deepseek');
         $summary = $payments->safeSummary();
         $this->payment_key_secret_configured = (bool) $summary['payment_key_secret_configured'];
         $this->payment_webhook_secret_configured = (bool) $summary['payment_webhook_secret_configured'];
@@ -96,13 +128,32 @@ new #[Layout('components.layouts.platform')] class extends Component {
     @endif
 
     <form wire:submit="save" class="grid gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-        <flux:input wire:model="default_provider" label="Default AI provider" />
+        <flux:select wire:model="default_provider" label="Default AI provider">
+            <option value="">Use environment default</option>
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="fake">Fake (tests)</option>
+        </flux:select>
         <flux:textarea wire:model="default_fallback_message" label="Default safe fallback message" rows="3" />
         <flux:input wire:model="support_email" label="Support email" type="email" />
 
         <div class="rounded border border-zinc-800 p-4 text-sm">
-            <p class="text-zinc-400">Platform OpenAI credential: {{ $platform_credential_configured ? 'Configured (value not shown)' : 'Not configured' }}</p>
-            <flux:input wire:model="platform_api_key" class="mt-3" label="Replace platform API key" type="password" placeholder="Leave blank to keep unchanged" />
+            <flux:heading size="sm">Widget powered by</flux:heading>
+            <flux:checkbox wire:model="widget_powered_by_enabled" class="mt-2" label="Show powered-by chip in widget footer" />
+            <flux:input wire:model="widget_powered_by_label" class="mt-3" label="Powered-by label" placeholder="Powered by SR Worlds AI" />
+            <flux:input wire:model="widget_powered_by_logo_url" class="mt-3" label="Powered-by logo URL (optional)" placeholder="https://example.com/logo.png" />
+            <flux:input wire:model="widget_launcher_logo_url" class="mt-3" label="Launcher logo URL (floating chat button)" placeholder="https://example.com/launcher-logo.png" />
+            <flux:text class="mt-1 text-xs text-zinc-500">Shown on the floating chat button. Leave blank to use the bundled platform logo; the widget falls back to the tenant logo or initials if unavailable.</flux:text>
+        </div>
+
+        <div class="rounded border border-zinc-800 p-4 text-sm">
+            <p class="text-zinc-400">Platform OpenAI credential: {{ $openai_credential_configured ? 'Configured (value not shown)' : 'Not configured' }}</p>
+            <flux:input wire:model="platform_api_key" class="mt-3" label="Replace OpenAI API key" type="password" placeholder="Leave blank to keep unchanged" />
+        </div>
+
+        <div class="rounded border border-zinc-800 p-4 text-sm">
+            <p class="text-zinc-400">Platform DeepSeek credential: {{ $deepseek_credential_configured ? 'Configured (value not shown)' : 'Not configured' }}</p>
+            <flux:input wire:model="platform_deepseek_api_key" class="mt-3" label="Replace DeepSeek API key" type="password" placeholder="Leave blank to keep unchanged" />
         </div>
 
         <flux:button type="submit" variant="primary">Save settings</flux:button>

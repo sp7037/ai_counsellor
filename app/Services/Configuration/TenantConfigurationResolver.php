@@ -16,7 +16,7 @@ class TenantConfigurationResolver
             ['tenant_id' => $tenant->id],
             [
                 'display_name' => $tenant->name,
-                'assistant_name' => 'Counsellor',
+                'assistant_name' => null,
                 'primary_color' => '#2563EB',
                 'ai_disclosure_enabled' => true,
                 'ai_disclosure_message' => 'You are chatting with an AI-powered assistant.',
@@ -33,7 +33,7 @@ class TenantConfigurationResolver
         return TenantWidgetSettings::query()->firstOrCreate(
             ['tenant_id' => $tenant->id],
             [
-                'welcome_message' => 'Hello! How can we help you today?',
+                'welcome_message' => (string) config('widget.default_welcome_message', 'Hello! I am your AI counsellor. Ask me about services, admission, eligibility, fees, documents, or counselling support.'),
                 'offline_message' => 'We are currently offline. Leave your details and we will get back to you.',
                 'offline_form_enabled' => true,
                 'widget_position' => WidgetPosition::BottomRight->value,

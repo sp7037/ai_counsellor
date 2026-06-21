@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Tenancy\TenantContext;
+use App\Services\Widget\OriginValidator;
 use App\Services\Widget\WidgetSessionService;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class ResolveWidgetSession
     public function __construct(
         private readonly WidgetSessionService $sessionService,
         private readonly TenantContext $tenantContext,
+        private readonly OriginValidator $originValidator,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -35,11 +37,13 @@ class ResolveWidgetSession
             return response()->json(['message' => 'Organisation unavailable.'], 403);
         }
 
-        $originDomain = $request->headers->get('Origin')
-            ? parse_url($request->headers->get('Origin'), PHP_URL_HOST)
-            : null;
+        $originDomain = $this->originValidator->extractOriginDomain(
+            $request->headers->get('Origin'),
+            $request->headers->get('Referer'),
+        );
 
-        if (is_string($originDomain) && strtolower($originDomain) !== strtolower($session->origin_domain)) {
+        if ($originDomain !== null
+            && $this->originValidator->normalizeDomain($originDomain) !== $this->originValidator->normalizeDomain($session->origin_domain)) {
             $localAllowed = config('widget.allow_local_origins')
                 && in_array($request->headers->get('Origin'), config('widget.local_origins', []), true);
 
@@ -52,7 +56,7 @@ class ResolveWidgetSession
         $this->tenantContext->enforceIsolation();
         $this->sessionService->touch($session);
 
-        $request->attributes->set('widget_session', $session);
+        $request->attributes->set('widget_session', $session->fresh());
 
         return $next($request);
     }

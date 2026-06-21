@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Widget;
 
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Http\Controllers\Controller;
+use App\Http\Support\WidgetCorsResponse;
 use App\Models\WidgetSession;
 use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Configuration\WidgetPublicConfigService;
@@ -11,6 +12,7 @@ use App\Services\Conversations\ConversationHandoffService;
 use App\Services\Conversations\ConversationMessageService;
 use App\Services\Leads\LeadCaptureService;
 use App\Services\Widget\ConversationService;
+use App\Services\Tenancy\TenantContext;
 use App\Services\Widget\WidgetSessionService;
 use App\Services\Widget\WidgetTenantResolver;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +31,8 @@ class WidgetGatewayController extends Controller
         private readonly WidgetPublicConfigService $publicConfigService,
         private readonly KnowledgeRetrievalContract $knowledgeRetrieval,
         private readonly WidgetEntitlementService $widgetEntitlements,
+        private readonly WidgetCorsResponse $corsResponse,
+        private readonly TenantContext $tenantContext,
     ) {}
 
     public function startSession(Request $request): JsonResponse
@@ -49,10 +53,10 @@ class WidgetGatewayController extends Controller
         $availability = $this->widgetEntitlements->widgetAvailability($resolved['tenant']);
 
         if (! $availability['available']) {
-            return response()->json([
+            return $this->corsResponse->json($request, [
                 'code' => $availability['code'],
                 'message' => $availability['message'],
-            ], 403)->header('Cache-Control', 'no-store, private');
+            ], 403, ['Cache-Control' => 'no-store, private']);
         }
 
         $result = $this->sessionService->start(
@@ -76,6 +80,27 @@ class WidgetGatewayController extends Controller
             'configuration' => $publicConfig,
             'widget_mode' => $availability['mode'],
         ]);
+    }
+
+    public function bootstrap(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'widget_key' => ['required', 'string', 'max:64'],
+        ]);
+
+        $resolved = $this->tenantResolver->resolve(
+            $validated['widget_key'],
+            $request->headers->get('Origin'),
+            $request->headers->get('Referer'),
+        );
+
+        // Establish tenant scope (same as the session middleware) so settings resolve safely.
+        $this->tenantContext->setFromWidgetGateway($resolved['tenant']);
+        $this->tenantContext->enforceIsolation();
+
+        return $this->corsResponse->json($request, [
+            'configuration' => $this->publicConfigService->chromeFor($resolved['tenant']),
+        ], 200, ['Cache-Control' => 'no-store, private']);
     }
 
     public function config(Request $request): JsonResponse
@@ -151,6 +176,7 @@ class WidgetGatewayController extends Controller
                 'sender_name' => $result['reply']->sender_display_name,
             ] : null,
             'mode' => $result['mode'] ?? $session->conversation->mode?->value ?? 'ai',
+            'session_expires_at' => $session->expires_at->toIso8601String(),
         ]);
     }
 

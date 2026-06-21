@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'public_key', 'name', 'status', 'last_rotated_at', 'revoked_at', 'created_by'])]
+#[Fillable(['tenant_id', 'uuid', 'public_key', 'name', 'status', 'last_rotated_at', 'revoked_at', 'created_by'])]
 class WidgetKey extends Model
 {
     use BelongsToTenant;

@@ -5,6 +5,7 @@ namespace App\Services\Platform;
 use App\Enums\Audit\AuditAction;
 use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Services\AI\PlatformAiCredentialResolver;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,7 @@ class PlatformSettingsService
 {
     public function __construct(
         private readonly AuditLogger $auditLogger,
+        private readonly PlatformAiCredentialResolver $credentialResolver,
     ) {}
 
     /**
@@ -21,13 +23,20 @@ class PlatformSettingsService
     public function all(): array
     {
         $settings = PlatformSetting::query()->pluck('value', 'key');
+        $defaultProvider = (string) ($settings['default_provider'] ?? config('ai.default_provider'));
 
         return [
-            'default_provider' => $settings['default_provider'] ?? config('ai.default_provider'),
+            'default_provider' => $defaultProvider,
             'allowed_models' => $settings['allowed_models'] ?? config('ai.allowed_models'),
             'default_fallback_message' => $settings['default_fallback_message'] ?? null,
             'support_email' => $settings['support_email'] ?? null,
+            'widget_powered_by_enabled' => (bool) ($settings['widget_powered_by_enabled'] ?? config('widget.powered_by.enabled', true)),
+            'widget_powered_by_label' => (string) ($settings['widget_powered_by_label'] ?? config('widget.powered_by.label', 'Powered by SR Worlds AI')),
+            'widget_powered_by_logo_url' => (string) ($settings['widget_powered_by_logo_url'] ?? ''),
+            'widget_launcher_logo_url' => (string) ($settings['widget_launcher_logo_url'] ?? config('widget.launcher.logo_url', '')),
             'platform_credential_configured' => $this->platformCredentialConfigured(),
+            'openai_credential_configured' => $this->credentialResolver->isConfigured('openai'),
+            'deepseek_credential_configured' => $this->credentialResolver->isConfigured('deepseek'),
         ];
     }
 
@@ -41,18 +50,13 @@ class PlatformSettingsService
             $this->upsert('allowed_models', $input['allowed_models'] ?? [], $actor);
             $this->upsert('default_fallback_message', $input['default_fallback_message'] ?? null, $actor);
             $this->upsert('support_email', $input['support_email'] ?? null, $actor);
+            $this->upsert('widget_powered_by_enabled', (bool) ($input['widget_powered_by_enabled'] ?? config('widget.powered_by.enabled', true)), $actor);
+            $this->upsert('widget_powered_by_label', (string) ($input['widget_powered_by_label'] ?? config('widget.powered_by.label', 'Powered by SR Worlds AI')), $actor);
+            $this->upsert('widget_powered_by_logo_url', (string) ($input['widget_powered_by_logo_url'] ?? ''), $actor);
+            $this->upsert('widget_launcher_logo_url', (string) ($input['widget_launcher_logo_url'] ?? ''), $actor);
 
-            if (array_key_exists('platform_api_key', $input) && trim((string) $input['platform_api_key']) !== '') {
-                $encrypted = Crypt::encryptString(trim((string) $input['platform_api_key']));
-                $this->upsert('platform_openai_api_key', ['encrypted' => $encrypted], $actor);
-                $this->auditLogger->log(
-                    AuditAction::AiSecretReplaced,
-                    null,
-                    null,
-                    ['scope' => 'platform', 'secret_masked' => '****'.substr(trim((string) $input['platform_api_key']), -4)],
-                    $actor,
-                );
-            }
+            $this->storeProviderApiKey($input, 'platform_api_key', 'platform_openai_api_key', $actor);
+            $this->storeProviderApiKey($input, 'platform_deepseek_api_key', 'platform_deepseek_api_key', $actor);
 
             $this->auditLogger->log(
                 AuditAction::PlatformSettingsUpdated,
@@ -64,15 +68,34 @@ class PlatformSettingsService
         });
     }
 
-    public function platformCredentialConfigured(): bool
+    public function platformCredentialConfigured(?string $providerSlug = null): bool
     {
-        $stored = PlatformSetting::query()->where('key', 'platform_openai_api_key')->value('value');
-
-        if (is_array($stored) && ! empty($stored['encrypted'])) {
-            return true;
+        if ($providerSlug !== null) {
+            return $this->credentialResolver->isConfigured($providerSlug);
         }
 
-        return is_string(config('ai.providers.openai.api_key')) && config('ai.providers.openai.api_key') !== '';
+        $defaultProvider = (string) (PlatformSetting::query()->where('key', 'default_provider')->value('value')
+            ?? config('ai.default_provider', 'openai'));
+
+        return $this->credentialResolver->isConfigured($defaultProvider);
+    }
+
+    private function storeProviderApiKey(array $input, string $inputKey, string $settingKey, User $actor): void
+    {
+        if (! array_key_exists($inputKey, $input) || trim((string) $input[$inputKey]) === '') {
+            return;
+        }
+
+        $plain = trim((string) $input[$inputKey]);
+        $encrypted = Crypt::encryptString($plain);
+        $this->upsert($settingKey, ['encrypted' => $encrypted], $actor);
+        $this->auditLogger->log(
+            AuditAction::AiSecretReplaced,
+            null,
+            null,
+            ['scope' => 'platform', 'provider' => str_replace('platform_', '', str_replace('_api_key', '', $settingKey)), 'secret_masked' => '****'.substr($plain, -4)],
+            $actor,
+        );
     }
 
     private function upsert(string $key, mixed $value, User $actor): void

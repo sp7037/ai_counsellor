@@ -3,6 +3,9 @@
 
 <title>{{ $title ?? config('app.name', 'AI Counsellor') }}</title>
 
+<link rel="icon" type="image/png" href="{{ asset(\App\Support\Branding::faviconPath()) }}" />
+<link rel="apple-touch-icon" href="{{ asset(\App\Support\Branding::logoPath()) }}" />
+
 <link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 

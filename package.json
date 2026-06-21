@@ -14,6 +14,6 @@
         "vite": "^8.0.0"
     },
     "optionalDependencies": {
-        "@rolldown/binding-win32-x64-msvc": "1.0.3"
+        "@rolldown/binding-win32-x64-msvc": "^1.0.3"
     }
 }

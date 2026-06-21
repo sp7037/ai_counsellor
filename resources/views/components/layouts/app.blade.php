@@ -7,9 +7,9 @@
         <div class="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6">
             <header class="flex items-center justify-between border-b border-zinc-800 pb-4">
                 <div>
-                    <a href="{{ route('home') }}" class="text-lg font-semibold text-white" wire:navigate>{{ config('app.name') }}</a>
+                    <x-app-logo :href="route('home')" size="header" />
                     @isset($heading)
-                        <p class="text-sm text-zinc-400">{{ $heading }}</p>
+                        <p class="mt-1 text-sm text-zinc-400">{{ $heading }}</p>
                     @endisset
                 </div>
                 <div class="flex items-center gap-3 text-sm text-zinc-300">

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['domain', 'status', 'verified_at', 'created_by'])]
+#[Fillable(['tenant_id', 'domain', 'status', 'verified_at', 'created_by'])]
 class TenantDomain extends Model
 {
     use BelongsToTenant;

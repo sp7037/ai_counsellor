@@ -3,7 +3,7 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-neutral-950 text-zinc-100 antialiased">
+    <body class="dark min-h-screen bg-neutral-950 text-zinc-100 antialiased">
         <div class="flex min-h-screen">
             <aside class="hidden w-64 shrink-0 border-r border-zinc-800 bg-zinc-950 p-4 lg:block">
                 @include('components.tenant.sidebar', ['tenant' => $tenant ?? request()->route('tenant')])
@@ -24,7 +24,7 @@
                     </div>
                 </header>
                 <div id="tenant-mobile-nav" class="border-b border-zinc-800 p-4 lg:hidden hidden">@include('components.tenant.sidebar', ['tenant' => $tenant ?? request()->route('tenant')])</div>
-                <main class="flex-1 p-4 lg:p-6">{{ $slot }}</main>
+                <main class="tenant-admin-shell flex-1 p-4 lg:p-6">{{ $slot }}</main>
             </div>
         </div>
         @fluxScripts

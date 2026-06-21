@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.tenant')] class extends Component {
     use WithFileUploads;
 
     public Tenant $tenant;

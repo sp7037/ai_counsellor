@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\Widget\WidgetGatewayDeniedException;
 use App\Http\Middleware\ClearTenantContext;
 use App\Http\Middleware\EnsureCounsellorSubscription;
 use App\Http\Middleware\EnsureCounsellorWorkspace;
@@ -11,6 +12,7 @@ use App\Http\Middleware\EnsureTenantLeadManager;
 use App\Http\Middleware\EnsureTenantOperational;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ResolveTenant;
+use App\Http\Support\WidgetCorsResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -48,6 +50,17 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->is('widget/*'),
         );
+
+        $exceptions->render(function (WidgetGatewayDeniedException $exception, Request $request) {
+            if (! $request->is('widget/*')) {
+                return null;
+            }
+
+            return app(WidgetCorsResponse::class)->json($request, [
+                'message' => $exception->getMessage(),
+                'code' => $exception->errorCode,
+            ], 403, ['Cache-Control' => 'no-store, private']);
+        });
     })->create();

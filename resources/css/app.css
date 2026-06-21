@@ -59,3 +59,69 @@ textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
+
+/*
+ * Tenant/admin dark-shell readability safety net.
+ *
+ * The tenant layout hard-codes a dark background (bg-neutral-950) while text
+ * colours rely on the `.dark` class. To guarantee legible labels, helper text
+ * and validation messages on every tenant admin form/card/tab — independent of
+ * the global appearance toggle — we enforce minimum-contrast colours scoped to
+ * the `.tenant-admin-shell` main region only. This never touches the public
+ * landing page, the embedded widget, inputs/buttons backgrounds, or platform
+ * pages.
+ */
+.tenant-admin-shell label,
+.tenant-admin-shell [data-flux-label],
+.tenant-admin-shell legend,
+.tenant-admin-shell fieldset > legend,
+.tenant-admin-shell .field-label {
+    color: #f8fafc; /* slate-50 — primary labels, near white */
+}
+
+.tenant-admin-shell [data-flux-description],
+.tenant-admin-shell .field-description,
+.tenant-admin-shell small,
+.tenant-admin-shell .help-text {
+    color: #cbd5e1; /* slate-300 — secondary / help text */
+}
+
+/* Muted captions must never be darker than slate-400. */
+.tenant-admin-shell .text-zinc-500,
+.tenant-admin-shell .text-zinc-600,
+.tenant-admin-shell .text-neutral-500,
+.tenant-admin-shell .text-neutral-600,
+.tenant-admin-shell .text-gray-500,
+.tenant-admin-shell .text-gray-600 {
+    color: #94a3b8; /* slate-400 */
+}
+
+/* Validation / error text. */
+.tenant-admin-shell [data-flux-error],
+.tenant-admin-shell .text-red-500,
+.tenant-admin-shell .text-red-600,
+.tenant-admin-shell .text-red-700 {
+    color: #fca5a5; /* red-300 */
+}
+
+/* Success text. */
+.tenant-admin-shell .text-green-600,
+.tenant-admin-shell .text-green-700,
+.tenant-admin-shell .text-emerald-600,
+.tenant-admin-shell .text-emerald-700 {
+    color: #86efac; /* green-300 */
+}
+
+/* Disabled inputs/labels must stay visible, not near-black. */
+.tenant-admin-shell input:disabled,
+.tenant-admin-shell textarea:disabled,
+.tenant-admin-shell select:disabled,
+.tenant-admin-shell label:has(:disabled) {
+    color: #94a3b8;
+}
+
+/* Readable placeholders on the dark form controls. */
+.tenant-admin-shell ::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}

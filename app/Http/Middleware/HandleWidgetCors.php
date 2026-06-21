@@ -2,36 +2,43 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Support\WidgetCorsResponse;
+use App\Services\Widget\WidgetOriginAllowlist;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class HandleWidgetCors
 {
+    public function __construct(
+        private readonly WidgetOriginAllowlist $originAllowlist,
+        private readonly WidgetCorsResponse $corsResponse,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
+        $allowedOrigin = $this->originAllowlist->allowedOrigin(
+            $request->headers->get('Origin'),
+            $request->headers->get('Referer'),
+        );
+
         if ($request->isMethod('OPTIONS')) {
-            return $this->addCorsHeaders(response('', 204), $request);
+            if ($allowedOrigin === null) {
+                return response('', Response::HTTP_FORBIDDEN);
+            }
+
+            return $this->corsResponse->withCorsHeaders(
+                $request,
+                response('', Response::HTTP_NO_CONTENT),
+            );
         }
 
         $response = $next($request);
 
-        return $this->addCorsHeaders($response, $request);
-    }
-
-    private function addCorsHeaders(Response $response, Request $request): Response
-    {
-        $origin = $request->headers->get('Origin');
-
-        if ($origin) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Vary', 'Origin');
+        if ($allowedOrigin === null) {
+            return $response;
         }
 
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Widget-Key');
-        $response->headers->set('Access-Control-Max-Age', '600');
-
-        return $response;
+        return $this->corsResponse->withCorsHeaders($request, $response);
     }
 }

@@ -47,7 +47,22 @@ class OriginValidator
         $domain = strtolower(trim($domain));
         $domain = preg_replace('#^https?://#', '', $domain) ?? $domain;
         $domain = rtrim($domain, '/');
+        $domain = explode('/', $domain)[0];
+        $domain = explode(':', $domain)[0];
 
-        return explode('/', $domain)[0];
+        if ($domain === '' || str_contains($domain, '*')) {
+            return '';
+        }
+
+        if (str_starts_with($domain, 'www.')) {
+            $domain = substr($domain, 4);
+        }
+
+        return $domain;
+    }
+
+    public function matchesAllowedDomain(string $allowedDomain, string $originHost): bool
+    {
+        return $this->normalizeDomain($allowedDomain) === $this->normalizeDomain($originHost);
     }
 }

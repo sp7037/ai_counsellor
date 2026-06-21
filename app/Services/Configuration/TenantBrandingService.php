@@ -46,6 +46,10 @@ class TenantBrandingService
                     $attributes['display_name'] ?? $settings->display_name,
                     config('configuration.max_display_name_length', 120),
                 ) ?? $tenant->name,
+                'assistant_name' => $this->validator->sanitizePlainText(
+                    $attributes['assistant_name'] ?? $settings->assistant_name,
+                    config('configuration.max_assistant_name_length', 120),
+                ) ?? 'AI Counsellor',
                 'primary_color' => isset($attributes['primary_color'])
                     ? $this->validator->validateHexColor('primary_color', $attributes['primary_color'])
                     : $settings->primary_color,

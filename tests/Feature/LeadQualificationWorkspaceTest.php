@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Auth\PostLoginRedirect;
+use App\Services\Leads\CounsellorManagementService;
 use App\Services\Leads\LeadAssignmentService;
 use App\Services\Leads\LeadCreationService;
 use App\Services\Leads\LeadQualificationEngine;
@@ -51,6 +52,33 @@ class LeadQualificationWorkspaceTest extends TestCase
 
         $this->actingAs($counsellor)->get(route('workspace.dashboard', $tenant))->assertOk();
         $this->actingAs($counsellor)->get(route('workspace.leads.index', $tenant))->assertOk();
+    }
+
+    public function test_tenant_admin_can_create_counsellor_profile_with_tenant_id(): void
+    {
+        ['tenant' => $tenant, 'user' => $admin] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($admin);
+        $this->withTenantContext($admin, $tenant);
+
+        $membership = app(CounsellorManagementService::class)->create(
+            $tenant,
+            [
+                'name' => 'Riya Verma',
+                'email' => 'riya.counsellor@example.test',
+                'password' => 'temporary-password-123',
+            ],
+            [
+                'mobile' => '9898989898',
+                'designation' => 'Senior Counsellor',
+            ],
+            $admin,
+        );
+
+        $this->assertDatabaseHas('counsellor_profiles', [
+            'membership_id' => $membership->id,
+            'tenant_id' => $tenant->id,
+            'designation' => 'Senior Counsellor',
+        ]);
     }
 
     public function test_counsellor_login_redirects_to_workspace(): void

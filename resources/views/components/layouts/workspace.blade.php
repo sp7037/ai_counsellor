@@ -3,7 +3,7 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-neutral-950 text-zinc-100 antialiased">
+    <body class="dark min-h-screen bg-neutral-950 text-zinc-100 antialiased">
         <div class="flex min-h-screen">
             <aside class="hidden w-64 shrink-0 border-r border-zinc-800 bg-zinc-950 p-4 lg:block">
                 @include('components.workspace.sidebar', ['tenant' => $tenant ?? request()->route('tenant')])

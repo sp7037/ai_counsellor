@@ -42,11 +42,15 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 }; ?>
 
 <x-slot:heading>Add counsellor</x-slot:heading>
-<form wire:submit="save" class="grid max-w-2xl gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+<form wire:submit="save" class="grid max-w-2xl gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-zinc-100 [&_label]:text-zinc-200 [&_.text-red-500]:text-red-300">
+    <p class="text-sm text-zinc-400">Create a counsellor login for workspace handoff and live responses.</p>
+
     <flux:input wire:model="name" label="Full name" required />
     <flux:input wire:model="email" label="Email" type="email" required />
     <flux:input wire:model="password" label="Temporary password" type="password" required />
     <flux:input wire:model="mobile" label="Mobile" />
     <flux:input wire:model="designation" label="Designation" />
+
+    <p class="text-xs text-zinc-500">Counsellor profile remains tenant-scoped automatically.</p>
     <flux:button type="submit" variant="primary">Create counsellor</flux:button>
 </form>

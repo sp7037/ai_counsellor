@@ -2,44 +2,47 @@
 
 namespace App\Services\Widget;
 
-use App\Enums\Widget\TenantDomainStatus;
 use App\Enums\Widget\WidgetKeyStatus;
+use App\Exceptions\Widget\WidgetGatewayDeniedException;
 use App\Models\Tenant;
-use App\Models\TenantDomain;
 use App\Models\WidgetKey;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class WidgetTenantResolver
 {
     public function __construct(
         private readonly OriginValidator $originValidator,
+        private readonly WidgetDomainMatcher $domainMatcher,
     ) {}
 
     public function resolve(string $publicKey, ?string $origin, ?string $referer = null): array
     {
         $widgetKey = WidgetKey::query()
+            ->withoutGlobalScopes()
             ->where('public_key', $publicKey)
-            ->where('status', WidgetKeyStatus::Active->value)
             ->first();
 
         if ($widgetKey === null) {
-            throw new AccessDeniedHttpException('Invalid widget key.');
+            throw new WidgetGatewayDeniedException('Widget key is invalid.', 'invalid_widget_key');
+        }
+
+        if ($widgetKey->status !== WidgetKeyStatus::Active) {
+            throw new WidgetGatewayDeniedException('Widget key is inactive.', 'inactive_widget_key');
         }
 
         $tenant = $widgetKey->tenant;
 
         if (! $tenant->allowsTenantAccess()) {
-            throw new AccessDeniedHttpException('Organisation unavailable.');
+            throw new WidgetGatewayDeniedException('Organisation unavailable.', 'organisation_unavailable');
         }
 
-        $originDomain = $this->originValidator->extractOriginDomain($origin, $referer);
+        $originDomain = $this->domainMatcher->canonicalHost($origin, $referer);
 
         if ($originDomain === null) {
-            throw new AccessDeniedHttpException('Origin required.');
+            throw new WidgetGatewayDeniedException('Origin required.', 'origin_required');
         }
 
-        if (! $this->domainIsAllowed($tenant, $originDomain, $origin)) {
-            throw new AccessDeniedHttpException('Domain not allowed.');
+        if (! $this->domainMatcher->isAllowedForTenant($tenant, $originDomain, $origin)) {
+            throw new WidgetGatewayDeniedException('Widget domain is not allowed.', 'domain_not_allowed');
         }
 
         return [
@@ -51,14 +54,6 @@ class WidgetTenantResolver
 
     public function domainIsAllowed(Tenant $tenant, string $originDomain, ?string $fullOrigin = null): bool
     {
-        if ($fullOrigin !== null && $this->originValidator->isAllowedLocalOrigin($fullOrigin)) {
-            return true;
-        }
-
-        return TenantDomain::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('domain', $originDomain)
-            ->where('status', TenantDomainStatus::Verified->value)
-            ->exists();
+        return $this->domainMatcher->isAllowedForTenant($tenant, $originDomain, $fullOrigin);
     }
 }

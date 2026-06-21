@@ -7,6 +7,7 @@ use App\Enums\AI\AiCredentialSource;
 use App\Enums\Audit\AuditAction;
 use App\Exceptions\AI\AiProviderException;
 use App\Models\AiProvider;
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantAiConfig;
 use App\Models\User;
@@ -51,9 +52,8 @@ class TenantAiConfigService
     {
         $provider = AiProvider::query()->where('slug', $input['provider'])->firstOrFail();
 
-        $config = TenantAiConfig::query()->firstOrNew([
-            'tenant_id' => $tenant->id,
-        ]);
+        $config = $tenant->aiConfig()->firstOrNew([]);
+        $config->tenant()->associate($tenant);
 
         $before = $this->snapshot($config);
 
@@ -78,6 +78,10 @@ class TenantAiConfigService
             $key = trim((string) $input['api_key']);
             $config->encrypted_api_key = $key !== '' ? $key : null;
             $config->secret_updated_at = now();
+        }
+
+        if ($config->tenant_id !== $tenant->id) {
+            throw new \RuntimeException('Tenant AI configuration must belong to the resolved tenant.');
         }
 
         $config->save();
@@ -126,10 +130,10 @@ class TenantAiConfigService
 
         return match ($mode) {
             AiCredentialMode::TenantKeyRequired => $this->tenantOwnedConfig($config, $tenantKey, required: true),
-            AiCredentialMode::PlatformManaged => $this->platformConfig($mode),
+            AiCredentialMode::PlatformManaged => $this->platformManagedConfig($config, $mode),
             AiCredentialMode::TenantKeyWithExplicitPlatformFallback => $tenantKey
                 ? $this->tenantOwnedConfig($config, $tenantKey, required: false)
-                : $this->platformConfig($mode),
+                : $this->platformManagedConfig($config, $mode),
         };
     }
 
@@ -175,9 +179,43 @@ class TenantAiConfigService
      *     credential_source:AiCredentialSource
      * }
      */
+    private function platformManagedConfig(TenantAiConfig $config, AiCredentialMode $mode): array
+    {
+        $slug = $config->provider->slug;
+        $providerConfig = (array) config('ai.providers.'.$slug, []);
+
+        if (($providerConfig['enabled'] ?? false) !== true || ! $config->provider->enabled) {
+            throw new AiProviderException('AI provider is disabled.');
+        }
+
+        return [
+            'provider' => $slug,
+            'model' => $this->validateModel($config->model ?: (string) ($providerConfig['model'] ?? 'gpt-4o-mini')),
+            'temperature' => $this->boundTemperature((float) $config->temperature),
+            'max_output_tokens' => $this->boundMaxOutputTokens((int) $config->max_output_tokens),
+            'timeout_seconds' => $this->boundTimeout((int) $config->timeout_seconds),
+            'api_key' => null,
+            'credential_mode' => $mode,
+            'credential_source' => AiCredentialSource::Platform,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     provider:string,
+     *     model:string,
+     *     temperature:float,
+     *     max_output_tokens:int,
+     *     timeout_seconds:int,
+     *     api_key:?string,
+     *     credential_mode:AiCredentialMode,
+     *     credential_source:AiCredentialSource
+     * }
+     */
     private function platformConfig(AiCredentialMode $mode): array
     {
-        $provider = (string) config('ai.default_provider', 'openai');
+        $provider = (string) (PlatformSetting::query()->where('key', 'default_provider')->value('value')
+            ?? config('ai.default_provider', 'openai'));
         $providerConfig = (array) config('ai.providers.'.$provider, []);
 
         if (($providerConfig['enabled'] ?? false) !== true) {

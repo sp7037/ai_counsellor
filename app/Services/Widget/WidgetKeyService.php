@@ -20,13 +20,15 @@ class WidgetKeyService
     public function create(Tenant $tenant, string $name, User $actor): WidgetKey
     {
         return DB::transaction(function () use ($tenant, $name, $actor): WidgetKey {
-            $key = WidgetKey::query()->create([
-                'tenant_id' => $tenant->id,
+            $key = $tenant->widgetKeys()->make([
                 'public_key' => $this->generatePublicKey(),
                 'name' => $name,
                 'status' => WidgetKeyStatus::Active->value,
                 'created_by' => $actor->id,
             ]);
+            $key->tenant()->associate($tenant);
+            $this->ensureTenantOwnership($key, $tenant);
+            $key->save();
 
             $this->auditLogger->log(
                 AuditAction::WidgetKeyCreated,
@@ -50,14 +52,16 @@ class WidgetKeyService
                 'revoked_at' => now(),
             ]);
 
-            $replacement = WidgetKey::query()->create([
-                'tenant_id' => $key->tenant_id,
+            $replacement = $key->tenant->widgetKeys()->make([
                 'public_key' => $this->generatePublicKey(),
                 'name' => $key->name,
                 'status' => WidgetKeyStatus::Active->value,
                 'last_rotated_at' => now(),
                 'created_by' => $actor->id,
             ]);
+            $replacement->tenant()->associate($key->tenant);
+            $this->ensureTenantOwnership($replacement, $key->tenant);
+            $replacement->save();
 
             $this->auditLogger->log(
                 AuditAction::WidgetKeyRotated,
@@ -95,6 +99,13 @@ class WidgetKeyService
 
             return $key->fresh();
         });
+    }
+
+    private function ensureTenantOwnership(WidgetKey $key, Tenant $tenant): void
+    {
+        if ($key->tenant_id !== $tenant->id) {
+            throw new \RuntimeException('Widget key must belong to the resolved tenant.');
+        }
     }
 
     private function generatePublicKey(): string

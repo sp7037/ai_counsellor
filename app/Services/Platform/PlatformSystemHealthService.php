@@ -36,7 +36,7 @@ class PlatformSystemHealthService
         $checks[] = [
             'name' => 'Platform credential',
             'status' => app(PlatformSettingsService::class)->platformCredentialConfigured() ? 'ok' : 'warning',
-            'detail' => 'Platform OpenAI credential status (value not shown).',
+            'detail' => 'Default AI provider credential status (value not shown).',
         ];
 
         return $checks;
