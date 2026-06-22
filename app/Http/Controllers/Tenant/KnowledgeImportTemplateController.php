@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Services\Billing\EntitlementResolver;
 use App\Services\Knowledge\KnowledgeImportTemplateService;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class KnowledgeImportTemplateController extends Controller
@@ -17,7 +18,7 @@ class KnowledgeImportTemplateController extends Controller
         KnowledgeImportTemplateService $templates,
         EntitlementResolver $entitlements,
     ): StreamedResponse {
-        $this->authorize('manageTenantKnowledge', $tenant);
+        Gate::authorize('manageTenantKnowledge', $tenant);
 
         abort_unless($entitlements->check($tenant, PlanFeature::KnowledgeBase)->isAllowed(), 403);
 

@@ -6,7 +6,9 @@ use App\Enums\Knowledge\KnowledgeImportType;
 use App\Models\KnowledgeImport;
 use App\Models\Tenant;
 use App\Services\Knowledge\KnowledgeImportService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Livewire\Volt\Component;
@@ -26,16 +28,18 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 
     public ?string $errorNotice = null;
 
+    public bool $isValidating = false;
+
     public function mount(Tenant $tenant, KnowledgeImportService $imports): void
     {
-        $this->authorize('viewTenantKnowledge', $tenant);
+        Gate::authorize('viewTenantKnowledge', $tenant);
         $this->tenant = $tenant;
 
         if (! $imports->canImport($tenant)) {
             return;
         }
 
-        $this->authorize('manageTenantKnowledge', $tenant);
+        Gate::authorize('manageTenantKnowledge', $tenant);
     }
 
     public function with(KnowledgeImportService $imports): array
@@ -54,35 +58,49 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 
     public function validateUpload(KnowledgeImportService $imports): void
     {
-        $this->authorize('manageTenantKnowledge', $this->tenant);
+        Gate::authorize('manageTenantKnowledge', $this->tenant);
         $this->reset('notice', 'errorNotice', 'previewImportId');
+        $this->isValidating = true;
 
         if (! $imports->canImport($this->tenant)) {
             $this->errorNotice = 'Knowledge base import is not available on your current plan.';
+            $this->isValidating = false;
 
             return;
         }
 
-        $validated = $this->validate([
-            'importType' => ['required', 'in:faq,course_info,fee,eligibility'],
-            'csvFile' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
-        ]);
+        try {
+            $validated = $this->validate([
+                'importType' => ['required', 'in:faq,course_info,fee,eligibility'],
+                'csvFile' => ['required', 'file', 'max:2048', 'extensions:csv,txt'],
+            ]);
 
-        $import = $imports->validateUpload(
-            $this->tenant,
-            auth()->user(),
-            KnowledgeImportType::from($validated['importType']),
-            $this->csvFile,
-        );
+            $import = $imports->validateUpload(
+                $this->tenant,
+                auth()->user(),
+                KnowledgeImportType::from($validated['importType']),
+                $this->csvFile,
+            );
 
-        $this->previewImportId = $import->id;
-        $this->notice = $import->error_summary ?? 'Validation completed.';
-        $this->reset('csvFile');
+            $this->previewImportId = $import->id;
+
+            if ($import->valid_rows > 0) {
+                $this->notice = $import->error_summary ?? 'Validation completed.';
+            } else {
+                $this->errorNotice = $import->error_summary ?? 'No valid rows found. Fix the CSV and try again.';
+            }
+
+            $this->reset('csvFile');
+        } catch (ValidationException $exception) {
+            $this->applyValidationErrors($exception);
+        } finally {
+            $this->isValidating = false;
+        }
     }
 
     public function confirmImport(KnowledgeImportService $imports): void
     {
-        $this->authorize('manageTenantKnowledge', $this->tenant);
+        Gate::authorize('manageTenantKnowledge', $this->tenant);
         $this->reset('notice', 'errorNotice');
 
         if ($this->previewImportId === null) {
@@ -91,11 +109,30 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             return;
         }
 
-        $import = KnowledgeImport::query()->findOrFail($this->previewImportId);
-        $result = $imports->execute($import, $this->tenant, auth()->user());
+        try {
+            $import = KnowledgeImport::query()->findOrFail($this->previewImportId);
+            $result = $imports->execute($import, $this->tenant, auth()->user());
 
-        $this->notice = $result->error_summary ?? 'Import completed.';
-        $this->previewImportId = $result->id;
+            $this->notice = $result->error_summary ?? 'Import completed.';
+            $this->previewImportId = $result->id;
+        } catch (ValidationException $exception) {
+            $this->applyValidationErrors($exception);
+        }
+    }
+
+    private function applyValidationErrors(ValidationException $exception): void
+    {
+        $messages = collect($exception->errors())->flatten();
+
+        $this->errorNotice = $messages->first() ?? 'CSV validation failed.';
+
+        foreach ($exception->errors() as $field => $fieldMessages) {
+            $target = $field === 'file' ? 'csvFile' : $field;
+
+            foreach ($fieldMessages as $message) {
+                $this->addError($target, $message);
+            }
+        }
     }
 
     public function clearPreview(): void
@@ -120,17 +157,26 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             <flux:heading size="sm">Upload CSV</flux:heading>
             <p class="mt-2 text-sm text-zinc-400">For Excel files, please export as CSV before upload.</p>
 
-            <form wire:submit="validateUpload" class="mt-4 grid gap-4">
+            <form wire:submit.prevent="validateUpload" class="mt-4 grid gap-4">
                 <flux:select wire:model="importType" label="Import type">
                     @foreach ($importTypes as $type)
                         <option value="{{ $type->value }}">{{ $type->label() }}</option>
                     @endforeach
                 </flux:select>
+                @error('importType')
+                    <p class="text-sm text-red-300">{{ $message }}</p>
+                @enderror
 
                 <flux:input wire:model="csvFile" type="file" label="CSV file" accept=".csv,text/csv" />
+                @error('csvFile')
+                    <p class="text-sm text-red-300">{{ $message }}</p>
+                @enderror
 
-                <div class="flex flex-wrap gap-2">
-                    <flux:button type="submit" variant="primary">Validate & preview</flux:button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="validateUpload,csvFile">
+                        <span wire:loading.remove wire:target="validateUpload">Validate & preview</span>
+                        <span wire:loading wire:target="validateUpload">Validating CSV…</span>
+                    </flux:button>
                     @if ($previewImportId)
                         <flux:button type="button" wire:click="clearPreview" variant="ghost">Clear preview</flux:button>
                     @endif
@@ -163,15 +209,41 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                 <div>
                     <flux:heading size="sm">Validation preview</flux:heading>
                     <p class="mt-1 text-sm text-zinc-400">
-                        {{ $preview->original_filename }} · {{ $preview->import_type->label() }} ·
-                        {{ $preview->total_rows }} total · {{ $preview->valid_rows }} valid ·
-                        {{ $preview->failed_rows }} invalid · {{ $preview->skipped_rows }} duplicates skipped
+                        {{ $preview->original_filename }} · {{ $preview->import_type->label() }}
                     </p>
                 </div>
-                @if ($canImport && $preview->status === \App\Enums\Knowledge\KnowledgeImportStatus::Pending)
-                    <flux:button wire:click="confirmImport" variant="primary" size="sm">Import valid rows</flux:button>
+                @if ($canImport && $preview->valid_rows > 0 && $preview->status === \App\Enums\Knowledge\KnowledgeImportStatus::Pending)
+                    <flux:button wire:click="confirmImport" variant="primary" size="sm" wire:loading.attr="disabled" wire:target="confirmImport">
+                        <span wire:loading.remove wire:target="confirmImport">Confirm import</span>
+                        <span wire:loading wire:target="confirmImport">Importing…</span>
+                    </flux:button>
                 @endif
             </div>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-lg border border-zinc-700 bg-zinc-950/60 p-3">
+                    <p class="text-xs uppercase tracking-wide text-zinc-500">Total rows</p>
+                    <p class="mt-1 text-2xl font-semibold text-zinc-100">{{ $preview->total_rows }}</p>
+                </div>
+                <div class="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-3">
+                    <p class="text-xs uppercase tracking-wide text-emerald-300/80">Valid rows</p>
+                    <p class="mt-1 text-2xl font-semibold text-emerald-100">{{ $preview->valid_rows }}</p>
+                </div>
+                <div class="rounded-lg border border-red-800/50 bg-red-950/30 p-3">
+                    <p class="text-xs uppercase tracking-wide text-red-300/80">Invalid rows</p>
+                    <p class="mt-1 text-2xl font-semibold text-red-100">{{ $preview->failed_rows }}</p>
+                </div>
+                <div class="rounded-lg border border-amber-800/50 bg-amber-950/30 p-3">
+                    <p class="text-xs uppercase tracking-wide text-amber-300/80">Duplicates skipped</p>
+                    <p class="mt-1 text-2xl font-semibold text-amber-100">{{ $preview->skipped_rows }}</p>
+                </div>
+            </div>
+
+            @if ($preview->valid_rows === 0)
+                <div class="mt-4 rounded-lg border border-red-800 bg-red-950/40 p-4 text-sm text-red-100">
+                    No valid rows to import. Review the row errors below, fix your CSV, and validate again.
+                </div>
+            @endif
 
             <div class="mt-4 overflow-x-auto">
                 <table class="min-w-full text-left text-sm">

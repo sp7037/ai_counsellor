@@ -97,11 +97,44 @@ class KnowledgeImportCsvParser
     {
         $missing = array_diff($type->requiredHeaders(), $headers);
 
-        if ($missing !== []) {
+        if ($missing === []) {
+            return;
+        }
+
+        $expected = $type->expectedColumnsLabel();
+
+        if ($this->looksLikeMalformedHeaderRow($headers, $type)) {
             throw ValidationException::withMessages([
-                'file' => 'Missing required CSV columns: '.implode(', ', $missing).'.',
+                'file' => "Invalid CSV headers. Expected columns: {$expected}.",
             ]);
         }
+
+        throw ValidationException::withMessages([
+            'file' => "Invalid CSV headers. Expected columns: {$expected}.",
+        ]);
+    }
+
+    /**
+     * @param  array<int, string>  $headers
+     */
+    private function looksLikeMalformedHeaderRow(array $headers, KnowledgeImportType $type): bool
+    {
+        if (count($headers) !== 1) {
+            return false;
+        }
+
+        $header = $headers[0];
+
+        if (! str_contains($header, ',')) {
+            return false;
+        }
+
+        $parts = array_map(
+            static fn (string $part): string => preg_replace('/\s+/', '_', strtolower(trim($part))) ?? trim($part),
+            str_getcsv($header),
+        );
+
+        return count(array_intersect($type->requiredHeaders(), $parts)) >= 2;
     }
 
     /**

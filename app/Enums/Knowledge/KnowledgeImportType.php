@@ -32,6 +32,11 @@ enum KnowledgeImportType: string
         };
     }
 
+    public function expectedColumnsLabel(): string
+    {
+        return implode(', ', array_merge($this->requiredHeaders(), $this->optionalHeaders()));
+    }
+
     /**
      * @return array<int, string>
      */

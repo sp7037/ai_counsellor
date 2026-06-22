@@ -213,6 +213,145 @@ class KnowledgeImportTest extends TestCase
             ->assertSee('locked on your current subscription');
     }
 
+    public function test_faq_template_download_returns_csv(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $response = $this->actingAs($user)
+            ->get(route('tenant.knowledge.import.template', [$tenant, 'faq']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('question,answer,category,tags,status', $response->streamedContent());
+    }
+
+    public function test_course_info_template_download_returns_csv(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $response = $this->actingAs($user)
+            ->get(route('tenant.knowledge.import.template', [$tenant, 'course_info']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('title,body,category,tags,status', $response->streamedContent());
+    }
+
+    public function test_fee_template_download_returns_csv(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $response = $this->actingAs($user)
+            ->get(route('tenant.knowledge.import.template', [$tenant, 'fee']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('label,fee_type,amount_minor,currency,notes,status', $response->streamedContent());
+    }
+
+    public function test_eligibility_template_download_returns_csv(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $response = $this->actingAs($user)
+            ->get(route('tenant.knowledge.import.template', [$tenant, 'eligibility']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('title,required_criteria,preferred_criteria,priority,status', $response->streamedContent());
+    }
+
+    public function test_template_download_is_blocked_when_knowledge_base_entitlement_disabled(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        app(EntitlementOverrideService::class)->apply(
+            $tenant,
+            PlanFeature::KnowledgeBase,
+            false,
+            null,
+            $user,
+            'Disable knowledge base for test',
+        );
+
+        $this->actingAs($user)
+            ->get(route('tenant.knowledge.import.template', [$tenant, 'faq']))
+            ->assertForbidden();
+    }
+
+    public function test_malformed_csv_header_shows_validation_error_and_imports_nothing(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $file = UploadedFile::fake()->createWithContent('malformed-faq.csv', implode("\n", [
+            '"question,answer,category,tags,status"',
+            '"Is NEET compulsory for MBBS abroad?,""Yes, NEET is compulsory..."",MBBS Abroad,""neet,mbbs abroad"",published"',
+        ])."\n");
+
+        try {
+            app(KnowledgeImportService::class)->validateUpload(
+                $tenant,
+                $user,
+                KnowledgeImportType::Faq,
+                $file,
+            );
+            $this->fail('Expected malformed CSV header validation to fail.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString(
+                'Invalid CSV headers. Expected columns: question, answer, category, tags, status.',
+                (string) collect($exception->errors())->flatten()->first(),
+            );
+        }
+
+        $this->assertSame(0, KnowledgeImport::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+        $this->assertSame(0, KnowledgeItem::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_valid_faq_csv_shows_preview_and_confirm_import_flow(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+
+        $file = $this->faqCsv([
+            ['question' => 'Preview flow FAQ', 'answer' => 'Visible in preview.', 'status' => 'draft'],
+        ]);
+
+        Volt::test('tenant.knowledge.import', ['tenant' => $tenant])
+            ->set('importType', 'faq')
+            ->set('csvFile', $file)
+            ->call('validateUpload')
+            ->assertSet('previewImportId', fn ($id) => $id !== null)
+            ->assertSee('Validation preview')
+            ->assertSee('Valid rows')
+            ->assertSee('Confirm import')
+            ->call('confirmImport')
+            ->assertSee('1 row(s) imported successfully');
+
+        $this->assertDatabaseHas('knowledge_items', [
+            'tenant_id' => $tenant->id,
+            'title' => 'Preview flow FAQ',
+            'status' => KnowledgeItemStatus::Draft->value,
+        ]);
+    }
+
+    public function test_invalid_csv_does_not_silently_fail_in_import_ui(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+
+        $file = UploadedFile::fake()->createWithContent('malformed-faq.csv', implode("\n", [
+            '"question,answer,category,tags,status"',
+            '"Broken row only"',
+        ])."\n");
+
+        Volt::test('tenant.knowledge.import', ['tenant' => $tenant])
+            ->set('importType', 'faq')
+            ->set('csvFile', $file)
+            ->call('validateUpload')
+            ->assertSet('previewImportId', null)
+            ->assertSet('errorNotice', fn ($message) => is_string($message) && str_contains($message, 'Invalid CSV headers'));
+    }
+
     /**
      * @param  array<int, array<string, string>>  $rows
      */
