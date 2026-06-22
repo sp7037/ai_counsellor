@@ -14,7 +14,7 @@ class KnowledgeVersion extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'uuid', 'knowledge_item_id', 'version_number', 'title', 'body',
+        'tenant_id', 'uuid', 'knowledge_item_id', 'version_number', 'title', 'body',
         'content_checksum', 'published_at', 'published_by',
     ];
 

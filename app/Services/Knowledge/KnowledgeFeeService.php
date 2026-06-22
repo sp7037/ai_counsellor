@@ -26,6 +26,7 @@ class KnowledgeFeeService
         return DB::transaction(function () use ($tenant, $payload, $actor): KnowledgeFee {
             $fee = KnowledgeFee::query()->create([
                 ...$payload,
+                'tenant_id' => $tenant->id,
                 'status' => KnowledgePublishableStatus::Draft->value,
                 'created_by' => $actor->id,
             ]);

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'uuid', 'label', 'fee_type', 'amount_minor', 'amount_max_minor', 'currency',
+    'tenant_id', 'uuid', 'label', 'fee_type', 'amount_minor', 'amount_max_minor', 'currency',
     'service_id', 'course_id', 'institution_id', 'knowledge_item_id',
     'notes', 'effective_from', 'effective_until', 'status', 'published_at', 'created_by',
 ])]

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'uuid', 'type', 'status', 'locale', 'title', 'draft_title', 'draft_body',
+    'tenant_id', 'uuid', 'type', 'status', 'locale', 'title', 'draft_title', 'draft_body',
     'current_version_id', 'service_id', 'course_id', 'institution_id', 'location_id',
     'published_at', 'archived_at', 'created_by', 'updated_by',
 ])]

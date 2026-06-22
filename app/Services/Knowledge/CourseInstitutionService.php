@@ -31,6 +31,7 @@ class CourseInstitutionService
 
         return DB::transaction(function () use ($tenant, $data, $actor, $course, $institution): CourseInstitution {
             $record = CourseInstitution::query()->create([
+                'tenant_id' => $tenant->id,
                 'course_id' => $course->id,
                 'institution_id' => $institution->id,
                 'intake_label' => $this->sanitizer->optionalText($data['intake_label'] ?? null, 120),

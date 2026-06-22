@@ -33,6 +33,260 @@ class KnowledgeBaseTest extends TestCase
         $this->assertDatabaseCount('knowledge_items', 0);
     }
 
+    public function test_create_faq_draft_persists_tenant_id_without_tenant_context(): void
+    {
+        // Reproduces the production Livewire flow: the /livewire/update request
+        // clears the tenant context, so the BelongsToTenant auto-fill does not run
+        // and the service must set tenant_id from the trusted tenant itself.
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        app(TenantContext::class)->clear();
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'No-context FAQ',
+            'body' => 'Created without an enforced tenant context.',
+        ], $user);
+
+        $this->assertSame($tenant->id, $item->tenant_id);
+        $this->assertSame(KnowledgeItemStatus::Draft, $item->status);
+        $this->assertDatabaseHas('knowledge_items', [
+            'id' => $item->id,
+            'tenant_id' => $tenant->id,
+            'status' => KnowledgeItemStatus::Draft->value,
+        ]);
+    }
+
+    public function test_admin_creates_faq_draft_through_livewire_without_preresolved_context(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+
+        // Intentionally do NOT enforce tenant context, mirroring a Livewire update.
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenant])
+            ->set('type', 'faq')
+            ->set('title', 'Visa requirements')
+            ->set('body', 'Bring your passport and photos.')
+            ->call('create')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('knowledge_items', [
+            'tenant_id' => $tenant->id,
+            'title' => 'Visa requirements',
+            'status' => KnowledgeItemStatus::Draft->value,
+        ]);
+    }
+
+    public function test_publish_persists_version_tenant_id_without_tenant_context(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Owner);
+
+        $service = app(KnowledgeItemService::class);
+
+        app(TenantContext::class)->clear();
+        $item = $service->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'Publishable',
+            'body' => 'Publish me.',
+        ], $user);
+
+        app(TenantContext::class)->clear();
+        $service->publish($item->fresh(), $user);
+
+        $this->assertDatabaseHas('knowledge_versions', [
+            'knowledge_item_id' => $item->id,
+            'tenant_id' => $tenant->id,
+            'version_number' => 1,
+        ]);
+    }
+
+    public function test_admin_can_publish_draft_via_list_action(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+        $this->withTenantContext($user, $tenant);
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'MBBS Abroad admission guidance',
+            'body' => 'NEET qualified, budget 25 lakh, prefers Russia, documents ready.',
+        ], $user);
+
+        $this->assertSame(KnowledgeItemStatus::Draft, $item->status);
+
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenant])
+            ->call('publishItem', $item->uuid)
+            ->assertHasNoErrors();
+
+        $item->refresh();
+        $this->assertSame(KnowledgeItemStatus::Published, $item->status);
+        $this->assertNotNull($item->current_version_id);
+        $this->assertNotNull($item->published_at);
+        $this->assertDatabaseHas('knowledge_items', [
+            'id' => $item->id,
+            'tenant_id' => $tenant->id,
+            'status' => KnowledgeItemStatus::Published->value,
+        ]);
+        $this->assertDatabaseHas('knowledge_versions', [
+            'knowledge_item_id' => $item->id,
+            'tenant_id' => $tenant->id,
+            'version_number' => 1,
+        ]);
+    }
+
+    public function test_tenant_a_cannot_publish_tenant_b_knowledge_item(): void
+    {
+        ['tenant' => $tenantA, 'user' => $userA] = $this->createTenantWithMember(role: TenantRole::Admin);
+        ['tenant' => $tenantB, 'user' => $userB] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $this->withTenantContext($userB, $tenantB);
+        $itemB = app(KnowledgeItemService::class)->createDraft($tenantB, [
+            'type' => 'faq',
+            'title' => 'Tenant B secret',
+            'body' => 'Should not be publishable by tenant A.',
+        ], $userB);
+
+        $this->actingAs($userA);
+        // Clear context so the item is resolvable and the authorization policy
+        // (not just the tenant query scope) is what blocks the cross-tenant publish.
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenantA])
+            ->call('publishItem', $itemB->uuid)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('knowledge_items', [
+            'id' => $itemB->id,
+            'tenant_id' => $tenantB->id,
+            'status' => KnowledgeItemStatus::Draft->value,
+        ]);
+    }
+
+    public function test_admin_can_edit_draft_knowledge_item(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+        $this->withTenantContext($user, $tenant);
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'Original title',
+            'body' => 'Original body',
+        ], $user);
+
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenant])
+            ->call('select', $item->uuid)
+            ->assertSet('editTitle', 'Original title')
+            ->assertSet('editBody', 'Original body')
+            ->set('editTitle', 'Updated title')
+            ->set('editBody', 'Updated body content')
+            ->call('saveDraft')
+            ->assertHasNoErrors();
+
+        $item->refresh();
+        $this->assertSame('Updated title', $item->draft_title);
+        $this->assertStringContainsString('Updated body content', (string) $item->draft_body);
+    }
+
+    public function test_edit_loads_published_content_into_left_form(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+        $this->withTenantContext($user, $tenant);
+
+        $service = app(KnowledgeItemService::class);
+        $item = $service->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'MBBS Abroad admission guidance',
+            'body' => 'NEET status, budget, country preference, documents, risk factors.',
+        ], $user);
+        $service->publish($item, $user);
+
+        $item->refresh();
+        $item->update(['draft_body' => null]);
+
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenant])
+            ->call('select', $item->uuid)
+            ->assertSet('editTitle', 'MBBS Abroad admission guidance')
+            ->assertSet('editBody', 'NEET status, budget, country preference, documents, risk factors.');
+    }
+
+    public function test_admin_can_delete_knowledge_item_from_list(): void
+    {
+        ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);
+        $this->actingAs($user);
+        $this->withTenantContext($user, $tenant);
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'Delete me',
+            'body' => 'Temporary content',
+        ], $user);
+
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenant])
+            ->call('deleteItem', $item->uuid)
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseMissing('knowledge_items', ['id' => $item->id]);
+    }
+
+    public function test_knowledge_items_list_is_searchable_and_tenant_scoped(): void
+    {
+        ['tenant' => $tenantA, 'user' => $userA] = $this->createTenantWithMember(role: TenantRole::Admin);
+        ['tenant' => $tenantB, 'user' => $userB] = $this->createTenantWithMember(role: TenantRole::Admin);
+
+        $service = app(KnowledgeItemService::class);
+
+        $this->withTenantContext($userA, $tenantA);
+        $service->createDraft($tenantA, ['type' => 'faq', 'title' => 'MBBS abroad guidance', 'body' => 'NEET budget country'], $userA);
+        $service->createDraft($tenantA, ['type' => 'faq', 'title' => 'Visa appointment help', 'body' => 'passport documents'], $userA);
+
+        $this->withTenantContext($userB, $tenantB);
+        $service->createDraft($tenantB, ['type' => 'faq', 'title' => 'Tenant B private MBBS note', 'body' => 'confidential'], $userB);
+
+        $this->actingAs($userA);
+        app(TenantContext::class)->clear();
+
+        Volt::test('tenant.knowledge.items', ['tenant' => $tenantA])
+            ->assertSee('MBBS abroad guidance')
+            ->assertSee('Visa appointment help')
+            ->assertDontSee('Tenant B private MBBS note')
+            ->set('search', 'MBBS')
+            ->assertSee('MBBS abroad guidance')
+            ->assertDontSee('Visa appointment help')
+            ->assertDontSee('Tenant B private MBBS note');
+    }
+
+    public function test_draft_is_created_only_for_the_passed_tenant(): void
+    {
+        ['tenant' => $tenantA, 'user' => $userA] = $this->createTenantWithMember(role: TenantRole::Owner);
+        ['tenant' => $tenantB] = $this->createTenantWithMember(role: TenantRole::Owner);
+
+        app(TenantContext::class)->clear();
+        $item = app(KnowledgeItemService::class)->createDraft($tenantA, [
+            'type' => 'faq',
+            'title' => 'Tenant A only',
+            'body' => 'Belongs to A.',
+        ], $userA);
+
+        $this->assertSame($tenantA->id, $item->tenant_id);
+        $this->assertNotSame($tenantB->id, $item->tenant_id);
+        $this->assertDatabaseMissing('knowledge_items', [
+            'id' => $item->id,
+            'tenant_id' => $tenantB->id,
+        ]);
+    }
+
     public function test_admin_can_create_publish_and_audit_knowledge_item(): void
     {
         ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Admin);

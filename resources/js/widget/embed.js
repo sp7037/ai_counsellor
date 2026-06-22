@@ -162,7 +162,7 @@
         .ac-typing-dots span:nth-child(2) { animation-delay: .15s; }
         .ac-typing-dots span:nth-child(3) { animation-delay: .3s; }
         @keyframes ac-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
-        #ac-widget-handoff-subtle { display: none; margin: 0 12px 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; font-size: 11px; font-weight: 500; text-align: left; cursor: pointer; width: fit-content; max-width: calc(100% - 24px); }
+        #ac-widget-handoff-subtle { display: none; flex-shrink: 0; margin: 0; padding: 4px 10px; border-radius: 999px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; font-size: 11px; font-weight: 500; text-align: left; cursor: pointer; width: fit-content; max-width: 60%; }
         #ac-widget-handoff-subtle:hover { background: #263447; border-color: #475569; color: #f1f5f9; }
         #ac-widget-handoff-subtle::before { content: "⌁"; margin-right: 6px; font-size: 11px; opacity: .85; }
         #ac-human-transfer { display: none; margin: 0 12px 8px; border: none; border-radius: 8px; background: ${primary}; color: #fff; padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 500; width: calc(100% - 24px); }
@@ -181,11 +181,16 @@
         #ac-widget-send, #ac-offline-submit { border: none; border-radius: 10px; background: ${primary}; color: #fff; padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 500; }
         #ac-widget-send:disabled { opacity: .55; cursor: not-allowed; }
         #ac-widget-error { color: #fca5a5; font-size: 12px; padding: 0 12px 6px; min-height: 0; }
-        #ac-widget-disclosure { font-size: 11px; color: #9ca3af; padding: 0 12px 6px; }
-        #ac-widget-powered-by { display: none; padding: 0 12px 8px; color: #94a3b8; font-size: 10px; line-height: 1.2; }
+        /* Slim status row: AI/human disclosure on the left, compact handoff pill on the right. */
+        #ac-widget-statusbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 12px 4px; }
+        #ac-widget-statusbar:empty { display: none; }
+        #ac-widget-disclosure { flex: 1; min-width: 0; font-size: 11px; color: #9ca3af; line-height: 1.3; }
+        #ac-widget-disclosure:empty { display: none; }
+        /* Powered-by is rendered as a very tiny footer at the bottom edge and never consumes message space. */
+        #ac-widget-powered-by { display: none; padding: 3px 12px 5px; color: #6b7280; font-size: 9px; line-height: 1.1; text-align: center; }
         #ac-widget-powered-by.visible { display: block; }
-        #ac-widget-powered-by .ac-powered-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #334155; border-radius: 999px; padding: 3px 8px; background: #0f172a; }
-        #ac-widget-powered-by img { width: 12px; height: 12px; object-fit: contain; border-radius: 3px; opacity: .88; }
+        #ac-widget-powered-by .ac-powered-chip { display: inline-flex; align-items: center; gap: 5px; padding: 0; background: transparent; }
+        #ac-widget-powered-by img { width: 11px; height: 11px; object-fit: contain; border-radius: 3px; opacity: .8; }
         @media (max-width: 640px) {
             #ac-widget-root { bottom: 12px; right: 12px; left: 12px; }
             #ac-widget-teaser { display: none; }
@@ -1018,20 +1023,16 @@
                 </div>
             </div>
             <div id="ac-widget-messages"></div>
-            <div id="ac-widget-disclosure"></div>
-            <div id="ac-widget-powered-by" aria-hidden="true">
-                <span class="ac-powered-chip">
-                    <img id="ac-widget-powered-by-logo" alt="" />
-                    <span id="ac-widget-powered-by-label"></span>
-                </span>
-            </div>
             <div id="ac-widget-recovery">
                 <p>Your previous chat session expired. You can start a fresh chat to continue.</p>
                 <button type="button" id="ac-widget-new-chat">Start new chat</button>
             </div>
             <div id="ac-widget-error"></div>
             <div id="ac-widget-handoff-status" role="status" aria-live="polite"></div>
-            <button id="ac-widget-handoff-subtle" type="button">Need human help?</button>
+            <div id="ac-widget-statusbar">
+                <div id="ac-widget-disclosure"></div>
+                <button id="ac-widget-handoff-subtle" type="button">Need human help?</button>
+            </div>
             <button id="ac-human-transfer" type="button">Talk to counsellor</button>
             <form id="ac-widget-form">
                 <textarea id="ac-widget-input" rows="2" placeholder="Type your question..." maxlength="4000" aria-label="Message"></textarea>
@@ -1043,6 +1044,12 @@
                 <textarea id="ac-offline-message" rows="3" placeholder="How can we help?" maxlength="2000" aria-label="Offline message"></textarea>
                 <button id="ac-offline-submit" type="submit">Send offline message</button>
             </form>
+            <div id="ac-widget-powered-by" aria-hidden="true">
+                <span class="ac-powered-chip">
+                    <img id="ac-widget-powered-by-logo" alt="" />
+                    <span id="ac-widget-powered-by-label"></span>
+                </span>
+            </div>
         `;
 
         const toggle = document.createElement('button');

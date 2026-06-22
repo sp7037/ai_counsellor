@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'uuid', 'knowledge_item_id', 'display_name', 'storage_path', 'mime_type',
+    'tenant_id', 'uuid', 'knowledge_item_id', 'display_name', 'storage_path', 'mime_type',
     'size_bytes', 'checksum', 'status', 'created_by',
 ])]
 class KnowledgeDocument extends Model

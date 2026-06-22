@@ -43,6 +43,7 @@ class KnowledgeDocumentService
             Storage::disk('local')->putFileAs(dirname($path), $file, basename($path));
 
             $document = KnowledgeDocument::query()->create([
+                'tenant_id' => $tenant->id,
                 'knowledge_item_id' => $item?->id,
                 'display_name' => $this->safeDisplayName($file->getClientOriginalName()),
                 'storage_path' => $path,

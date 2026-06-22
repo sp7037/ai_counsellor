@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'uuid', 'title', 'service_id', 'course_id', 'required_criteria', 'preferred_criteria',
+    'tenant_id', 'uuid', 'title', 'service_id', 'course_id', 'required_criteria', 'preferred_criteria',
     'priority', 'status', 'published_at', 'created_by',
 ])]
 class EligibilityRule extends Model

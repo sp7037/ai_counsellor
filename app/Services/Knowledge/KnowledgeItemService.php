@@ -41,6 +41,7 @@ class KnowledgeItemService
 
         return DB::transaction(function () use ($tenant, $data, $actor, $title, $body): KnowledgeItem {
             $item = KnowledgeItem::query()->create([
+                'tenant_id' => $tenant->id,
                 'type' => KnowledgeItemType::from((string) $data['type'])->value,
                 'status' => KnowledgeItemStatus::Draft->value,
                 'locale' => $data['locale'] ?? $tenant->locale ?? 'en',
@@ -105,6 +106,7 @@ class KnowledgeItemService
             $nextVersion = (int) $item->versions()->max('version_number') + 1;
 
             $version = KnowledgeVersion::query()->create([
+                'tenant_id' => $item->tenant_id,
                 'knowledge_item_id' => $item->id,
                 'version_number' => $nextVersion,
                 'title' => $title,

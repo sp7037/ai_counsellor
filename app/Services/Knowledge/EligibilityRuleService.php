@@ -21,6 +21,7 @@ class EligibilityRuleService
     {
         return DB::transaction(function () use ($tenant, $data, $actor): EligibilityRule {
             $rule = EligibilityRule::query()->create([
+                'tenant_id' => $tenant->id,
                 'title' => $this->sanitizer->title($data['title'] ?? null),
                 'service_id' => $data['service_id'] ?? null,
                 'course_id' => $data['course_id'] ?? null,
