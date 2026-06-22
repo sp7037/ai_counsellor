@@ -71,12 +71,15 @@ class FakeAiProvider implements AiProviderContract
         ) {
             $answer = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
                 ? 'Yes, we can guide you for MBBS abroad based on our published guidance.'
-                : 'Yes, I can guide you generally on MBBS abroad options.';
+                : 'Yes, I can guide you generally on MBBS abroad options. Specific fee and university details need verified information from our team.';
+
+            $followUp = $this->extractPreferredFollowUp($systemText)
+                ?? 'What is your NEET status or score?';
 
             return new AiResponse(
                 provider: 'fake',
                 model: $request->model,
-                content: $answer.' To guide you better, please tell me your NEET status and approximate budget.',
+                content: $answer.' '.$followUp,
                 usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
             );
         }
@@ -87,5 +90,20 @@ class FakeAiProvider implements AiProviderContract
             content: 'AI reply: '.$latestUserMessage,
             usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
         );
+    }
+
+    private function extractPreferredFollowUp(string $systemText): ?string
+    {
+        if (preg_match('/preferred next follow-up(?: \(ask only this one question\))?:\s*(.+?)(?:\n|$)/i', $systemText, $matches)) {
+            $question = trim($matches[1]);
+
+            if ($question === '' || str_contains(strtolower($question), 'no follow-up question needed')) {
+                return null;
+            }
+
+            return str_ends_with($question, '?') ? $question : $question.'?';
+        }
+
+        return null;
     }
 }

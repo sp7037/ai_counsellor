@@ -28,6 +28,8 @@
         visitorMessageCount: 0,
         handoffProminent: false,
         handoffOfferShown: false,
+        showLocationChip: false,
+        locationChipDismissed: false,
         sessionExpired: false,
         stickToBottom: true,
         archivedSession: false,
@@ -41,11 +43,10 @@
     };
 
     const HANDOFF_INTENT_PATTERNS = [
-        /\b(human|counsellor|counselor|person|agent|staff|representative)\b/i,
-        /\b(call me|callback|call back|phone|mobile|whatsapp|speak to)\b/i,
-        /\b\d{10}\b/,
-        /\+?\d[\d\s-]{8,}\d/,
-        /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+        /\b(?:talk|speak|chat|connect)\s+(?:to|with)\s+(?:a\s+)?(?:human|counsell?or|agent|person|staff)\b/i,
+        /\b(?:human|real)\s+(?:counsell?or|agent|person|help|support)\b/i,
+        /\b(?:call\s*me|callback|call\s*back|whatsapp|speak\s+to)\b/i,
+        /\b(?:i\s+)?(?:want|need|prefer)\s+(?:a\s+)?(?:human|counsell?or|agent|person)\b/i,
     ];
 
     const FALLBACK_REPLY_MARKERS = [
@@ -167,6 +168,8 @@
         #ac-widget-handoff-subtle::before { content: "⌁"; margin-right: 6px; font-size: 11px; opacity: .85; }
         #ac-human-transfer { display: none; margin: 0 12px 8px; border: none; border-radius: 8px; background: ${primary}; color: #fff; padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 500; width: calc(100% - 24px); }
         #ac-human-transfer.prominent { display: block; }
+        #ac-widget-location-chip { display: none; margin: 0 12px 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; font-size: 11px; font-weight: 500; cursor: pointer; width: fit-content; }
+        #ac-widget-location-chip:hover { background: #263447; border-color: #475569; color: #f1f5f9; }
         #ac-widget-handoff-status { display: none; margin: 0 12px 8px; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; width: fit-content; max-width: calc(100% - 24px); }
         #ac-widget-handoff-status.waiting { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; }
         #ac-widget-handoff-status.waiting::before { content: "◌"; margin-right: 6px; opacity: .85; }
@@ -483,16 +486,27 @@
         scrollToBottom();
     }
 
-    function handoffThreshold() {
-        return Number(state.config?.human_transfer?.promote_after_messages ?? 3);
-    }
-
     function shouldShowProminentHandoff() {
         if (!state.config?.human_transfer?.enabled) {
             return false;
         }
 
-        return state.handoffProminent || state.visitorMessageCount >= handoffThreshold();
+        return Boolean(state.handoffProminent);
+    }
+
+    function updateLocationChip() {
+        const chip = document.getElementById('ac-widget-location-chip');
+        if (!chip) {
+            return;
+        }
+
+        const show = state.showLocationChip
+            && !state.locationChipDismissed
+            && !state.humanMode
+            && !state.handoffRequested
+            && !state.sessionExpired;
+
+        chip.style.display = show ? 'block' : 'none';
     }
 
     function syncHumanState() {
@@ -548,6 +562,7 @@
         }
 
         updateDisclosure();
+        updateLocationChip();
 
         // Counsellor has joined or a human/counsellor message exists: suppress every CTA.
         if (state.humanMode) {
@@ -612,7 +627,7 @@
 
     function maybeOfferHumanHandoff() {
         const offer = state.config?.human_transfer?.offer_message;
-        if (!offer || state.handoffOfferShown || !state.config?.human_transfer?.enabled) {
+        if (!offer || offer.trim() === '' || state.handoffOfferShown || !state.config?.human_transfer?.enabled) {
             return;
         }
 
@@ -620,13 +635,11 @@
             return;
         }
 
-        if (state.visitorMessageCount >= handoffThreshold()) {
-            state.handoffOfferShown = true;
-            state.messages.push({ role: 'system', body: offer });
-            state.handoffProminent = true;
-            updateHandoffUi();
-            renderMessages();
-        }
+        state.handoffOfferShown = true;
+        state.messages.push({ role: 'system', body: offer });
+        state.handoffProminent = true;
+        updateHandoffUi();
+        renderMessages();
     }
 
     function isSessionAuthError(message) {
@@ -721,6 +734,8 @@
             state.visitorMessageCount = 0;
             state.handoffProminent = false;
             state.handoffOfferShown = false;
+            state.showLocationChip = false;
+            state.locationChipDismissed = false;
             state.mode = 'ai';
             state.handoffRequested = false;
             state.humanMode = false;
@@ -778,7 +793,6 @@
                 if (Array.isArray(data.messages) && data.messages.length > 0) {
                     state.messages = data.messages;
                     state.visitorMessageCount = data.messages.filter((m) => m.role === 'visitor').length;
-                    state.handoffProminent = state.visitorMessageCount >= handoffThreshold();
                 }
                 if (state.config) {
                     injectStyles(state.config);
@@ -906,6 +920,14 @@
                 state.handoffProminent = true;
             }
 
+            if (typeof data.handoff_prominent === 'boolean') {
+                state.handoffProminent = data.handoff_prominent;
+            }
+
+            if (typeof data.show_location_chip === 'boolean') {
+                state.showLocationChip = data.show_location_chip;
+            }
+
             if (data.reply) {
                 state.messages.push({
                     uuid: data.reply.uuid,
@@ -926,6 +948,7 @@
 
             maybeOfferHumanHandoff();
             updateHandoffUi();
+            updateLocationChip();
             renderMessages();
         } catch (error) {
             if (error.status === 401 || isSessionAuthError(error.message)) {
@@ -949,6 +972,46 @@
         });
         state.messages.push({ role: 'system', body: 'Thanks — we received your message and will follow up.' });
         renderMessages();
+    }
+
+    async function useBrowserLocation() {
+        if (!navigator.geolocation) {
+            showError('Location is not available in this browser. Please type your city and state in chat.');
+            state.locationChipDismissed = true;
+            updateLocationChip();
+
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const city = 'Nearby area';
+                    await api('/location', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            city,
+                            state: null,
+                            consent: true,
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        }),
+                    });
+                    state.showLocationChip = false;
+                    state.locationChipDismissed = true;
+                    updateLocationChip();
+                    showError('');
+                } catch (error) {
+                    showError('Could not save location. Please type your city and state in chat.');
+                }
+            },
+            () => {
+                showError('Location permission denied. Please type your city and state in chat.');
+                state.locationChipDismissed = true;
+                updateLocationChip();
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+        );
     }
 
     function bindHandoffActions() {
@@ -1029,6 +1092,7 @@
             </div>
             <div id="ac-widget-error"></div>
             <div id="ac-widget-handoff-status" role="status" aria-live="polite"></div>
+            <button id="ac-widget-location-chip" type="button">Use my location</button>
             <div id="ac-widget-statusbar">
                 <div id="ac-widget-disclosure"></div>
                 <button id="ac-widget-handoff-subtle" type="button">Need human help?</button>
@@ -1071,6 +1135,9 @@
 
         injectStyles(null);
         bindHandoffActions();
+        document.getElementById('ac-widget-location-chip')?.addEventListener('click', () => {
+            useBrowserLocation();
+        });
 
         // Subtle teaser: reveal shortly after load, auto-hide, and reappear only on hover/focus.
         toggle.addEventListener('mouseenter', () => showTeaser(4000));

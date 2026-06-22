@@ -33,6 +33,10 @@ class LeadMetadataUpdateService
             $updates['country'] = trim((string) $extracted['country']);
         }
 
+        if (! empty($extracted['location']) && blank($lead->location)) {
+            $updates['location'] = trim((string) $extracted['location']);
+        }
+
         if (! empty($extracted['programme_interest']) && blank($lead->programme_interest)) {
             $updates['programme_interest'] = trim((string) $extracted['programme_interest']);
         }

@@ -28,7 +28,7 @@ class WidgetUxTest extends TestCase
         $this->assertArrayHasKey('logo_url', $config['branding']);
         $this->assertArrayHasKey('powered_by', $config);
         $this->assertArrayHasKey('label', $config['powered_by']);
-        $this->assertSame(3, $config['human_transfer']['promote_after_messages']);
+        $this->assertSame(0, $config['human_transfer']['promote_after_messages']);
     }
 
     public function test_widget_session_includes_handoff_ux_configuration(): void
@@ -45,7 +45,7 @@ class WidgetUxTest extends TestCase
         $this->assertIsArray($handoff);
         $this->assertArrayHasKey('subtle_label', $handoff);
         $this->assertArrayHasKey('promote_after_messages', $handoff);
-        $this->assertSame(3, (int) $handoff['promote_after_messages']);
+        $this->assertSame(0, (int) $handoff['promote_after_messages']);
     }
 
     public function test_new_tenant_default_welcome_encourages_ai_first(): void
@@ -149,9 +149,9 @@ class WidgetUxTest extends TestCase
         $this->assertStringContainsString('ac-widget-panel.expanded', $js);
         $this->assertStringContainsString('ac-widget-avatar-fallback', $js);
         $this->assertStringContainsString('ac-widget-powered-by-label', $js);
-        $this->assertStringContainsString('promote_after_messages', $js);
-        $this->assertStringContainsString('handoffProminent:!1', $js);
-        $this->assertStringContainsString('Need human help?', $js);
+        $this->assertStringContainsString('handoff_prominent', $js);
+        $this->assertStringContainsString('Use my location', $js);
+        $this->assertStringContainsString('ac-widget-location-chip', $js);
         $this->assertStringNotContainsString('sk-', $js);
     }
 

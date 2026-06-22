@@ -18,6 +18,7 @@ Route::middleware([HandleWidgetCors::class])->group(function (): void {
             Route::get('knowledge/search', [WidgetGatewayController::class, 'searchKnowledge']);
             Route::post('messages', [WidgetGatewayController::class, 'sendMessage']);
             Route::post('handoff', [WidgetGatewayController::class, 'requestHandoff']);
+            Route::post('location', [WidgetGatewayController::class, 'updateLocation']);
             Route::get('messages/poll', [WidgetGatewayController::class, 'pollMessages']);
             Route::post('leads', [WidgetGatewayController::class, 'captureLead']);
             Route::post('offline', [WidgetGatewayController::class, 'submitOffline']);

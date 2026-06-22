@@ -372,7 +372,97 @@ class AiOrchestrationTest extends TestCase
 
         $body = (string) $response->json('reply.body');
         $this->assertStringContainsString('NEET status', $body);
+        $this->assertStringNotContainsString('approximate budget', strtolower($body));
+    }
+
+    public function test_ai_asks_budget_after_neet_is_already_collected(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'I qualified NEET with score 450',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $body = (string) $response->json('reply.body');
         $this->assertStringContainsString('budget', strtolower($body));
+        $this->assertStringNotContainsString('NEET status', $body);
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertContains('neet_status', (array) ($lead->fresh()->metadata['counselling_asked_fields'] ?? []));
+    }
+
+    public function test_normal_faq_does_not_promote_handoff_cta(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'What documents are needed for admission?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertFalse((bool) $response->json('handoff_prominent'));
+    }
+
+    public function test_explicit_human_request_promotes_handoff_cta(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'I want to talk to a counsellor please',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertTrue((bool) $response->json('handoff_prominent'));
+    }
+
+    public function test_contact_details_not_requested_on_first_mbbs_message(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $body = strtolower((string) $response->json('reply.body'));
+        $this->assertStringNotContainsString('mobile number', $body);
+        $this->assertStringNotContainsString('may i know your name', $body);
     }
 
     public function test_tenant_b_knowledge_and_leads_stay_isolated_from_tenant_a(): void

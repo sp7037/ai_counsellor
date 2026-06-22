@@ -23,9 +23,9 @@ return [
     'max_offline_message_length' => 2000,
 
     'handoff' => [
-        'promote_after_messages' => max(1, (int) env('WIDGET_HANDOFF_PROMOTE_AFTER_MESSAGES', 3)),
+        'promote_after_messages' => 0,
         'subtle_label' => env('WIDGET_HANDOFF_SUBTLE_LABEL', 'Need human help?'),
-        'offer_message' => env('WIDGET_HANDOFF_OFFER_MESSAGE', 'You can continue here or request a human counsellor.'),
+        'offer_message' => env('WIDGET_HANDOFF_OFFER_MESSAGE', ''),
     ],
 
     'powered_by' => [

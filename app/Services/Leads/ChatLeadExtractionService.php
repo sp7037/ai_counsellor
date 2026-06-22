@@ -134,8 +134,18 @@ class ChatLeadExtractionService
             $extracted['metadata']['document_readiness'] = 'not_ready';
         }
 
-        if (preg_match('/\b(?:talk to counsellor|human help|call me|contact me)\b/i', $message)) {
+        if (preg_match('/\b(?:talk to counsellor|human help|call me|contact me|speak to counsellor|whatsapp|callback)\b/i', $message)) {
             $extracted['requested_human_contact'] = true;
+        }
+
+        if (preg_match('/\b(?:from|based in|located in|i am in|i live in)\s+([A-Za-z][A-Za-z\s]{1,40}?)(?:,\s*([A-Za-z][A-Za-z\s]{1,40}))?\b/i', $message, $matches)) {
+            $city = trim($matches[1]);
+            $state = isset($matches[2]) ? trim($matches[2]) : null;
+            $extracted['metadata']['city_state'] = $state ? $city.', '.$state : $city;
+
+            if (blank($extracted['location'] ?? null)) {
+                $extracted['location'] = $city;
+            }
         }
 
         return $extracted;
@@ -154,8 +164,11 @@ class ChatLeadExtractionService
             return true;
         }
 
-        return $this->hasCounsellingIntent($extracted, $message)
-            && (! empty($extracted['requested_human_contact']) || ! empty($extracted['metadata']));
+        if ($this->hasCounsellingIntent($extracted, $message)) {
+            return true;
+        }
+
+        return ! empty($extracted['requested_human_contact']);
     }
 
     /**

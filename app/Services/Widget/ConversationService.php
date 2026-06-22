@@ -14,6 +14,8 @@ use App\Models\TenantSettings;
 use App\Models\WidgetSession;
 use App\Services\AI\AiConversationOrchestrator;
 use App\Services\AI\AiIdempotencyCoordinator;
+use App\Services\AI\ConversationContextBuilder;
+use App\Services\AI\CounsellingFlowHelper;
 use App\Services\Billing\EntitlementResolver;
 use App\Services\Billing\UsageTrackingService;
 use App\Services\Billing\WidgetEntitlementService;
@@ -34,6 +36,9 @@ class ConversationService
         private readonly EntitlementResolver $entitlements,
         private readonly UsageTrackingService $usage,
         private readonly ChatLeadExtractionService $leadExtraction,
+        private readonly HandoffPromotionService $handoffPromotion,
+        private readonly CounsellingFlowHelper $counsellingFlow,
+        private readonly ConversationContextBuilder $contextBuilder,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
@@ -51,6 +56,7 @@ class ConversationService
                 'visitor_message' => $humanResult['visitor_message'],
                 'reply' => $humanResult['reply'] ?? $this->waitingReply($conversation),
                 'mode' => $humanResult['mode'],
+                'handoff_prominent' => true,
             ];
         }
 
@@ -72,10 +78,21 @@ class ConversationService
         );
 
         if ($resolved['replay'] !== null) {
+            $conversation->refresh()->loadMissing('lead');
+            $context = $this->contextBuilder->build($conversation);
+            $counsellingAssessment = $this->counsellingFlow->assess($conversation, $body, $context);
+
             return [
                 'visitor_message' => $resolved['visitor_message'],
                 'reply' => $resolved['replay']['reply'],
                 'mode' => $conversation->mode->value,
+                'handoff_prominent' => $this->handoffPromotion->evaluate(
+                    $conversation,
+                    $body,
+                    $resolved['replay']['reply'],
+                    [],
+                )['prominent'],
+                'show_location_chip' => $this->shouldOfferLocationChip($counsellingAssessment, $context),
             ];
         }
 
@@ -88,6 +105,7 @@ class ConversationService
                 'visitor_message' => $visitorMessage,
                 'reply' => null,
                 'mode' => $conversation->mode->value,
+                'handoff_prominent' => false,
             ];
         }
 
@@ -106,11 +124,15 @@ class ConversationService
                 'visitor_message' => $resolved['visitor_message'],
                 'reply' => null,
                 'mode' => $conversation->mode->value,
+                'handoff_prominent' => false,
             ];
         }
 
         $this->leadExtraction->processMessage($session->tenant, $conversation->fresh(), $body);
         $conversation->refresh()->loadMissing('lead');
+
+        $context = $this->contextBuilder->build($conversation);
+        $counsellingAssessment = $this->counsellingFlow->assess($conversation, $body, $context);
 
         $knowledge = $this->knowledgeRetrieval->searchPublished(
             $session->tenant,
@@ -162,11 +184,80 @@ class ConversationService
             ]);
         });
 
+        if ($aiResult['status'] === 'success') {
+            $fieldKey = $this->counsellingFlow->fieldKeyFromLabel($counsellingAssessment['next_field'] ?? null);
+            $this->counsellingFlow->recordAskedField($conversation->fresh()->lead, $fieldKey);
+        }
+
+        $handoff = $this->handoffPromotion->evaluate(
+            $conversation->fresh(),
+            $body,
+            $reply,
+            $knowledge,
+        );
+
         return [
             'visitor_message' => $resolved['visitor_message'],
             'reply' => $reply,
             'mode' => $conversation->fresh()->mode->value,
+            'handoff_prominent' => $handoff['prominent'],
+            'show_location_chip' => $this->shouldOfferLocationChip($counsellingAssessment, $context),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $counsellingAssessment
+     * @param  array<string, mixed>  $context
+     */
+    private function shouldOfferLocationChip(array $counsellingAssessment, array $context): bool
+    {
+        if (! ($counsellingAssessment['active'] ?? false)) {
+            return false;
+        }
+
+        return blank($context['city_state'] ?? null)
+            && blank($context['location'] ?? null);
+    }
+
+    public function updateVisitorLocation(
+        WidgetSession $session,
+        string $city,
+        ?string $state = null,
+        ?float $latitude = null,
+        ?float $longitude = null,
+    ): void {
+        $conversation = $session->conversation->fresh()->loadMissing('lead');
+        $lead = $conversation->lead;
+
+        if ($lead === null) {
+            return;
+        }
+
+        $metadata = is_array($lead->metadata) ? $lead->metadata : [];
+        $cityState = trim($city.($state ? ', '.$state : ''));
+
+        if (blank($lead->location) && $city !== 'Nearby area') {
+            $lead->location = $city;
+        }
+
+        if (blank($lead->state) && filled($state)) {
+            $lead->state = $state;
+        }
+
+        if (blank($metadata['city_state'] ?? null) && $city !== 'Nearby area') {
+            $metadata['city_state'] = $cityState;
+        }
+
+        $metadata['location_source'] = 'browser_geolocation';
+        $metadata['location_consented'] = true;
+
+        if ($latitude !== null && $longitude !== null) {
+            $metadata['geo_latitude'] = $latitude;
+            $metadata['geo_longitude'] = $longitude;
+        }
+
+        $lead->metadata = $metadata;
+        $lead->save();
     }
 
     public function submitOfflineIntake(

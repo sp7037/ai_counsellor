@@ -177,6 +177,8 @@ class WidgetGatewayController extends Controller
             ] : null,
             'mode' => $result['mode'] ?? $session->conversation->mode?->value ?? 'ai',
             'session_expires_at' => $session->expires_at->toIso8601String(),
+            'handoff_prominent' => (bool) ($result['handoff_prominent'] ?? false),
+            'show_location_chip' => (bool) ($result['show_location_chip'] ?? false),
         ]);
     }
 
@@ -237,6 +239,30 @@ class WidgetGatewayController extends Controller
             ] : null,
             'lead_reference' => ($result['lead'] ?? null)?->public_reference,
         ]);
+    }
+
+    public function updateLocation(Request $request): JsonResponse
+    {
+        /** @var WidgetSession $session */
+        $session = $request->attributes->get('widget_session');
+
+        $validated = $request->validate([
+            'city' => ['required', 'string', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'consent' => ['required', 'accepted'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
+        ]);
+
+        $this->conversationService->updateVisitorLocation(
+            $session,
+            $validated['city'],
+            $validated['state'] ?? null,
+            isset($validated['latitude']) ? (float) $validated['latitude'] : null,
+            isset($validated['longitude']) ? (float) $validated['longitude'] : null,
+        );
+
+        return response()->json(['message' => 'Location saved.']);
     }
 
     public function pollMessages(Request $request): JsonResponse

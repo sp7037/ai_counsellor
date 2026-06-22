@@ -22,6 +22,8 @@ class ConversationContextBuilder
             'visitor_name' => $this->visitorName($lead?->full_name),
             'mobile' => $lead?->mobile,
             'email' => $lead?->email,
+            'location' => $lead?->location ?? ($metadata['city_state'] ?? null),
+            'city_state' => $metadata['city_state'] ?? $this->formatCityState($lead?->location, $lead?->state),
             'lead_reference' => $lead?->public_reference,
             'lead_stage' => $lead?->stage?->label(),
             'service_interest' => $lead?->service_interest,
@@ -30,6 +32,7 @@ class ConversationContextBuilder
             'budget' => $metadata['budget'] ?? null,
             'neet_status' => $metadata['neet_status'] ?? null,
             'timeline' => $metadata['timeline'] ?? null,
+            'counselling_asked_fields' => $metadata['counselling_asked_fields'] ?? [],
             'message_summary' => $this->recentMessageSummary($conversation),
             'metadata' => $metadata,
         ];
@@ -48,6 +51,7 @@ class ConversationContextBuilder
             'Name' => $context['visitor_name'] ?? null,
             'Mobile' => $context['mobile'] ?? null,
             'Email' => $context['email'] ?? null,
+            'City/state' => $context['city_state'] ?? null,
             'Lead reference' => $context['lead_reference'] ?? null,
             'Lead stage' => $context['lead_stage'] ?? null,
             'Service interest' => $context['service_interest'] ?? null,
@@ -58,6 +62,10 @@ class ConversationContextBuilder
             'Timeline' => $context['timeline'] ?? null,
         ], fn ($value) => filled($value));
 
+        $askedFields = is_array($context['counselling_asked_fields'] ?? null)
+            ? $context['counselling_asked_fields']
+            : [];
+
         if ($details === []) {
             $lines[] = '- No visitor profile details collected yet.';
         } else {
@@ -66,11 +74,29 @@ class ConversationContextBuilder
             }
         }
 
+        if ($askedFields !== []) {
+            $lines[] = '- Follow-ups already asked (do not repeat): '.implode(', ', $askedFields).'.';
+        }
+
         if (! empty($context['message_summary'])) {
             $lines[] = '- Recent messages: '.Str::limit((string) $context['message_summary'], 400, '');
         }
 
         return implode("\n", $lines);
+    }
+
+    private function formatCityState(?string $location, ?string $state): ?string
+    {
+        $parts = array_filter([
+            trim((string) $location),
+            trim((string) $state),
+        ]);
+
+        if ($parts === []) {
+            return null;
+        }
+
+        return implode(', ', array_unique($parts));
     }
 
     private function visitorName(?string $name): ?string
