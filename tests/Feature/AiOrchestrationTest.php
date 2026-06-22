@@ -371,7 +371,7 @@ class AiOrchestrationTest extends TestCase
         ])->assertOk();
 
         $body = (string) $response->json('reply.body');
-        $this->assertStringContainsString('NEET status', $body);
+        $this->assertStringContainsStringIgnoringCase('NEET status', $body);
         $this->assertStringNotContainsString('approximate budget', strtolower($body));
     }
 

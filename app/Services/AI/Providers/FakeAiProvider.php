@@ -65,10 +65,7 @@ class FakeAiProvider implements AiProviderContract
 
         $latestUserMessage = $request->messages[array_key_last($request->messages)]->content ?? '';
 
-        if (
-            str_contains($content, 'mbbs')
-            && str_contains($systemText, 'counselling flow')
-        ) {
+        if (str_contains($systemText, 'counselling flow')) {
             $answer = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
                 ? 'Yes, we can guide you for MBBS abroad based on our published guidance.'
                 : 'Yes, I can guide you generally on MBBS abroad options. Specific fee and university details need verified information from our team.';
