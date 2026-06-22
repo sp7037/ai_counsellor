@@ -27,7 +27,8 @@ class FakeAiProvider implements AiProviderContract
 
     public function chat(AiRequest $request): AiResponse
     {
-        $content = strtolower($request->messages[array_key_last($request->messages)]->content ?? '');
+        $latestUserMessage = $this->latestUserMessage($request);
+        $content = strtolower($latestUserMessage);
         $systemText = strtolower(implode("\n", array_map(
             fn ($message) => $message->content,
             array_filter($request->messages, fn ($message) => $message->role === 'system'),
@@ -63,7 +64,39 @@ class FakeAiProvider implements AiProviderContract
             }
         }
 
-        $latestUserMessage = $request->messages[array_key_last($request->messages)]->content ?? '';
+        if (str_contains($content, 'trigger length truncate retry')) {
+            $isRetry = str_contains($systemText, 'your previous reply was cut off');
+
+            if (! $isRetry) {
+                return new AiResponse(
+                    provider: 'fake',
+                    model: $request->model,
+                    content: 'Ensure the university is NMC-recognised; otherwise,',
+                    usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
+                    finishReason: 'length',
+                );
+            }
+
+            return new AiResponse(
+                provider: 'fake',
+                model: $request->model,
+                content: "Thanks. Based on what you shared, consider NMC-listed options and verify fees directly.\n- Confirm NEET eligibility for your target intake.\n- Keep extra budget for visa, travel, and FMGE/NExT prep.\nWhich student name and mobile number should I save for personalised guidance?",
+                usage: new AiUsage(inputTokens: 12, outputTokens: 40, totalTokens: 52, latencyMs: 20),
+                finishReason: 'stop',
+            );
+        }
+
+        if (str_contains($content, 'trigger length truncate')) {
+            return new AiResponse(
+                provider: 'fake',
+                model: $request->model,
+                content: 'Ensure the university is NMC-recognised; otherwise,',
+                usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
+                finishReason: 'length',
+            );
+        }
+
+        $latestUserMessage = $this->latestUserMessage($request);
 
         if (str_contains($systemText, 'counselling flow')) {
             $answer = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
@@ -102,5 +135,16 @@ class FakeAiProvider implements AiProviderContract
         }
 
         return null;
+    }
+
+    private function latestUserMessage(AiRequest $request): string
+    {
+        for ($index = count($request->messages) - 1; $index >= 0; $index--) {
+            if ($request->messages[$index]->role === 'user') {
+                return (string) $request->messages[$index]->content;
+            }
+        }
+
+        return '';
     }
 }

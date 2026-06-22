@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Data\AI\AiMessage;
 use App\Data\AI\AiRequest;
 use App\Enums\AI\AiErrorCategory;
 use App\Enums\AI\AiRunStatus;
@@ -15,7 +16,6 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Tenant;
 use App\Models\TenantSettings;
-use Illuminate\Support\Str;
 
 class AiConversationOrchestrator
 {
@@ -25,6 +25,7 @@ class AiConversationOrchestrator
         private readonly AiPromptBuilder $promptBuilder,
         private readonly AiIdempotencyCoordinator $idempotency,
         private readonly SafeAiExceptionMapper $exceptionMapper,
+        private readonly AiReplyCompletionGuard $completionGuard,
     ) {}
 
     /**
@@ -94,14 +95,38 @@ class AiConversationOrchestrator
             model: $effective['model'],
             messages: $messages,
             temperature: (float) $effective['temperature'],
-            maxOutputTokens: (int) $effective['max_output_tokens'],
+            maxOutputTokens: $this->resolveMaxOutputTokens((int) $effective['max_output_tokens']),
             timeoutSeconds: (int) $effective['timeout_seconds'],
             requestId: $requestUuid,
             apiKey: $effective['api_key'] ?? null,
         );
 
         try {
-            $response = $this->providers->resolve($effective['provider'])->chat($request);
+            $provider = $this->providers->resolve($effective['provider']);
+            $preferredFollowUp = $this->completionGuard->extractPreferredFollowUp($messages);
+            $response = $provider->chat($request);
+
+            if ($this->completionGuard->shouldRetryForTruncation($response->content, $response->finishReason)) {
+                $retryRequest = new AiRequest(
+                    provider: $request->provider,
+                    model: $request->model,
+                    messages: $this->messagesWithRetryInstruction($messages),
+                    temperature: $request->temperature,
+                    maxOutputTokens: max(
+                        $request->maxOutputTokens,
+                        (int) config('ai.recommended_counselling_output_tokens', 320),
+                    ),
+                    timeoutSeconds: $request->timeoutSeconds,
+                    requestId: $request->requestId.'-retry',
+                    apiKey: $request->apiKey,
+                );
+
+                $retryResponse = $provider->chat($retryRequest);
+
+                if (! $this->completionGuard->looksIncomplete($retryResponse->content, $retryResponse->finishReason)) {
+                    $response = $retryResponse;
+                }
+            }
 
             $run->update([
                 'input_tokens' => $this->normalizeTokenCount($response->usage->inputTokens),
@@ -110,7 +135,11 @@ class AiConversationOrchestrator
                 'latency_ms' => max(0, (int) $response->usage->latencyMs),
             ]);
 
-            $content = Str::limit(strip_tags($response->content), (int) config('ai.max_output_chars', 3000), '');
+            $content = $this->completionGuard->finalize(
+                $response->content,
+                $response->finishReason,
+                $preferredFollowUp,
+            );
             $finalized = $this->idempotency->finalizeSuccess($run, $content);
 
             return [
@@ -244,5 +273,40 @@ class AiConversationOrchestrator
         }
 
         return $value;
+    }
+
+    private function resolveMaxOutputTokens(int $configured): int
+    {
+        $minimum = (int) config('ai.min_output_tokens', 240);
+        $limit = (int) config('ai.max_output_tokens_limit', 1200);
+
+        return max($minimum, min($limit, $configured));
+    }
+
+    /**
+     * @param  array<AiMessage>  $messages
+     * @return array<AiMessage>
+     */
+    private function messagesWithRetryInstruction(array $messages): array
+    {
+        if ($messages === []) {
+            return [new AiMessage('system', $this->completionGuard->retryInstruction())];
+        }
+
+        $lastIndex = array_key_last($messages);
+        $lastMessage = $messages[$lastIndex];
+
+        if ($lastMessage->role === 'user') {
+            return [
+                ...array_slice($messages, 0, $lastIndex),
+                new AiMessage('system', $this->completionGuard->retryInstruction()),
+                $lastMessage,
+            ];
+        }
+
+        return [
+            ...$messages,
+            new AiMessage('system', $this->completionGuard->retryInstruction()),
+        ];
     }
 }

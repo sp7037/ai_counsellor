@@ -116,11 +116,13 @@ class CounsellingFlowHelper
 
         $lines = [
             'Counselling flow (MBBS abroad enquiry detected):',
+            'Structure each reply as: (1) one short acknowledgement using collected facts, (2) 2–4 concise guidance bullets, (3) exactly one complete next question.',
+            'Stay within about 120 words total. Use plain text with at most 4 short bullet points. No markdown headings or long country lists unless the visitor asked.',
             'Answer the visitor question first using published knowledge when available.',
-            'Keep replies concise: use plain text, at most 4–6 short bullet points, no markdown headings or long lists.',
             'Do not invent exact fees, university names, eligibility rules, deadlines, or guarantees unless present in published knowledge.',
             'If published knowledge lacks specific details, say verified details are needed and give cautious general guidance.',
             'Ask exactly ONE follow-up question at the end. Never ask multiple questions in one reply.',
+            'Never end mid-sentence. Never continue long explanations after the follow-up question.',
             'Do not repeat a follow-up for information already collected or already asked in this conversation.',
             'Do not ask for name, mobile, or email in the first reply unless the visitor asked for callback or admission help.',
             'For location, ask for city/state in plain words. Never claim automatic GPS or location access.',
