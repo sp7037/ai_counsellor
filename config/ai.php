@@ -7,7 +7,7 @@ return [
     'max_input_chars' => 8000,
     'max_output_chars' => 3000,
     'max_history_messages' => 12,
-    'max_knowledge_items' => 6,
+    'max_knowledge_items' => 5,
     'knowledge_excerpt_chars' => 280,
     'max_temperature' => 1.2,
     'min_temperature' => 0.0,

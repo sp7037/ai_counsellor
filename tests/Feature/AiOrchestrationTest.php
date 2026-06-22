@@ -2,10 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Data\AI\AiMessage;
 use App\Enums\Conversations\MessageRole;
 use App\Enums\Tenancy\TenantRole;
 use App\Models\AiRun;
+use App\Models\Conversation;
+use App\Models\Lead;
 use App\Models\Message;
+use App\Models\TenantSettings;
+use App\Services\AI\AiPromptBuilder;
 use App\Services\AI\TenantAiConfigService;
 use App\Services\Knowledge\KnowledgeItemService;
 use App\Services\Tenancy\TenantContext;
@@ -214,5 +219,226 @@ class AiOrchestrationTest extends TestCase
         $this->get(route('tenant.ai.configuration', $tenant))
             ->assertOk()
             ->assertDontSee('sk-test-secret-1234');
+    }
+
+    public function test_ai_prompt_includes_published_knowledge_and_visitor_context(): void
+    {
+        ['tenant' => $tenant, 'user' => $user, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        app(TenantContext::class)->resolveForUser($user, $tenant);
+        app(TenantContext::class)->enforceIsolation();
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'MBBS process',
+            'body' => 'Our MBBS abroad process includes counselling, documentation, and visa support.',
+        ], $user);
+        app(KnowledgeItemService::class)->publish($item, $user);
+        app(TenantContext::class)->clear();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Rahul Sharma, mobile 9876543210. Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $conversation = Conversation::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $settings = TenantSettings::query()->where('tenant_id', $tenant->id)->first();
+
+        $messages = app(AiPromptBuilder::class)->build(
+            $tenant,
+            $settings,
+            $conversation->fresh()->load('lead'),
+            'Can you guide me for MBBS abroad?',
+            app(\App\Contracts\Knowledge\KnowledgeRetrievalContract::class)->searchPublished($tenant, 'MBBS abroad', 5),
+        );
+
+        $joined = implode("\n", array_map(fn (AiMessage $message) => $message->content, $messages));
+
+        $this->assertStringContainsString('Visitor context', $joined);
+        $this->assertStringContainsString('Rahul Sharma', $joined);
+        $this->assertStringContainsString('9876543210', $joined);
+        $this->assertStringContainsString('[FAQ]', $joined);
+        $this->assertStringContainsString('MBBS process', $joined);
+        $this->assertStringContainsString('Counselling flow', $joined);
+    }
+
+    public function test_published_knowledge_is_used_in_ai_reply(): void
+    {
+        ['tenant' => $tenant, 'user' => $user, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        app(TenantContext::class)->resolveForUser($user, $tenant);
+        app(TenantContext::class)->enforceIsolation();
+
+        $item = app(KnowledgeItemService::class)->createDraft($tenant, [
+            'type' => 'faq',
+            'title' => 'Visa checklist',
+            'body' => 'Students need passport, admission letter, and financial proof for visa filing.',
+        ], $user);
+        app(KnowledgeItemService::class)->publish($item, $user);
+        app(TenantContext::class)->clear();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'What documents are needed for visa filing?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertSame('assistant', $response->json('reply.role'));
+        $this->assertStringContainsString('AI reply:', (string) $response->json('reply.body'));
+    }
+
+    public function test_chat_message_extracts_contact_details_and_links_lead(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Priya Singh, email priya@example.com, interested in MBBS abroad.',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->first();
+
+        $this->assertNotNull($lead);
+        $this->assertSame('Priya Singh', $lead->full_name);
+        $this->assertSame('priya@example.com', $lead->email);
+        $this->assertSame('MBBS', $lead->programme_interest);
+    }
+
+    public function test_chat_extraction_does_not_overwrite_existing_lead_contact(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Amit Verma, mobile 9876543210, MBBS abroad.',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $lead->update(['mobile' => '9999988888', 'full_name' => 'Amit Verma']);
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My mobile is 9111111111',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertSame('9999988888', $lead->fresh()->mobile);
+    }
+
+    public function test_ai_asks_counselling_follow_up_after_mbbs_question(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $body = (string) $response->json('reply.body');
+        $this->assertStringContainsString('NEET status', $body);
+        $this->assertStringContainsString('budget', strtolower($body));
+    }
+
+    public function test_tenant_b_knowledge_and_leads_stay_isolated_from_tenant_a(): void
+    {
+        ['tenant' => $tenantA, 'user' => $userA, 'key' => $keyA] = $this->createWidgetReadyTenant();
+        ['tenant' => $tenantB, 'user' => $userB, 'key' => $keyB] = $this->createWidgetReadyTenant();
+
+        app(TenantContext::class)->resolveForUser($userA, $tenantA);
+        app(TenantContext::class)->enforceIsolation();
+        $secretA = app(KnowledgeItemService::class)->createDraft($tenantA, [
+            'type' => 'faq',
+            'title' => 'Tenant A secret process',
+            'body' => 'Only tenant A should see this published guidance.',
+        ], $userA);
+        app(KnowledgeItemService::class)->publish($secretA, $userA);
+        app(TenantContext::class)->clear();
+
+        $tokenB = $this->postJson('/widget/v1/session', ['widget_key' => $keyB->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'Tell me the Tenant A secret process',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$tokenB,
+        ])->assertOk();
+
+        $tenantBKnowledge = app(\App\Contracts\Knowledge\KnowledgeRetrievalContract::class)
+            ->searchPublished($tenantB, 'Tenant A secret process', 5);
+        $this->assertSame([], $tenantBKnowledge);
+
+        $conversationB = Conversation::withoutGlobalScopes()->where('tenant_id', $tenantB->id)->firstOrFail();
+        $settingsB = TenantSettings::query()->where('tenant_id', $tenantB->id)->first();
+        $prompt = app(AiPromptBuilder::class)->build(
+            $tenantB,
+            $settingsB,
+            $conversationB,
+            'Tell me the Tenant A secret process',
+            $tenantBKnowledge,
+        );
+        $knowledgeMessage = collect($prompt)->first(
+            fn (AiMessage $message) => str_contains($message->content, 'Knowledge references')
+                || str_contains($message->content, 'No published knowledge matched')
+        );
+        $this->assertNotNull($knowledgeMessage);
+        $this->assertStringNotContainsString('Tenant A secret process', $knowledgeMessage->content);
+
+        $tenantAKnowledge = app(\App\Contracts\Knowledge\KnowledgeRetrievalContract::class)
+            ->searchPublished($tenantA, 'Tenant A secret process', 5);
+        $this->assertNotEmpty($tenantAKnowledge);
+
+        $tokenA = $this->postJson('/widget/v1/session', ['widget_key' => $keyA->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Tenant A Lead, mobile 9000000001, MBBS abroad.',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$tokenA,
+        ])->assertOk();
+
+        $this->assertSame(1, Lead::withoutGlobalScopes()->where('tenant_id', $tenantA->id)->count());
+        $this->assertSame(0, Lead::withoutGlobalScopes()->where('tenant_id', $tenantB->id)->count());
     }
 }

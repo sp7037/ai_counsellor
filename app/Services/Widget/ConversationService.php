@@ -18,6 +18,7 @@ use App\Services\Billing\EntitlementResolver;
 use App\Services\Billing\UsageTrackingService;
 use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Conversations\ConversationMessageService;
+use App\Services\Leads\ChatLeadExtractionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -32,6 +33,7 @@ class ConversationService
         private readonly WidgetEntitlementService $widgetEntitlements,
         private readonly EntitlementResolver $entitlements,
         private readonly UsageTrackingService $usage,
+        private readonly ChatLeadExtractionService $leadExtraction,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
@@ -106,6 +108,9 @@ class ConversationService
                 'mode' => $conversation->mode->value,
             ];
         }
+
+        $this->leadExtraction->processMessage($session->tenant, $conversation->fresh(), $body);
+        $conversation->refresh()->loadMissing('lead');
 
         $knowledge = $this->knowledgeRetrieval->searchPublished(
             $session->tenant,

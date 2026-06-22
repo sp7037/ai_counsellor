@@ -34,6 +34,7 @@ class ConversationHandoffService
         private readonly LeadAssignmentService $leadAssignment,
         private readonly AuditLogger $audit,
         private readonly WidgetEntitlementService $widgetEntitlements,
+        private readonly HandoffSummaryService $handoffSummary,
     ) {}
 
     /**
@@ -103,6 +104,11 @@ class ConversationHandoffService
                 'replay' => false,
             ];
         });
+
+        if (($result['lead'] ?? null) !== null) {
+            $this->handoffSummary->storeForConversation($result['conversation']->fresh());
+            $result['lead'] = $result['conversation']->fresh()->lead;
+        }
 
         $this->notifyHandoffRequested($result['conversation'], $result['lead'] ?? null);
 

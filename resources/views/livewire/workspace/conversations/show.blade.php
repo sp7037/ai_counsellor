@@ -101,6 +101,15 @@ new #[Layout('components.layouts.workspace')] class extends Component {
                 <div><dt class="text-zinc-500">Reference</dt><dd>{{ $conversation->lead->public_reference }}</dd></div>
                 <div><dt class="text-zinc-500">Stage</dt><dd>{{ $conversation->lead->stage->label() }}</dd></div>
                 <div><dt class="text-zinc-500">Score</dt><dd>{{ $conversation->lead->lead_score }}</dd></div>
+                @if ($conversation->lead->mobile || $conversation->lead->email)
+                    <div><dt class="text-zinc-500">Contact</dt><dd>{{ collect([$conversation->lead->mobile, $conversation->lead->email])->filter()->implode(' · ') }}</dd></div>
+                @endif
+                @if ($conversation->lead->programme_interest || $conversation->lead->country)
+                    <div><dt class="text-zinc-500">Interests</dt><dd>{{ collect([$conversation->lead->programme_interest, $conversation->lead->country])->filter()->implode(' · ') }}</dd></div>
+                @endif
+                @if ($conversation->lead->ai_suggested_summary)
+                    <div><dt class="text-zinc-500">Handoff summary</dt><dd class="whitespace-pre-wrap text-zinc-300">{{ $conversation->lead->ai_suggested_summary }}</dd></div>
+                @endif
             </dl>
             <flux:button href="{{ route('workspace.leads.show', [$tenant, $conversation->lead]) }}" wire:navigate class="mt-4" size="sm" variant="ghost">Open lead</flux:button>
         @else

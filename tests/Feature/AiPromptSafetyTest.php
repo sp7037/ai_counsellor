@@ -77,8 +77,14 @@ class AiPromptSafetyTest extends TestCase
         $this->assertSame('system', $messages[1]->role);
         $this->assertStringContainsString($tenant->name, $messages[1]->content);
         $this->assertSame('system', $messages[2]->role);
-        $this->assertStringContainsString('untrusted context', strtolower($messages[2]->content));
-        $this->assertStringContainsString('Malicious FAQ', $messages[2]->content);
+        $this->assertStringContainsString('Visitor context', $messages[2]->content);
+
+        $knowledgeMessage = collect($messages)->first(
+            fn (AiMessage $message) => str_contains($message->content, 'Knowledge references')
+        );
+        $this->assertNotNull($knowledgeMessage);
+        $this->assertStringContainsString('internal source labels', strtolower($knowledgeMessage->content));
+        $this->assertStringContainsString('Malicious FAQ', $knowledgeMessage->content);
         $this->assertSame('user', $messages[array_key_last($messages)]->role);
         $this->assertStringNotContainsString('<script>', $messages[array_key_last($messages)]->content);
 

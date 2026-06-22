@@ -28,6 +28,10 @@ class FakeAiProvider implements AiProviderContract
     public function chat(AiRequest $request): AiResponse
     {
         $content = strtolower($request->messages[array_key_last($request->messages)]->content ?? '');
+        $systemText = strtolower(implode("\n", array_map(
+            fn ($message) => $message->content,
+            array_filter($request->messages, fn ($message) => $message->role === 'system'),
+        )));
 
         if (str_contains($content, 'trigger timeout')) {
             throw new AiTimeoutException('Fake timeout');
@@ -59,10 +63,28 @@ class FakeAiProvider implements AiProviderContract
             }
         }
 
+        $latestUserMessage = $request->messages[array_key_last($request->messages)]->content ?? '';
+
+        if (
+            str_contains($content, 'mbbs')
+            && str_contains($systemText, 'counselling flow')
+        ) {
+            $answer = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
+                ? 'Yes, we can guide you for MBBS abroad based on our published guidance.'
+                : 'Yes, I can guide you generally on MBBS abroad options.';
+
+            return new AiResponse(
+                provider: 'fake',
+                model: $request->model,
+                content: $answer.' To guide you better, please tell me your NEET status and approximate budget.',
+                usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
+            );
+        }
+
         return new AiResponse(
             provider: 'fake',
             model: $request->model,
-            content: 'AI reply: '.$request->messages[array_key_last($request->messages)]->content,
+            content: 'AI reply: '.$latestUserMessage,
             usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
         );
     }

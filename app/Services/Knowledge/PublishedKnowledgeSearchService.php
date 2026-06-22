@@ -4,6 +4,7 @@ namespace App\Services\Knowledge;
 
 use App\Contracts\Knowledge\KnowledgeRetrievalContract;
 use App\Enums\Knowledge\KnowledgeItemStatus;
+use App\Enums\Knowledge\KnowledgeItemType;
 use App\Models\KnowledgeItem;
 use App\Models\Tenant;
 
@@ -42,14 +43,22 @@ class PublishedKnowledgeSearchService implements KnowledgeRetrievalContract
                 'knowledge_versions.body',
                 'knowledge_versions.version_number',
             ])
-            ->map(fn ($row) => [
-                'uuid' => $row->uuid,
-                'type' => $row->type,
-                'locale' => $row->locale,
-                'title' => $row->title,
-                'excerpt' => mb_substr($row->body, 0, 280),
-                'version_number' => $row->version_number,
-            ])
+            ->map(function ($row): array {
+                $typeValue = $row->type instanceof KnowledgeItemType
+                    ? $row->type->value
+                    : (string) $row->type;
+                $type = KnowledgeItemType::tryFrom($typeValue);
+
+                return [
+                    'uuid' => $row->uuid,
+                    'type' => $typeValue,
+                    'locale' => $row->locale,
+                    'title' => $row->title,
+                    'excerpt' => mb_substr((string) $row->body, 0, (int) config('ai.knowledge_excerpt_chars', 280)),
+                    'version_number' => $row->version_number,
+                    'source_label' => $type?->label() ?? 'Knowledge',
+                ];
+            })
             ->all();
     }
 }

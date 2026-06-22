@@ -54,6 +54,29 @@ class HumanAgentLiveConversationsTest extends TestCase
         $this->assertSame(1, Conversation::withoutGlobalScopes()->where('mode', ConversationMode::HandoffRequested->value)->count());
     }
 
+    public function test_handoff_stores_counsellor_summary_on_linked_lead(): void
+    {
+        $widget = $this->createWidgetReadyTenant();
+        $token = $this->widgetSessionToken($widget['key']);
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Neha, mobile 9876501234. Can you guide me for MBBS abroad in Georgia?',
+            'request_id' => (string) Str::uuid(),
+        ], $this->widgetHeaders($token))->assertOk();
+
+        $this->postJson('/widget/v1/handoff', [
+            'handoff_request_uuid' => (string) Str::uuid(),
+        ], $this->widgetHeaders($token))->assertOk();
+
+        $conversation = Conversation::withoutGlobalScopes()->where('tenant_id', $widget['tenant']->id)->firstOrFail();
+        $conversation->load('lead');
+
+        $this->assertNotNull($conversation->lead);
+        $this->assertStringContainsString('Visitor need:', (string) $conversation->lead->ai_suggested_summary);
+        $this->assertStringContainsString('9876501234', (string) $conversation->lead->ai_suggested_summary);
+        $this->assertStringContainsString('Recommended next action:', (string) $conversation->lead->ai_suggested_summary);
+    }
+
     public function test_no_ai_run_during_human_mode_visitor_message(): void
     {
         $widget = $this->createWidgetReadyTenant();
