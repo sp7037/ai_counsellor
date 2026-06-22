@@ -25,4 +25,5 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     <flux:button href="{{ route('tenant.knowledge.eligibility', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Eligibility rules</flux:button>
     <flux:button href="{{ route('tenant.knowledge.documents', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Source documents</flux:button>
     <flux:button href="{{ route('tenant.knowledge.course-institutions', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Course availability</flux:button>
+    <flux:button href="{{ route('tenant.knowledge.import', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Import knowledge</flux:button>
 </div>

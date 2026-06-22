@@ -15,5 +15,6 @@ return [
         'text/plain',
     ],
     'supported_currencies' => ['INR', 'USD', 'GBP', 'EUR'],
+    'max_import_rows' => 500,
 
 ];

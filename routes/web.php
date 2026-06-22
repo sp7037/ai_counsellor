@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Tenant\KnowledgeDocumentDownloadController;
+use App\Http\Controllers\Tenant\KnowledgeImportTemplateController;
 use App\Http\Controllers\Tenant\PaymentVerificationController;
 use App\Http\Controllers\Webhooks\MessagingWebhookController;
 use App\Http\Controllers\Webhooks\PaymentWebhookController;
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     Volt::route('eligibility', 'tenant.knowledge.eligibility')->name('eligibility');
                     Volt::route('documents', 'tenant.knowledge.documents')->name('documents');
                     Volt::route('course-institutions', 'tenant.knowledge.course-institutions')->name('course-institutions');
+                    Volt::route('import', 'tenant.knowledge.import')->name('import');
+                    Route::get('import/template/{type}', KnowledgeImportTemplateController::class)
+                        ->name('import.template');
                     Route::get('documents/{document}/download', KnowledgeDocumentDownloadController::class)
                         ->name('documents.download');
                 });
