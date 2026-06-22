@@ -13,10 +13,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'lead_id',
     'actor_user_id',
     'action_type',
+    'title',
+    'description',
     'metadata',
     'previous_values',
     'new_values',
     'created_at',
+    'updated_at',
 ])]
 class LeadActivity extends Model
 {

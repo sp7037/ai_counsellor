@@ -22,6 +22,12 @@ enum LeadActivityType: string
     case MarkedInvalid = 'marked_invalid';
     case Converted = 'converted';
     case AdminOverride = 'admin_override';
+    case TaskCreated = 'task_created';
+    case TaskStarted = 'task_started';
+    case TaskCompleted = 'task_completed';
+    case TaskCancelled = 'task_cancelled';
+    case HumanHandoffRequested = 'human_handoff_requested';
+    case ContactDetailsCaptured = 'contact_details_captured';
 
     public function label(): string
     {
@@ -44,6 +50,12 @@ enum LeadActivityType: string
             self::MarkedInvalid => 'Marked invalid',
             self::Converted => 'Converted',
             self::AdminOverride => 'Admin override',
+            self::TaskCreated => 'Follow-up task created',
+            self::TaskStarted => 'Follow-up task started',
+            self::TaskCompleted => 'Follow-up task completed',
+            self::TaskCancelled => 'Follow-up task cancelled',
+            self::HumanHandoffRequested => 'Human counsellor requested',
+            self::ContactDetailsCaptured => 'Contact details captured',
         };
     }
 }

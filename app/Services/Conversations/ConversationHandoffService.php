@@ -20,6 +20,7 @@ use App\Services\Audit\AuditLogger;
 use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Leads\LeadAssignmentService;
 use App\Services\Leads\LeadCreationService;
+use App\Services\Leads\LeadTaskService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -35,6 +36,7 @@ class ConversationHandoffService
         private readonly AuditLogger $audit,
         private readonly WidgetEntitlementService $widgetEntitlements,
         private readonly HandoffSummaryService $handoffSummary,
+        private readonly LeadTaskService $leadTasks,
     ) {}
 
     /**
@@ -108,6 +110,14 @@ class ConversationHandoffService
         if (($result['lead'] ?? null) !== null) {
             $this->handoffSummary->storeForConversation($result['conversation']->fresh());
             $result['lead'] = $result['conversation']->fresh()->lead;
+
+            if (! ($result['replay'] ?? false)) {
+                $this->leadTasks->createForHandoff(
+                    $result['lead'],
+                    $result['conversation']->fresh(),
+                    $result['lead']->assignee,
+                );
+            }
         }
 
         $this->notifyHandoffRequested($result['conversation'], $result['lead'] ?? null);

@@ -21,16 +21,21 @@ class LeadActivityLogger
         array $metadata = [],
         ?array $previous = null,
         ?array $new = null,
+        ?string $title = null,
+        ?string $description = null,
     ): LeadActivity {
         return LeadActivity::query()->create([
             'tenant_id' => $lead->tenant_id,
             'lead_id' => $lead->id,
             'actor_user_id' => $actor?->id,
             'action_type' => $type->value,
+            'title' => $title ?? $type->label(),
+            'description' => $description,
             'metadata' => $metadata === [] ? null : $metadata,
             'previous_values' => $previous,
             'new_values' => $new,
             'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 }

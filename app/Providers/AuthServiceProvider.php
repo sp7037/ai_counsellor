@@ -13,6 +13,7 @@ use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeFee;
 use App\Models\KnowledgeItem;
 use App\Models\Lead;
+use App\Models\LeadTask;
 use App\Models\Location;
 use App\Models\Payment;
 use App\Models\PaymentOrder;
@@ -37,6 +38,7 @@ use App\Policies\KnowledgeDocumentPolicy;
 use App\Policies\KnowledgeFeePolicy;
 use App\Policies\KnowledgeItemPolicy;
 use App\Policies\LeadPolicy;
+use App\Policies\LeadTaskPolicy;
 use App\Policies\LocationPolicy;
 use App\Policies\PaymentOrderPolicy;
 use App\Policies\PaymentPolicy;
@@ -79,6 +81,7 @@ class AuthServiceProvider extends ServiceProvider
         AiRun::class => AiRunPolicy::class,
         AuditLog::class => AuditLogPolicy::class,
         Lead::class => LeadPolicy::class,
+        LeadTask::class => LeadTaskPolicy::class,
         Plan::class => PlanPolicy::class,
         PaymentOrder::class => PaymentOrderPolicy::class,
         Payment::class => PaymentPolicy::class,
