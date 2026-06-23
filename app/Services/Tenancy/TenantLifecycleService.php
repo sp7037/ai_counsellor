@@ -80,6 +80,12 @@ class TenantLifecycleService
 
     public function suspend(Tenant $tenant, string $reason, ?User $actor = null): Tenant
     {
+        if (in_array($tenant->status, [TenantStatus::Archived, TenantStatus::Deleted], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Archived or deleted tenants cannot be suspended. Restore the tenant first.',
+            ]);
+        }
+
         app(EntitlementResolver::class)->clearCache();
         $tenant->update([
             'status' => TenantStatus::Suspended->value,
@@ -101,6 +107,12 @@ class TenantLifecycleService
 
     public function reactivate(Tenant $tenant, ?User $actor = null): Tenant
     {
+        if (in_array($tenant->status, [TenantStatus::Archived, TenantStatus::Deleted], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Archived or deleted tenants must be restored before reactivation.',
+            ]);
+        }
+
         if ($tenant->status === TenantStatus::Cancelled) {
             throw ValidationException::withMessages([
                 'status' => 'Cancelled tenants cannot be reactivated in Module 1.',
@@ -123,6 +135,205 @@ class TenantLifecycleService
         );
 
         return $tenant->fresh();
+    }
+
+    public function archive(Tenant $tenant, string $reason, ?User $actor = null): Tenant
+    {
+        if (! $tenant->status->canBeArchived()) {
+            throw ValidationException::withMessages([
+                'status' => 'Tenant must be suspended before it can be archived or deleted.',
+            ]);
+        }
+
+        app(EntitlementResolver::class)->clearCache();
+
+        $tenant->update([
+            'status' => TenantStatus::Archived->value,
+            'archived_at' => now(),
+            'archived_by' => $actor?->id,
+            'archive_reason' => $reason,
+        ]);
+
+        $this->auditLogger->log(
+            AuditAction::TenantArchived,
+            $tenant,
+            $tenant->id,
+            ['reason' => $reason],
+            $actor,
+        );
+
+        return $tenant->fresh();
+    }
+
+    public function restoreFromArchive(Tenant $tenant, ?User $actor = null): Tenant
+    {
+        if ($tenant->status !== TenantStatus::Archived) {
+            throw ValidationException::withMessages([
+                'status' => 'Only archived tenants can be restored.',
+            ]);
+        }
+
+        app(EntitlementResolver::class)->clearCache();
+
+        $tenant->update([
+            'status' => TenantStatus::Suspended->value,
+            'archived_at' => null,
+            'archived_by' => null,
+            'archive_reason' => null,
+            'suspended_at' => $tenant->suspended_at ?? now(),
+            'suspension_reason' => $tenant->suspension_reason ?? 'Restored from archive.',
+        ]);
+
+        $this->auditLogger->log(
+            AuditAction::TenantRestored,
+            $tenant,
+            $tenant->id,
+            actor: $actor,
+        );
+
+        return $tenant->fresh();
+    }
+
+    public function softDelete(Tenant $tenant, string $reason, ?User $actor = null): Tenant
+    {
+        if (! $tenant->status->canBeDeleted()) {
+            throw ValidationException::withMessages([
+                'status' => 'Tenant must be suspended and archived before deletion.',
+            ]);
+        }
+
+        app(EntitlementResolver::class)->clearCache();
+
+        $tenant->update([
+            'status' => TenantStatus::Deleted->value,
+            'deleted_at' => now(),
+            'deleted_by' => $actor?->id,
+            'delete_reason' => $reason,
+        ]);
+
+        $this->auditLogger->log(
+            AuditAction::TenantDeleted,
+            $tenant,
+            $tenant->id,
+            ['reason' => $reason],
+            $actor,
+        );
+
+        return $tenant->fresh();
+    }
+
+    public function restoreFromDelete(Tenant $tenant, ?User $actor = null): Tenant
+    {
+        if ($tenant->status !== TenantStatus::Deleted) {
+            throw ValidationException::withMessages([
+                'status' => 'Only deleted tenants can be restored from deletion.',
+            ]);
+        }
+
+        app(EntitlementResolver::class)->clearCache();
+
+        $tenant->update([
+            'status' => TenantStatus::Suspended->value,
+            'deleted_at' => null,
+            'deleted_by' => null,
+            'delete_reason' => null,
+            'archived_at' => null,
+            'archived_by' => null,
+            'archive_reason' => null,
+            'suspended_at' => $tenant->suspended_at ?? now(),
+            'suspension_reason' => $tenant->suspension_reason ?? 'Restored from deletion.',
+        ]);
+
+        $this->auditLogger->log(
+            AuditAction::TenantRestored,
+            $tenant,
+            $tenant->id,
+            ['restored_from' => 'deleted'],
+            $actor,
+        );
+
+        return $tenant->fresh();
+    }
+
+    /**
+     * Soft-delete only. Hard database removal remains blocked.
+     *
+     * @throws ValidationException
+     */
+    public function deleteTenant(Tenant $tenant, string $confirmation, string $reason, ?User $actor = null): Tenant
+    {
+        if ($confirmation !== 'DELETE TENANT') {
+            $this->auditLogger->log(
+                AuditAction::TenantDeleteAttempted,
+                $tenant,
+                $tenant->id,
+                [
+                    'confirmation' => $confirmation,
+                    'blocked' => true,
+                    'reason' => 'invalid_confirmation',
+                ],
+                $actor,
+            );
+
+            throw ValidationException::withMessages([
+                'delete_confirmation' => 'Type DELETE TENANT exactly to confirm.',
+            ]);
+        }
+
+        if (! $tenant->status->canBeDeleted()) {
+            $this->auditLogger->log(
+                AuditAction::TenantDeleteAttempted,
+                $tenant,
+                $tenant->id,
+                [
+                    'confirmation' => $confirmation,
+                    'blocked' => true,
+                    'reason' => 'not_archived',
+                ],
+                $actor,
+            );
+
+            throw ValidationException::withMessages([
+                'status' => 'Tenant must be suspended before deletion.',
+            ]);
+        }
+
+        $this->auditLogger->log(
+            AuditAction::TenantDeleteAttempted,
+            $tenant,
+            $tenant->id,
+            [
+                'confirmation' => $confirmation,
+                'blocked' => false,
+            ],
+            $actor,
+        );
+
+        return $this->softDelete($tenant, $reason, $actor);
+    }
+
+    /**
+     * Hard permanent delete remains unavailable until cascade rules are fully tested.
+     *
+     * @throws ValidationException
+     */
+    public function attemptPermanentDelete(Tenant $tenant, string $confirmation, ?User $actor = null): never
+    {
+        $this->auditLogger->log(
+            AuditAction::TenantDeleteAttempted,
+            $tenant,
+            $tenant->id,
+            [
+                'confirmation' => $confirmation,
+                'blocked' => true,
+                'reason' => 'permanent_delete_not_available',
+            ],
+            $actor,
+        );
+
+        throw ValidationException::withMessages([
+            'delete' => 'Permanent hard delete is not available. Tenant data is preserved via soft delete.',
+        ]);
     }
 
     public function addOwner(Tenant $tenant, User $user, ?User $actor = null): TenantMembership
@@ -162,7 +373,10 @@ class TenantLifecycleService
         $slug = $base;
         $counter = 1;
 
-        while (Tenant::query()->where('slug', $slug)->exists()) {
+        while (Tenant::query()->where('slug', $slug)->whereNotIn('status', [
+            TenantStatus::Archived->value,
+            TenantStatus::Deleted->value,
+        ])->exists()) {
             $slug = $base.'-'.$counter;
             $counter++;
         }

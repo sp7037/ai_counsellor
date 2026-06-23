@@ -29,6 +29,8 @@ enum LeadActivityType: string
     case HumanHandoffRequested = 'human_handoff_requested';
     case ContactDetailsCaptured = 'contact_details_captured';
     case IdentityMatched = 'identity_matched';
+    case Deleted = 'deleted';
+    case Restored = 'restored';
 
     public function label(): string
     {
@@ -58,6 +60,8 @@ enum LeadActivityType: string
             self::HumanHandoffRequested => 'Human counsellor requested',
             self::ContactDetailsCaptured => 'Contact details captured',
             self::IdentityMatched => 'Lead matched from another source',
+            self::Deleted => 'Lead deleted',
+            self::Restored => 'Lead restored',
         };
     }
 }

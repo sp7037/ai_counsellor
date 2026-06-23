@@ -11,6 +11,7 @@ use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Billing\EntitlementResolver;
 use App\Services\Leads\LeadAssignmentService;
+use App\Services\Leads\LeadLifecycleService;
 use App\Services\Leads\LeadTaskService;
 use App\Services\Leads\LeadWorkflowService;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,10 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     public string $task_type = 'counselling';
 
     public string $task_priority = 'normal';
+
+    public bool $confirm_delete = false;
+
+    public string $delete_reason = '';
 
     public function mount(Tenant $tenant, Lead $lead): void
     {
@@ -112,9 +117,21 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         $this->validate(['lost_reason' => ['required', 'string', 'max:500']]);
         $this->lead = $workflow->markLost($this->lead, Auth::user(), $this->lost_reason);
     }
+
+    public function deleteLead(LeadLifecycleService $lifecycle): void
+    {
+        $this->authorize('delete', $this->lead);
+        $lifecycle->softDelete($this->lead, Auth::user(), $this->delete_reason ?: null);
+        $this->redirectRoute('tenant.leads.index', $this->tenant, navigate: true);
+    }
 }; ?>
 
 <x-slot:heading>{{ $lead->public_reference }}</x-slot:heading>
+<x-slot:actions>
+    @can('delete', $lead)
+        <flux:button wire:click="$set('confirm_delete', true)" variant="ghost" size="sm">Delete lead</flux:button>
+    @endcan
+</x-slot:actions>
 <div class="grid gap-6">
     <div class="flex flex-wrap gap-2 border-b border-zinc-800 pb-2 text-sm">
         @foreach (['overview' => 'Overview', 'timeline' => 'Timeline', 'tasks' => 'Follow-up tasks', 'notes' => 'Notes', 'assignment' => 'Assignment', 'conversation' => 'Conversation'] as $key => $label)
@@ -140,6 +157,19 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         @can('manageWorkflow', $lead)
             <div class="flex flex-wrap gap-2"><flux:button wire:click="markContacted" variant="primary">Mark contacted</flux:button></div>
         @endcan
+        @if ($confirm_delete)
+            <div class="rounded-lg border border-red-900/50 bg-zinc-900 p-6">
+                <flux:heading size="md">Delete lead</flux:heading>
+                <p class="mt-2 text-sm text-zinc-400">This removes the lead from normal lists. Data is kept for audit and can be restored by a tenant admin.</p>
+                <form wire:submit="deleteLead" class="mt-4 grid gap-3 max-w-xl">
+                    <flux:textarea wire:model="delete_reason" label="Reason (optional)" rows="2" />
+                    <div class="flex gap-2">
+                        <flux:button type="submit" variant="danger">Confirm delete</flux:button>
+                        <flux:button type="button" wire:click="$set('confirm_delete', false)" variant="ghost">Cancel</flux:button>
+                    </div>
+                </form>
+            </div>
+        @endif
     @endif
     @if ($tab === 'timeline')
         <ul class="grid gap-3 text-sm">

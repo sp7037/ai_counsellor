@@ -26,6 +26,10 @@ class LeadDirectoryService
             ->where('tenant_id', $tenant->id)
             ->latest('id');
 
+        if (! empty($filters['deleted_only'])) {
+            $query->onlyTrashed();
+        }
+
         if ($counsellor !== null) {
             $query->where('assigned_to', $counsellor->id);
         }

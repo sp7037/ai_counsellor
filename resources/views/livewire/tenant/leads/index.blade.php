@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Services\Billing\EntitlementResolver;
 use App\Services\Leads\LeadDirectoryService;
+use App\Services\Leads\LeadLifecycleService;
 use App\Services\Leads\LeadTaskDirectoryService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -33,6 +34,9 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     #[Url]
     public string $task_filter = '';
 
+    #[Url]
+    public string $visibility = '';
+
     public function mount(Tenant $tenant): void
     {
         $this->authorize('viewAny', [Lead::class, $tenant]);
@@ -46,6 +50,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             'stage' => $this->stage ?: null,
             'assigned_to' => $this->assigned_to ?: null,
             'follow_up_due' => $this->task_filter === 'overdue' ? true : null,
+            'deleted_only' => $this->visibility === 'deleted' ? true : null,
         ]);
 
         $leadPage = $directory->paginateForTenant($this->tenant, null, $filters);
@@ -66,6 +71,13 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             'metrics' => array_merge($directory->tenantMetrics($this->tenant), $tasks->tenantCounts($this->tenant)),
             'counsellors' => TenantMembership::query()->with('user')->where('tenant_id', $this->tenant->id)->where('role', TenantRole::Staff->value)->where('status', 'active')->get(),
         ];
+    }
+
+    public function restoreLead(string $leadUuid, LeadLifecycleService $lifecycle): void
+    {
+        $lead = Lead::onlyTrashed()->where('tenant_id', $this->tenant->id)->where('uuid', $leadUuid)->firstOrFail();
+        $this->authorize('restore', $lead);
+        $lifecycle->restore($lead, auth()->user());
     }
 }; ?>
 
@@ -101,6 +113,10 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             <option value="">All follow-ups</option>
             <option value="overdue">Overdue follow-ups</option>
         </flux:select>
+        <flux:select wire:model.live="visibility" class="sm:max-w-xs">
+            <option value="">Active leads</option>
+            <option value="deleted">Deleted leads</option>
+        </flux:select>
     </div>
     <div class="overflow-x-auto rounded-lg border border-zinc-800">
         <table class="min-w-full text-sm">
@@ -127,7 +143,15 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                                 <span class="text-zinc-500">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right"><flux:button href="{{ route('tenant.leads.show', [$tenant, $lead]) }}" wire:navigate size="sm" variant="ghost">View</flux:button></td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex justify-end gap-2">
+                                @if ($visibility === 'deleted')
+                                    <flux:button wire:click="restoreLead('{{ $lead->uuid }}')" size="sm" variant="primary">Restore</flux:button>
+                                @else
+                                    <flux:button href="{{ route('tenant.leads.show', [$tenant, $lead]) }}" wire:navigate size="sm" variant="ghost">View</flux:button>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-10 text-center text-zinc-500">No leads yet.</td></tr>

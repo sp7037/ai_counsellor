@@ -52,4 +52,24 @@ class TenantFactory extends Factory
             'status' => TenantStatus::Cancelled->value,
         ]);
     }
+
+    public function archived(?string $reason = 'Test archive'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TenantStatus::Archived->value,
+            'archived_at' => now(),
+            'archive_reason' => $reason,
+        ]);
+    }
+
+    public function deleted(?string $reason = 'Test delete'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TenantStatus::Deleted->value,
+            'archived_at' => now(),
+            'archive_reason' => 'Pre-delete archive',
+            'deleted_at' => now(),
+            'delete_reason' => $reason,
+        ]);
+    }
 }

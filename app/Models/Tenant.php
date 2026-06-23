@@ -27,6 +27,12 @@ use Illuminate\Support\Str;
     'suspended_at',
     'suspension_reason',
     'suspended_by',
+    'archived_at',
+    'archived_by',
+    'archive_reason',
+    'deleted_at',
+    'deleted_by',
+    'delete_reason',
     'created_by',
 ])]
 class Tenant extends Model
@@ -53,6 +59,8 @@ class Tenant extends Model
             'status' => TenantStatus::class,
             'activated_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'archived_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -74,6 +82,26 @@ class Tenant extends Model
     public function suspendedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'suspended_by');
+    }
+
+    public function archivedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function deletedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->status === TenantStatus::Archived;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->status === TenantStatus::Deleted;
     }
 
     public function users(): BelongsToMany

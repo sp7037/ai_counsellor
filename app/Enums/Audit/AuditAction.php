@@ -8,6 +8,10 @@ enum AuditAction: string
     case TenantActivated = 'tenant.activated';
     case TenantSuspended = 'tenant.suspended';
     case TenantReactivated = 'tenant.reactivated';
+    case TenantArchived = 'tenant.archived';
+    case TenantRestored = 'tenant.restored';
+    case TenantDeleteAttempted = 'tenant.delete_attempted';
+    case TenantDeleted = 'tenant.deleted';
     case MembershipCreated = 'membership.created';
     case MembershipRoleChanged = 'membership.role_changed';
     case MembershipStatusChanged = 'membership.status_changed';
@@ -74,6 +78,8 @@ enum AuditAction: string
     case LeadMarkedInvalid = 'lead.marked_invalid';
     case LeadConverted = 'lead.converted';
     case LeadReopened = 'lead.reopened';
+    case LeadDeleted = 'lead.deleted';
+    case LeadRestored = 'lead.restored';
     case LeadAdminOverride = 'lead.admin_override';
     case CounsellorCreated = 'counsellor.created';
     case CounsellorUpdated = 'counsellor.updated';
@@ -117,6 +123,10 @@ enum AuditAction: string
             self::TenantActivated => 'Tenant activated',
             self::TenantSuspended => 'Tenant suspended',
             self::TenantReactivated => 'Tenant reactivated',
+            self::TenantArchived => 'Tenant archived',
+            self::TenantRestored => 'Tenant restored from archive',
+            self::TenantDeleteAttempted => 'Tenant delete attempted',
+            self::TenantDeleted => 'Tenant deleted',
             self::MembershipCreated => 'Membership created',
             self::MembershipRoleChanged => 'Membership role changed',
             self::MembershipStatusChanged => 'Membership status changed',
@@ -183,6 +193,8 @@ enum AuditAction: string
             self::LeadMarkedInvalid => 'Lead marked invalid',
             self::LeadConverted => 'Lead converted',
             self::LeadReopened => 'Lead reopened',
+            self::LeadDeleted => 'Lead deleted',
+            self::LeadRestored => 'Lead restored',
             self::LeadAdminOverride => 'Lead admin override',
             self::CounsellorCreated => 'Counsellor created',
             self::CounsellorUpdated => 'Counsellor updated',

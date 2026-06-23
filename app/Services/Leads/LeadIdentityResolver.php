@@ -58,6 +58,7 @@ class LeadIdentityResolver
 
         return Lead::withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
+            ->whereNull('deleted_at')
             ->whereNotNull('mobile')
             ->get()
             ->first(fn (Lead $lead) => $this->normalizeMobile($lead->mobile) === $normalized);
@@ -73,6 +74,7 @@ class LeadIdentityResolver
 
         return Lead::withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
+            ->whereNull('deleted_at')
             ->whereNotNull('email')
             ->get()
             ->first(fn (Lead $lead) => $this->normalizeEmail($lead->email) === $normalized);
@@ -99,7 +101,9 @@ class LeadIdentityResolver
         if ($conversation !== null) {
             $conversation->loadMissing('lead');
 
-            return $conversation->lead;
+            if ($conversation->lead !== null && ! $conversation->lead->trashed()) {
+                return $conversation->lead;
+            }
         }
 
         return null;

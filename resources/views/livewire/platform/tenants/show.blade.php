@@ -19,6 +19,16 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
     public bool $confirm_suspend = false;
 
+    public string $archive_reason = '';
+
+    public bool $confirm_archive = false;
+
+    public bool $confirm_delete = false;
+
+    public string $delete_confirmation = '';
+
+    public string $delete_reason = '';
+
     public function mount(Tenant $tenant): void
     {
         Gate::authorize('view', $tenant);
@@ -69,6 +79,51 @@ new #[Layout('components.layouts.platform')] class extends Component {
         Gate::authorize('reactivate', $this->tenant);
         $this->tenant = $service->reactivate($this->tenant, auth()->user());
     }
+
+    public function archive(TenantLifecycleService $service): void
+    {
+        Gate::authorize('archive', $this->tenant);
+
+        $this->validate([
+            'archive_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $this->tenant = $service->archive($this->tenant, $this->archive_reason, auth()->user())
+            ->load(['archivedByUser', 'suspendedByUser']);
+        $this->reset('archive_reason', 'confirm_archive');
+    }
+
+    public function restore(TenantLifecycleService $service): void
+    {
+        Gate::authorize('restore', $this->tenant);
+
+        if ($this->tenant->status === \App\Enums\Tenancy\TenantStatus::Deleted) {
+            $this->tenant = $service->restoreFromDelete($this->tenant, auth()->user())
+                ->load(['archivedByUser', 'suspendedByUser', 'deletedByUser']);
+        } else {
+            $this->tenant = $service->restoreFromArchive($this->tenant, auth()->user())
+                ->load(['archivedByUser', 'suspendedByUser', 'deletedByUser']);
+        }
+    }
+
+    public function deleteTenant(TenantLifecycleService $service): void
+    {
+        Gate::authorize('delete', $this->tenant);
+
+        $this->validate([
+            'delete_confirmation' => ['required', 'string'],
+            'delete_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $this->tenant = $service->deleteTenant(
+            $this->tenant,
+            $this->delete_confirmation,
+            $this->delete_reason,
+            auth()->user(),
+        )->load(['archivedByUser', 'suspendedByUser', 'deletedByUser']);
+
+        $this->reset('delete_confirmation', 'delete_reason', 'confirm_delete');
+    }
 }; ?>
 
 <x-slot:heading>{{ $tenant->name }}</x-slot:heading>
@@ -100,6 +155,24 @@ new #[Layout('components.layouts.platform')] class extends Component {
                 @if ($tenant->suspendedByUser)
                     <div><dt class="text-zinc-500">Suspended by</dt><dd>{{ $tenant->suspendedByUser->name }}</dd></div>
                 @endif
+                @if ($tenant->archive_reason)
+                    <div class="sm:col-span-2"><dt class="text-zinc-500">Archive reason</dt><dd>{{ $tenant->archive_reason }}</dd></div>
+                @endif
+                @if ($tenant->archived_at)
+                    <div><dt class="text-zinc-500">Archived at</dt><dd>{{ $tenant->archived_at->toDayDateTimeString() }}</dd></div>
+                @endif
+                @if ($tenant->archivedByUser)
+                    <div><dt class="text-zinc-500">Archived by</dt><dd>{{ $tenant->archivedByUser->name }}</dd></div>
+                @endif
+                @if ($tenant->delete_reason)
+                    <div class="sm:col-span-2"><dt class="text-zinc-500">Delete reason</dt><dd>{{ $tenant->delete_reason }}</dd></div>
+                @endif
+                @if ($tenant->deleted_at)
+                    <div><dt class="text-zinc-500">Deleted at</dt><dd>{{ $tenant->deleted_at->toDayDateTimeString() }}</dd></div>
+                @endif
+                @if ($tenant->deletedByUser)
+                    <div><dt class="text-zinc-500">Deleted by</dt><dd>{{ $tenant->deletedByUser->name }}</dd></div>
+                @endif
             </dl>
 
             <div class="mt-4 flex flex-wrap gap-3">
@@ -111,6 +184,17 @@ new #[Layout('components.layouts.platform')] class extends Component {
                 @endcan
                 @can('suspend', $tenant)
                     <flux:button wire:click="$set('confirm_suspend', true)" variant="danger">Suspend tenant</flux:button>
+                @endcan
+                @can('archive', $tenant)
+                    <flux:button wire:click="$set('confirm_archive', true)" variant="danger">Archive tenant</flux:button>
+                @endcan
+                @can('restore', $tenant)
+                    <flux:button wire:click="restore" variant="primary">
+                        {{ $tenant->status === \App\Enums\Tenancy\TenantStatus::Deleted ? 'Restore deleted tenant' : 'Restore archived tenant' }}
+                    </flux:button>
+                @endcan
+                @can('delete', $tenant)
+                    <flux:button wire:click="$set('confirm_delete', true)" variant="danger">Delete tenant</flux:button>
                 @endcan
             </div>
         </div>
@@ -199,6 +283,35 @@ new #[Layout('components.layouts.platform')] class extends Component {
                     <div class="flex gap-2">
                         <flux:button type="submit" variant="danger">Confirm suspend</flux:button>
                         <flux:button type="button" wire:click="$set('confirm_suspend', false)" variant="ghost">Cancel</flux:button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        @if ($confirm_archive)
+            <div class="rounded-lg border border-red-900/50 bg-zinc-900 p-6">
+                <flux:heading size="md">Confirm archive</flux:heading>
+                <p class="mt-2 text-sm text-zinc-400">Archiving keeps tenant data in the database but blocks login, widget access, and hides the tenant from the default list.</p>
+                <form wire:submit="archive" class="mt-4 grid gap-3">
+                    <flux:textarea wire:model="archive_reason" label="Archive reason" rows="3" required />
+                    <div class="flex gap-2">
+                        <flux:button type="submit" variant="danger">Confirm archive</flux:button>
+                        <flux:button type="button" wire:click="$set('confirm_archive', false)" variant="ghost">Cancel</flux:button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        @if ($confirm_delete)
+            <div class="rounded-lg border border-red-900/50 bg-zinc-900 p-6">
+                <flux:heading size="md">Delete tenant</flux:heading>
+                <p class="mt-2 text-sm text-zinc-400">This will disable the tenant and hide it from normal platform operations. Historical records are preserved for audit and recovery. Hard database removal is not performed. Type <strong class="text-white">DELETE TENANT</strong> to confirm.</p>
+                <form wire:submit="deleteTenant" class="mt-4 grid gap-3">
+                    <flux:textarea wire:model="delete_reason" label="Delete reason" rows="3" required />
+                    <flux:input wire:model="delete_confirmation" label="Confirmation" placeholder="DELETE TENANT" required />
+                    <div class="flex gap-2">
+                        <flux:button type="submit" variant="danger">Delete tenant</flux:button>
+                        <flux:button type="button" wire:click="$set('confirm_delete', false)" variant="ghost">Cancel</flux:button>
                     </div>
                 </form>
             </div>

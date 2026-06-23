@@ -51,10 +51,14 @@ new #[Layout('components.layouts.platform')] class extends Component {
     <div class="flex flex-col gap-3 sm:flex-row">
         <flux:input wire:model.live.debounce.300ms="search" placeholder="Search name, slug, or UUID" class="sm:max-w-xs" />
         <flux:select wire:model.live="status" class="sm:max-w-xs">
-            <option value="">All statuses</option>
+            <option value="">Default (hide archived/deleted)</option>
             <option value="active">Active</option>
             <option value="suspended">Suspended</option>
+            <option value="archived">Archived</option>
+            <option value="deleted">Deleted</option>
             <option value="pending">Pending</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">All</option>
         </flux:select>
         <flux:select wire:model.live="sort" class="sm:max-w-xs">
             <option value="created_at">Sort: created</option>

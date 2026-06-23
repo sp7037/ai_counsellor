@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -50,10 +51,13 @@ use Illuminate\Support\Str;
     'ai_suggested_priority',
     'score_components',
     'metadata',
+    'deleted_by',
+    'delete_reason',
 ])]
 class Lead extends Model
 {
     use BelongsToTenant;
+    use SoftDeletes;
 
     protected static function booted(): void
     {
@@ -81,7 +85,13 @@ class Lead extends Model
             'next_follow_up_at' => 'datetime',
             'last_contacted_at' => 'datetime',
             'closed_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     public function conversation(): BelongsTo

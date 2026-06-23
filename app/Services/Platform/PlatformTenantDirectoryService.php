@@ -2,6 +2,7 @@
 
 namespace App\Services\Platform;
 
+use App\Enums\Tenancy\TenantStatus;
 use App\Models\Conversation;
 use App\Models\Tenant;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -34,8 +35,15 @@ class PlatformTenantDirectoryService
             });
         }
 
-        if ($status !== null && $status !== '') {
+        if ($status === 'all') {
+            // No status filter.
+        } elseif ($status !== null && $status !== '') {
             $query->where('status', $status);
+        } else {
+            $query->whereNotIn('status', [
+                TenantStatus::Archived->value,
+                TenantStatus::Deleted->value,
+            ]);
         }
 
         $allowedSorts = ['created_at', 'name', 'last_activity_at'];
@@ -50,7 +58,7 @@ class PlatformTenantDirectoryService
      */
     public function tenantDetail(Tenant $tenant): array
     {
-        $tenant->load(['aiConfig.provider', 'memberships.user', 'suspendedByUser']);
+        $tenant->load(['aiConfig.provider', 'memberships.user', 'suspendedByUser', 'archivedByUser', 'deletedByUser']);
         $tenant->loadCount('conversations');
 
         $ai = $this->aiStatus->summarize($tenant->aiConfig);

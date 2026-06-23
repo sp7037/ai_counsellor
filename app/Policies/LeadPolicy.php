@@ -67,6 +67,10 @@ class LeadPolicy
             return false;
         }
 
+        if ($lead->trashed()) {
+            return false;
+        }
+
         $role = $user->tenantRoleFor($lead->tenant);
 
         if ($role?->canManageLeads()) {
@@ -74,5 +78,23 @@ class LeadPolicy
         }
 
         return $role?->canWorkAssignedLeads() && $lead->assigned_to === $user->id;
+    }
+
+    public function delete(User $user, Lead $lead): bool
+    {
+        if ($user->isPlatformSuperAdmin() || $lead->trashed()) {
+            return false;
+        }
+
+        return $user->tenantRoleFor($lead->tenant)?->canManageLeads() ?? false;
+    }
+
+    public function restore(User $user, Lead $lead): bool
+    {
+        if ($user->isPlatformSuperAdmin() || ! $lead->trashed()) {
+            return false;
+        }
+
+        return $user->tenantRoleFor($lead->tenant)?->canManageLeads() ?? false;
     }
 }
