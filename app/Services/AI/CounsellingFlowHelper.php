@@ -136,7 +136,7 @@ class CounsellingFlowHelper
         if ($assessment['next_question'] !== null) {
             $lines[] = 'Preferred next follow-up (ask only this one question): '.$assessment['next_question'];
         } elseif ($assessment['should_ask_contact'] ?? false) {
-            $lines[] = 'Preferred next follow-up: To guide you more accurately, may I know your name, city/state, and mobile number?';
+            $lines[] = 'Preferred next follow-up: May I know the student\'s name and mobile number for personalised guidance?';
         } else {
             $lines[] = 'No follow-up question needed right now unless it naturally helps the visitor.';
         }
@@ -166,6 +166,114 @@ class CounsellingFlowHelper
     }
 
     /**
+     * @param  array{active: bool, missing: array<int, string>, next_field: ?string, next_question: ?string, should_ask_contact?: bool, visitor_mbbs_messages?: int}  $assessment
+     * @param  array<string, mixed>  $context
+     */
+    public function buildProviderFailureFallback(array $assessment, array $context, string $visitorMessage): ?string
+    {
+        if (! ($assessment['active'] ?? false)) {
+            return null;
+        }
+
+        $metadata = is_array($context['metadata'] ?? null) ? $context['metadata'] : [];
+        $parts = array_filter([
+            $this->acknowledgementForMessage($visitorMessage),
+            $this->briefGuidanceSnippet($context, $metadata),
+            $this->resolveFallbackQuestion($assessment),
+        ]);
+
+        if ($parts === []) {
+            return null;
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * @param  array{active: bool, missing: array<int, string>, next_field: ?string, next_question: ?string, should_ask_contact?: bool, visitor_mbbs_messages?: int}  $assessment
+     */
+    private function resolveFallbackQuestion(array $assessment): ?string
+    {
+        if ($assessment['should_ask_contact'] ?? false) {
+            return $this->questionForField('contact_details');
+        }
+
+        if (filled($assessment['next_question'] ?? null)) {
+            return (string) $assessment['next_question'];
+        }
+
+        $fieldKey = $this->fieldKeyFromLabel($assessment['next_field'] ?? null);
+
+        return $this->questionForField($fieldKey);
+    }
+
+    private function acknowledgementForMessage(string $visitorMessage): ?string
+    {
+        if (preg_match('/\bopen to suggestions\b/i', $visitorMessage)) {
+            return 'Thanks, I\'ve noted that you are open to country suggestions.';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $metadata
+     */
+    private function briefGuidanceSnippet(array $context, array $metadata): ?string
+    {
+        $facts = $this->collectedFactPhrases($context, $metadata);
+
+        if ($facts === []) {
+            return 'I can still help with general MBBS abroad guidance.';
+        }
+
+        return 'Based on your '.implode(', ', $facts).', the next useful step is to shortlist only NMC-recognised options and verify current fees directly.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $metadata
+     * @return array<int, string>
+     */
+    private function collectedFactPhrases(array $context, array $metadata): array
+    {
+        $facts = [];
+
+        if (filled($metadata['neet_score'] ?? null)) {
+            $facts[] = 'NEET score of '.$metadata['neet_score'];
+        } elseif (filled($context['neet_status'] ?? null)) {
+            $facts[] = 'NEET status ('.$context['neet_status'].')';
+        }
+
+        if (filled($metadata['class_12_pcb_marks'] ?? null)) {
+            $facts[] = 'Class 12 PCB marks of '.$metadata['class_12_pcb_marks'].'%';
+        }
+
+        if (filled($context['budget'] ?? null)) {
+            $facts[] = 'budget of '.$context['budget'];
+        }
+
+        if (filled($context['city_state'] ?? null)) {
+            $facts[] = $context['city_state'].' location';
+        } elseif (filled($context['location'] ?? null)) {
+            $facts[] = $context['location'].' location';
+        }
+
+        if (filled($context['timeline'] ?? null)) {
+            $facts[] = $context['timeline'].' intake timeline';
+        }
+
+        if (($metadata['country_preference'] ?? null) === 'open_to_suggestions') {
+            $facts[] = 'open country preference';
+        } elseif (filled($context['country'] ?? null)) {
+            $facts[] = $context['country'].' country interest';
+        }
+
+        return $facts;
+    }
+
+    /**
      * @param  array<string, mixed>  $context
      * @param  array<string, mixed>  $metadata
      */
@@ -174,7 +282,9 @@ class CounsellingFlowHelper
         return match ($key) {
             'neet_status' => filled($context['neet_status'] ?? null) || filled($metadata['neet_score'] ?? null),
             'budget' => filled($context['budget'] ?? null),
-            'preferred_country' => filled($context['country'] ?? null) || filled($metadata['preferred_country'] ?? null),
+            'preferred_country' => filled($context['country'] ?? null)
+                || filled($metadata['preferred_country'] ?? null)
+                || filled($metadata['country_preference'] ?? null),
             'student_city_state' => filled($context['city_state'] ?? null)
                 || filled($metadata['city_state'] ?? null)
                 || filled($context['location'] ?? null),
@@ -329,7 +439,7 @@ class CounsellingFlowHelper
             'student_city_state' => 'Which city and state is the student from?',
             'class_12_pcb_marks' => 'What were your Class 12 PCB marks or percentage, if available?',
             'timeline' => 'Which intake or academic session are you targeting?',
-            'contact_details' => 'To guide you more accurately, may I know your name, city/state, and mobile number?',
+            'contact_details' => 'May I know the student\'s name and mobile number for personalised guidance?',
             default => null,
         };
     }

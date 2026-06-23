@@ -100,6 +100,11 @@ class ChatLeadExtractionService
             }
         }
 
+        if (preg_match('/\bopen to suggestions\b/i', $message)) {
+            $extracted['metadata']['country_preference'] = 'open_to_suggestions';
+            $extracted['metadata']['preferred_country'] = 'Open to suggestions';
+        }
+
         if (preg_match('/\b(?:budget|fee)\b[^.]{0,40}?(\d+(?:\.\d+)?\s*(?:lakh|lakhs|crore|crores)?)/i', $message, $matches)) {
             $extracted['metadata']['budget'] = trim($matches[0]);
         } elseif (preg_match('/\b(\d+(?:\.\d+)?\s*(?:lakh|lakhs|crore|crores))\b/i', $message, $matches)) {
@@ -121,7 +126,7 @@ class ChatLeadExtractionService
             $extracted['metadata']['class_12_pcb_marks'] = $matches[1];
         }
 
-        if (preg_match('/\b(?:this year|next year|202[5-9]|urgent|asap|immediately|current session)\b/i', $message, $matches)) {
+        if (preg_match('/\b(?:this year|next year|202[5-9]\s*(?:intake|session)?|urgent|asap|immediately|current session)\b/i', $message, $matches)) {
             $extracted['metadata']['timeline'] = trim($matches[0]);
         }
 
@@ -141,7 +146,7 @@ class ChatLeadExtractionService
             $extracted['requested_human_contact'] = true;
         }
 
-        if (preg_match('/\b(?:from|based in|located in|i am in|i live in)\s+([A-Za-z][A-Za-z\s]{1,40}?)(?:,\s*([A-Za-z][A-Za-z\s]{1,40}))?\b/i', $message, $matches)) {
+        if (preg_match('/\b(?:from|based in|located in|i am from|i am in|i live in)\s+([A-Za-z][A-Za-z\s]{1,40}?)(?:,\s*([A-Za-z][A-Za-z\s]{1,40}))?\b/i', $message, $matches)) {
             $city = trim($matches[1]);
             $state = isset($matches[2]) ? trim($matches[2]) : null;
             $extracted['metadata']['city_state'] = $state ? $city.', '.$state : $city;

@@ -117,6 +117,12 @@ class HandoffPromotionService
             return false;
         }
 
+        $metadata = is_array($reply->metadata) ? $reply->metadata : [];
+
+        if (($metadata['type'] ?? null) === 'counselling_continuity') {
+            return false;
+        }
+
         $body = strtolower((string) $reply->body);
 
         return str_contains($body, 'temporarily unavailable')

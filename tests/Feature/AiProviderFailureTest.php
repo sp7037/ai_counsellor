@@ -141,7 +141,7 @@ class AiProviderFailureTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ])->assertOk();
 
-        $this->assertSame('system', $response->json('reply.role'));
+        $this->assertSame('assistant', $response->json('reply.role'));
         $this->assertStringContainsString('saved your details', (string) $response->json('reply.body'));
         $this->assertStringNotContainsString('temporarily unavailable', (string) $response->json('reply.body'));
 

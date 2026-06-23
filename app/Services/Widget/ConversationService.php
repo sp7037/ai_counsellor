@@ -163,7 +163,7 @@ class ConversationService
             }
         }
 
-        $reply = DB::transaction(function () use ($session, $conversation, $aiResult, $contactCapturedThisMessage): Message {
+        $reply = DB::transaction(function () use ($session, $conversation, $aiResult, $contactCapturedThisMessage, $counsellingAssessment, $context, $body): Message {
             $conversation->update([
                 'last_message_at' => now(),
                 'last_visitor_message_at' => now(),
@@ -188,6 +188,33 @@ class ConversationService
                     'conversation_id' => $conversation->id,
                     'error_category' => $aiResult['error_category'] ?? null,
                     'contact_captured' => $contactCapturedThisMessage,
+                    'counselling_active' => $counsellingAssessment['active'] ?? false,
+                ]);
+            }
+
+            if ($contactCapturedThisMessage) {
+                return Message::query()->create([
+                    'tenant_id' => $session->tenant_id,
+                    'conversation_id' => $conversation->id,
+                    'role' => MessageRole::Assistant->value,
+                    'body' => $this->contactDetailsSavedMessage(),
+                    'metadata' => ['type' => 'contact_saved'],
+                ]);
+            }
+
+            $counsellingFallback = $this->counsellingFlow->buildProviderFailureFallback(
+                $counsellingAssessment,
+                $context,
+                $body,
+            );
+
+            if ($counsellingFallback !== null) {
+                return Message::query()->create([
+                    'tenant_id' => $session->tenant_id,
+                    'conversation_id' => $conversation->id,
+                    'role' => MessageRole::Assistant->value,
+                    'body' => $counsellingFallback,
+                    'metadata' => ['type' => 'counselling_continuity'],
                 ]);
             }
 
@@ -195,16 +222,13 @@ class ConversationService
                 'tenant_id' => $session->tenant_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::System->value,
-                'body' => $contactCapturedThisMessage
-                    ? $this->contactDetailsSavedMessage()
-                    : $this->safeFallbackMessage($session->tenant_id),
+                'body' => $this->safeFallbackMessage($session->tenant_id),
+                'metadata' => ['type' => 'provider_unavailable'],
             ]);
         });
 
-        if ($aiResult['status'] === 'success') {
-            $fieldKey = $this->counsellingFlow->fieldKeyFromLabel($counsellingAssessment['next_field'] ?? null);
-            $this->counsellingFlow->recordAskedField($conversation->fresh()->lead, $fieldKey);
-        }
+        $fieldKey = $this->counsellingFlow->fieldKeyFromLabel($counsellingAssessment['next_field'] ?? null);
+        $this->counsellingFlow->recordAskedField($conversation->fresh()->lead, $fieldKey);
 
         $handoff = $this->handoffPromotion->evaluate(
             $conversation->fresh(),

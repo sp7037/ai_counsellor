@@ -53,7 +53,7 @@ class LeadMetadataUpdateService
                 continue;
             }
 
-            if (! array_key_exists($key, $metadata) || blank($metadata[$key])) {
+            if ($key === 'country_preference' || ! array_key_exists($key, $metadata) || blank($metadata[$key])) {
                 $metadata[$key] = $value;
             }
         }

@@ -152,4 +152,65 @@ class CounsellorIntelligencePolishTest extends TestCase
         $this->assertSame('Rahul Kumar Official', $lead->full_name);
         $this->assertSame('9999900000', $lead->mobile);
     }
+
+    public function test_open_to_suggestions_is_stored_as_country_preference(): void
+    {
+        $extracted = app(\App\Services\Leads\ChatLeadExtractionService::class)
+            ->extractFromMessage('I am open to suggestions');
+
+        $this->assertSame('open_to_suggestions', $extracted['metadata']['country_preference'] ?? null);
+        $this->assertSame('Open to suggestions', $extracted['metadata']['preferred_country'] ?? null);
+    }
+
+    public function test_provider_failure_during_mbbs_counselling_returns_continuity_fallback(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'I am planning MBBS abroad. I qualified NEET with score 450, my Class 12 PCB percentage is 72, my total budget is around 25 lakh, I am from Lucknow Uttar Pradesh, and I am targeting 2026 intake. Please guide me.',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'trigger timeout I am open to suggestions',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $body = (string) $response->json('reply.body');
+
+        $this->assertSame('assistant', $response->json('reply.role'));
+        $this->assertFalse((bool) $response->json('handoff_prominent'));
+        $this->assertStringNotContainsString('temporarily unavailable', strtolower($body));
+        $this->assertStringContainsString('open to country suggestions', strtolower($body));
+        $this->assertStringContainsString('name and mobile number', strtolower($body));
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertSame('open_to_suggestions', $lead->metadata['country_preference'] ?? null);
+        $this->assertContains('contact_details', (array) ($lead->metadata['counselling_asked_fields'] ?? []));
+    }
+
+    public function test_explicit_counsellor_request_still_promotes_handoff_on_provider_failure(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+        $token = $this->widgetSessionToken($key);
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'trigger timeout I want to speak to a counsellor about MBBS abroad',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertTrue((bool) $response->json('handoff_prominent'));
+    }
 }
