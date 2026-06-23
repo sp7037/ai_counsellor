@@ -232,12 +232,21 @@ class MessagingModuleTest extends TestCase
 
         $this->postSignedWebhook($payload)->assertOk();
 
+        // WhatsApp webhook sends 12-digit numbers with a 91 prefix; LeadCreationService
+        // stores canonical 10-digit mobiles via LeadIdentityResolver::normalizeMobile().
         $this->assertDatabaseHas('leads', [
             'tenant_id' => $setup['tenant']->id,
             'source' => LeadSource::WhatsApp->value,
-            'mobile' => '919111122233',
+            'mobile' => '9111122233',
+            'source_reference' => $messageId,
         ]);
         $this->assertSame(1, Lead::query()->where('tenant_id', $setup['tenant']->id)->count());
+
+        // Messaging contact metadata keeps the provider-facing phone id for routing/replies.
+        $this->assertDatabaseHas('messaging_contacts', [
+            'tenant_id' => $setup['tenant']->id,
+            'external_contact_id' => '919111122233',
+        ]);
     }
 
     public function test_suspended_tenant_webhook_acknowledged_but_no_message_stored(): void
