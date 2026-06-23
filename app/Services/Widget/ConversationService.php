@@ -140,6 +140,35 @@ class ConversationService
         $context = $this->contextBuilder->build($conversation);
         $counsellingAssessment = $this->counsellingFlow->assess($conversation, $body, $context);
 
+        if ($this->handoffPromotion->isExplicitHumanRequest($body)) {
+            if ($subscription !== null && $reserved) {
+                $this->usage->releaseReservation($session->tenant, UsageMetric::AiRuns, $subscription);
+            }
+
+            $reply = DB::transaction(function () use ($session, $conversation): Message {
+                $conversation->update([
+                    'last_message_at' => now(),
+                    'last_visitor_message_at' => now(),
+                ]);
+
+                return Message::query()->create([
+                    'tenant_id' => $session->tenant_id,
+                    'conversation_id' => $conversation->id,
+                    'role' => MessageRole::Assistant->value,
+                    'body' => $this->explicitHandoffOfferMessage(),
+                    'metadata' => ['type' => 'handoff_offer'],
+                ]);
+            });
+
+            return [
+                'visitor_message' => $resolved['visitor_message'],
+                'reply' => $reply,
+                'mode' => $conversation->fresh()->mode->value,
+                'handoff_prominent' => true,
+                'show_location_chip' => false,
+            ];
+        }
+
         $knowledge = $this->knowledgeRetrieval->searchPublished(
             $session->tenant,
             $body,
@@ -374,6 +403,11 @@ class ConversationService
     private function contactDetailsSavedMessage(): string
     {
         return 'Thanks, I have saved your details. A counsellor can follow up if needed. Would you like to ask another question?';
+    }
+
+    private function explicitHandoffOfferMessage(): string
+    {
+        return 'Sure, I can connect you with a counsellor. Please click the button below.';
     }
 
     /**

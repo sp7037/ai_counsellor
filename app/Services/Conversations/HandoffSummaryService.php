@@ -5,10 +5,15 @@ namespace App\Services\Conversations;
 use App\Enums\Conversations\MessageRole;
 use App\Models\Conversation;
 use App\Models\Lead;
+use App\Services\AI\CounsellingSummaryFormatter;
 use Illuminate\Support\Str;
 
 class HandoffSummaryService
 {
+    public function __construct(
+        private readonly CounsellingSummaryFormatter $summaryFormatter,
+    ) {}
+
     public function generate(Conversation $conversation): string
     {
         $conversation->loadMissing(['lead', 'messages']);
@@ -88,10 +93,19 @@ class HandoffSummaryService
         $parts = array_filter([
             $lead?->programme_interest ? 'Programme '.$lead->programme_interest : null,
             $lead?->service_interest ? 'Service '.$lead->service_interest : null,
-            ($lead?->country ?? ($metadata['preferred_country'] ?? null)) ? 'Country '.($lead?->country ?? $metadata['preferred_country']) : null,
-            ($metadata['budget'] ?? null) ? 'Budget '.$metadata['budget'] : null,
-            ($metadata['neet_status'] ?? null) ? 'NEET '.$metadata['neet_status'] : null,
-            ($metadata['timeline'] ?? null) ? 'Timeline '.$metadata['timeline'] : null,
+            $this->summaryFormatter->countryLabel($metadata, $lead?->country),
+            $this->summaryFormatter->budgetLabel($metadata['budget'] ?? null),
+            filled($metadata['neet_score'] ?? null)
+                ? 'NEET score '.$metadata['neet_score']
+                : (($metadata['neet_status'] ?? null) ? 'NEET '.$metadata['neet_status'] : null),
+            filled($metadata['class_12_pcb_marks'] ?? null)
+                ? 'Class 12 PCB '.$metadata['class_12_pcb_marks'].'%'
+                : null,
+            $this->summaryFormatter->locationLabel(
+                $metadata['city_state'] ?? $lead?->location,
+                $lead?->state,
+            ),
+            $this->summaryFormatter->timelineLabel($metadata['timeline'] ?? null),
         ]);
 
         return $parts !== [] ? implode(' · ', $parts) : 'Not yet captured';

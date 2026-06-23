@@ -8,6 +8,10 @@ use App\Models\Lead;
 
 class CounsellingFlowHelper
 {
+    public function __construct(
+        private readonly CounsellingSummaryFormatter $summaryFormatter,
+    ) {}
+
     /** @var array<int, array{key: string, label: string}> */
     private const FIELD_PRIORITY = [
         ['key' => 'neet_status', 'label' => 'NEET status'],
@@ -250,24 +254,31 @@ class CounsellingFlowHelper
             $facts[] = 'Class 12 PCB marks of '.$metadata['class_12_pcb_marks'].'%';
         }
 
-        if (filled($context['budget'] ?? null)) {
-            $facts[] = 'budget of '.$context['budget'];
+        $budget = $this->summaryFormatter->budgetPhrase($context['budget'] ?? null);
+
+        if ($budget !== null) {
+            $facts[] = $budget;
         }
 
-        if (filled($context['city_state'] ?? null)) {
-            $facts[] = $context['city_state'].' location';
-        } elseif (filled($context['location'] ?? null)) {
-            $facts[] = $context['location'].' location';
+        $location = $this->summaryFormatter->locationPhrase(
+            $context['city_state'] ?? $context['location'] ?? null,
+            is_array($context['metadata'] ?? null) ? ($context['metadata']['state'] ?? null) : null,
+        );
+
+        if ($location !== null) {
+            $facts[] = $location;
         }
 
-        if (filled($context['timeline'] ?? null)) {
-            $facts[] = $context['timeline'].' intake timeline';
+        $timeline = $this->summaryFormatter->timelinePhrase($context['timeline'] ?? null);
+
+        if ($timeline !== null) {
+            $facts[] = $timeline;
         }
 
-        if (($metadata['country_preference'] ?? null) === 'open_to_suggestions') {
-            $facts[] = 'open country preference';
-        } elseif (filled($context['country'] ?? null)) {
-            $facts[] = $context['country'].' country interest';
+        $country = $this->summaryFormatter->countryPhrase($metadata, $context['country'] ?? null);
+
+        if ($country !== null) {
+            $facts[] = $country;
         }
 
         return $facts;

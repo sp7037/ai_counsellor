@@ -442,6 +442,8 @@ class AiOrchestrationTest extends TestCase
         ])->assertOk();
 
         $this->assertTrue((bool) $response->json('handoff_prominent'));
+        $this->assertStringContainsString('connect you with a counsellor', strtolower((string) $response->json('reply.body')));
+        $this->assertStringNotContainsString('based on your', strtolower((string) $response->json('reply.body')));
     }
 
     public function test_contact_details_not_requested_on_first_mbbs_message(): void

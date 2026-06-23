@@ -49,10 +49,15 @@ class HandoffPromotionService
         return ['prominent' => false, 'reason' => null];
     }
 
+    public function isExplicitHumanRequest(string $message): bool
+    {
+        return $this->explicitHumanRequest($message);
+    }
+
     private function explicitHumanRequest(string $message): bool
     {
         $patterns = [
-            '/\b(?:talk|speak|chat|connect)\s+(?:to|with)\s+(?:a\s+)?(?:human|counsell?or|agent|person|staff|representative)\b/i',
+            '/\b(?:talk|speak|chat|connect)\s+(?:to|with)\s+(?:a\s+)?(?:human|counsell?or|agent|person|staff|representative|someone|somebody)\b/i',
             '/\b(?:human|real)\s+(?:counsell?or|agent|person|help|support)\b/i',
             '/\b(?:call\s*me|callback|call\s*back|whatsapp|contact\s*me)\b/i',
             '/\b(?:i\s+)?(?:want|need|prefer)\s+(?:a\s+)?(?:human|counsell?or|agent|person)\b/i',

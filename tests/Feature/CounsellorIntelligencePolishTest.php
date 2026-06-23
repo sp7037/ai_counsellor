@@ -211,6 +211,61 @@ class CounsellorIntelligencePolishTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ])->assertOk();
 
+        $body = (string) $response->json('reply.body');
+
         $this->assertTrue((bool) $response->json('handoff_prominent'));
+        $this->assertStringContainsString('connect you with a counsellor', strtolower($body));
+        $this->assertStringNotContainsString('based on your', strtolower($body));
+        $this->assertStringNotContainsString('neet', strtolower($body));
+        $this->assertSame(0, \App\Models\AiRun::query()->count());
+    }
+
+    public function test_explicit_counsellor_request_after_mbbs_details_returns_short_handoff_message(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+        $token = $this->widgetSessionToken($key);
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'I am planning MBBS abroad. I qualified NEET with score 450, my Class 12 PCB percentage is 72, my total budget is around 25 lakh, I am from Lucknow Uttar Pradesh, and I am targeting 2026 intake. Please guide me.',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Rahul Sharma and my mobile number is 9876543210',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'I want to speak to a counsellor',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $body = (string) $response->json('reply.body');
+
+        $this->assertTrue((bool) $response->json('handoff_prominent'));
+        $this->assertStringContainsString('connect you with a counsellor', strtolower($body));
+        $this->assertStringNotContainsString('based on your', strtolower($body));
+        $this->assertStringNotContainsString('budget of budget', strtolower($body));
+        $this->assertStringNotContainsString('intake intake', strtolower($body));
+
+        $this->postJson('/widget/v1/handoff', [
+            'handoff_request_uuid' => (string) \Illuminate\Support\Str::uuid(),
+        ], $headers)->assertOk()
+            ->assertJsonPath('message', 'Thank you. A counsellor will join you shortly.');
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $summary = (string) $lead->fresh()->ai_suggested_summary;
+
+        $this->assertStringContainsString('Rahul Sharma', $summary);
+        $this->assertStringContainsString('9876543210', $summary);
+        $this->assertStringNotContainsString('budget of budget', strtolower($summary));
+        $this->assertStringNotContainsString('intake intake', strtolower($summary));
+        $this->assertStringContainsString('Budget around', $summary);
+        $this->assertStringContainsString('Lucknow', $summary);
     }
 }
