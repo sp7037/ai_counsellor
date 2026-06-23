@@ -96,6 +96,32 @@ class CounsellorIntelligencePolishTest extends TestCase
         $this->assertStringContainsString('Do not invent', $joined);
     }
 
+    public function test_prompt_builder_includes_concise_counselling_style_for_mbbs_flow(): void
+    {
+        ['tenant' => $tenant, 'user' => $user, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->assertOk();
+
+        $conversation = \App\Models\Conversation::query()->firstOrFail();
+        $settings = \App\Models\TenantSettings::query()->where('tenant_id', $tenant->id)->first();
+
+        $messages = app(AiPromptBuilder::class)->build(
+            $tenant,
+            $settings,
+            $conversation,
+            'Can you guide me for MBBS abroad?',
+            [],
+        );
+
+        $joined = implode("\n", array_map(fn ($message) => $message->content, $messages));
+
+        $this->assertStringContainsString('Counselling flow (MBBS abroad enquiry detected)', $joined);
+        $this->assertStringContainsString('Maximum 120 words and maximum 4 bullet points', $joined);
+        $this->assertStringContainsString('Avoid long country lists unless the visitor explicitly asks', $joined);
+    }
+
     public function test_existing_lead_contact_is_not_overwritten_by_extraction(): void
     {
         ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();

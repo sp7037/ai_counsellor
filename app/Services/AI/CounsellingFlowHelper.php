@@ -114,16 +114,21 @@ class CounsellingFlowHelper
             return '';
         }
 
+        $maxWords = (int) config('ai.counselling_max_words', 120);
+        $maxBullets = (int) config('ai.counselling_max_bullets', 4);
+
         $lines = [
             'Counselling flow (MBBS abroad enquiry detected):',
-            'Structure each reply as: (1) one short acknowledgement using collected facts, (2) 2–4 concise guidance bullets, (3) exactly one complete next question.',
-            'Stay within about 120 words total. Use plain text with at most 4 short bullet points. No markdown headings or long country lists unless the visitor asked.',
+            "Structure each reply as: (1) one short acknowledgement using collected facts, (2) up to {$maxBullets} concise guidance bullets, (3) exactly one complete next question.",
+            "Stay within about {$maxWords} words total. Use plain text with at most {$maxBullets} short bullet points.",
             'Answer the visitor question first using published knowledge when available.',
             'Do not invent exact fees, university names, eligibility rules, deadlines, or guarantees unless present in published knowledge.',
             'If published knowledge lacks specific details, say verified details are needed and give cautious general guidance.',
             'Ask exactly ONE follow-up question at the end. Never ask multiple questions in one reply.',
             'Never end mid-sentence. Never continue long explanations after the follow-up question.',
+            'Avoid long country lists unless the visitor explicitly asks for countries.',
             'Do not repeat a follow-up for information already collected or already asked in this conversation.',
+            'Do not push human counsellor contact unless the visitor asks or the issue is high-risk.',
             'Do not ask for name, mobile, or email in the first reply unless the visitor asked for callback or admission help.',
             'For location, ask for city/state in plain words. Never claim automatic GPS or location access.',
         ];

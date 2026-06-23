@@ -85,11 +85,33 @@ class AiReplyCompletionGuard
         return str_word_count(strip_tags($content));
     }
 
+    public function bulletCount(string $content): int
+    {
+        $count = 0;
+
+        foreach (preg_split('/\R/u', $content) ?: [] as $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            if (preg_match('/^([-*•]|\d+[.)])\s+/u', $line)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     public function retryInstruction(): string
     {
+        $maxWords = (int) config('ai.counselling_max_words', 120);
+        $maxBullets = (int) config('ai.counselling_max_bullets', 4);
+
         return implode("\n", [
             'Your previous reply was cut off before finishing.',
-            'Reply again in at most 120 words using at most 4 short bullet points.',
+            "Reply again in at most {$maxWords} words using at most {$maxBullets} short bullet points.",
             'End with exactly one complete follow-up question.',
             'Never stop mid-sentence or mid-list.',
         ]);

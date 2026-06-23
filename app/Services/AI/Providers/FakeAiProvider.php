@@ -99,17 +99,24 @@ class FakeAiProvider implements AiProviderContract
         $latestUserMessage = $this->latestUserMessage($request);
 
         if (str_contains($systemText, 'counselling flow')) {
-            $answer = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
-                ? 'Yes, we can guide you for MBBS abroad based on our published guidance.'
-                : 'Yes, I can guide you generally on MBBS abroad options. Specific fee and university details need verified information from our team.';
-
             $followUp = $this->extractPreferredFollowUp($systemText)
                 ?? 'What is your NEET status or score?';
+
+            $intro = str_contains($systemText, '[faq]') || str_contains($systemText, 'knowledge references')
+                ? 'Thanks. I can guide you for MBBS abroad based on our published guidance.'
+                : 'Thanks. I can guide you generally on MBBS abroad options. Specific fee and university details need verified information from our team.';
+
+            $content = implode("\n", [
+                $intro,
+                '- Check NMC recognition before applying.',
+                '- Verify fees directly with each university.',
+                $followUp,
+            ]);
 
             return new AiResponse(
                 provider: 'fake',
                 model: $request->model,
-                content: $answer.' '.$followUp,
+                content: $content,
                 usage: new AiUsage(inputTokens: 10, outputTokens: 8, totalTokens: 18, latencyMs: 20),
             );
         }
