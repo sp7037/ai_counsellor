@@ -127,4 +127,27 @@ class AiProviderFailureTest extends TestCase
         $this->assertNull($run->output_tokens);
         $this->assertNull($run->message_id);
     }
+
+    public function test_contact_capture_with_ai_failure_returns_saved_details_message(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+        $token = $this->widgetSessionToken($key);
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'trigger timeout My name is Rahul Sharma and my mobile number is 9876543210',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertSame('system', $response->json('reply.role'));
+        $this->assertStringContainsString('saved your details', (string) $response->json('reply.body'));
+        $this->assertStringNotContainsString('temporarily unavailable', (string) $response->json('reply.body'));
+
+        $lead = \App\Models\Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->first();
+        $this->assertNotNull($lead);
+        $this->assertSame('Rahul Sharma', $lead->full_name);
+        $this->assertSame('9876543210', $lead->mobile);
+    }
 }

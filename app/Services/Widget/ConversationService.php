@@ -21,7 +21,9 @@ use App\Services\Billing\UsageTrackingService;
 use App\Services\Billing\WidgetEntitlementService;
 use App\Services\Conversations\ConversationMessageService;
 use App\Services\Leads\ChatLeadExtractionService;
+use App\Services\Leads\LeadNameGuard;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -39,6 +41,7 @@ class ConversationService
         private readonly HandoffPromotionService $handoffPromotion,
         private readonly CounsellingFlowHelper $counsellingFlow,
         private readonly ConversationContextBuilder $contextBuilder,
+        private readonly LeadNameGuard $nameGuard,
     ) {}
 
     public function addVisitorMessage(WidgetSession $session, string $body, ?string $requestId = null): array
@@ -128,6 +131,9 @@ class ConversationService
             ];
         }
 
+        $extracted = $this->leadExtraction->extractFromMessage($body);
+        $contactCapturedThisMessage = $this->wasContactCaptured($extracted);
+
         $this->leadExtraction->processMessage($session->tenant, $conversation->fresh(), $body);
         $conversation->refresh()->loadMissing('lead');
 
@@ -157,7 +163,7 @@ class ConversationService
             }
         }
 
-        $reply = DB::transaction(function () use ($session, $conversation, $aiResult): Message {
+        $reply = DB::transaction(function () use ($session, $conversation, $aiResult, $contactCapturedThisMessage): Message {
             $conversation->update([
                 'last_message_at' => now(),
                 'last_visitor_message_at' => now(),
@@ -176,11 +182,22 @@ class ConversationService
                 return $finalized['assistant'];
             }
 
+            if ($aiResult['status'] !== 'success') {
+                Log::warning('Widget AI reply failed', [
+                    'tenant_id' => $session->tenant_id,
+                    'conversation_id' => $conversation->id,
+                    'error_category' => $aiResult['error_category'] ?? null,
+                    'contact_captured' => $contactCapturedThisMessage,
+                ]);
+            }
+
             return Message::query()->create([
                 'tenant_id' => $session->tenant_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::System->value,
-                'body' => $this->safeFallbackMessage($session->tenant_id),
+                'body' => $contactCapturedThisMessage
+                    ? $this->contactDetailsSavedMessage()
+                    : $this->safeFallbackMessage($session->tenant_id),
             ]);
         });
 
@@ -328,6 +345,23 @@ class ConversationService
         }
 
         return 'Our assistant is temporarily unavailable. Please try again shortly or contact our team.';
+    }
+
+    private function contactDetailsSavedMessage(): string
+    {
+        return 'Thanks, I have saved your details. A counsellor can follow up if needed. Would you like to ask another question?';
+    }
+
+    /**
+     * @param  array<string, mixed>  $extracted
+     */
+    private function wasContactCaptured(array $extracted): bool
+    {
+        if (! empty($extracted['mobile']) || ! empty($extracted['email'])) {
+            return true;
+        }
+
+        return $this->nameGuard->isValidPersonName($extracted['full_name'] ?? null);
     }
 
     private function waitingReply(Conversation $conversation): ?Message

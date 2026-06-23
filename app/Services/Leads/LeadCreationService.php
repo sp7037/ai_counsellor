@@ -24,6 +24,7 @@ class LeadCreationService
         private readonly LeadActivityLogger $activity,
         private readonly AuditLogger $audit,
         private readonly EntitlementResolver $entitlements,
+        private readonly LeadNameGuard $nameGuard,
     ) {}
 
     /**
@@ -74,7 +75,7 @@ class LeadCreationService
                 'source_reference' => $sourceReference,
                 'capture_event_uuid' => $captureEventUuid,
                 'created_by' => $actor?->id,
-                'full_name' => trim((string) ($input['full_name'] ?? 'Unknown')),
+                'full_name' => $this->resolveFullName($input['full_name'] ?? null),
                 'mobile' => $this->normalizeMobile($input['mobile'] ?? null),
                 'email' => isset($input['email']) ? strtolower(trim((string) $input['email'])) : null,
                 'preferred_contact_method' => $input['preferred_contact_method'] ?? null,
@@ -129,6 +130,25 @@ class LeadCreationService
             $actor,
             sourceReference: 'conversation:'.$conversation->uuid,
         );
+    }
+
+    private function resolveFullName(?string $candidate): string
+    {
+        if ($this->nameGuard->isValidPersonName($candidate)) {
+            return trim((string) $candidate);
+        }
+
+        $candidate = trim((string) ($candidate ?? ''));
+
+        if ($candidate === '') {
+            return 'Unknown';
+        }
+
+        if (in_array(strtolower($candidate), ['visitor', 'unknown'], true)) {
+            return ucfirst(strtolower($candidate));
+        }
+
+        return 'Visitor';
     }
 
     private function normalizeMobile(?string $mobile): ?string

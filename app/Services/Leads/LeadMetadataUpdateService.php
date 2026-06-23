@@ -8,6 +8,7 @@ class LeadMetadataUpdateService
 {
     public function __construct(
         private readonly LeadQualificationEngine $qualification,
+        private readonly LeadNameGuard $nameGuard,
     ) {}
 
     /**
@@ -17,7 +18,7 @@ class LeadMetadataUpdateService
     {
         $updates = [];
 
-        if (! empty($extracted['full_name']) && $this->isPlaceholderName($lead->full_name)) {
+        if (! empty($extracted['full_name']) && $this->nameGuard->shouldReplaceExistingName($lead->full_name, (string) $extracted['full_name'])) {
             $updates['full_name'] = trim((string) $extracted['full_name']);
         }
 
@@ -73,12 +74,5 @@ class LeadMetadataUpdateService
         }
 
         return $lead->fresh();
-    }
-
-    private function isPlaceholderName(?string $name): bool
-    {
-        $name = strtolower(trim((string) $name));
-
-        return $name === '' || in_array($name, ['unknown', 'visitor'], true);
     }
 }

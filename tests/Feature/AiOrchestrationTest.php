@@ -531,4 +531,131 @@ class AiOrchestrationTest extends TestCase
         $this->assertSame(1, Lead::withoutGlobalScopes()->where('tenant_id', $tenantA->id)->count());
         $this->assertSame(0, Lead::withoutGlobalScopes()->where('tenant_id', $tenantB->id)->count());
     }
+
+    public function test_extracts_name_and_mobile_from_explicit_intro_message(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Rahul Sharma and my mobile number is 9876543210',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->first();
+
+        $this->assertNotNull($lead);
+        $this->assertSame('Rahul Sharma', $lead->full_name);
+        $this->assertSame('9876543210', $lead->mobile);
+    }
+
+    public function test_counselling_opener_does_not_use_query_as_lead_name(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $message = 'I am planning MBBS abroad. I qualified NEET with 450 marks and my budget is 25 lakh.';
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => $message,
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+
+        $this->assertSame('Visitor', $lead->full_name);
+        $this->assertStringContainsString('planning MBBS abroad', (string) $lead->enquiry_summary);
+    }
+
+    public function test_weak_lead_name_is_replaced_by_later_real_name(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'I am planning MBBS abroad. I qualified NEET with 450 marks.',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $lead->update(['full_name' => 'planning MBBS abroad. I qualified NEET wi']);
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Rahul Sharma and my mobile number is 9876543210',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $lead->refresh();
+
+        $this->assertSame('Rahul Sharma', $lead->full_name);
+        $this->assertSame('9876543210', $lead->mobile);
+    }
+
+    public function test_valid_lead_name_is_not_overwritten_by_counselling_message(): void
+    {
+        ['tenant' => $tenant, 'key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'My name is Rahul Sharma and my mobile number is 9876543210, interested in MBBS abroad.',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'I am planning MBBS abroad and open to suggestions for Georgia.',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $lead = Lead::withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+
+        $this->assertSame('Rahul Sharma', $lead->full_name);
+    }
+
+    public function test_lead_contact_label_prefers_real_name_over_mobile(): void
+    {
+        $lead = new Lead([
+            'full_name' => 'Rahul Sharma',
+            'mobile' => '9876543210',
+        ]);
+
+        $this->assertSame('Rahul Sharma', $lead->contactLabel());
+    }
+
+    public function test_lead_contact_label_uses_mobile_when_name_is_weak(): void
+    {
+        $lead = new Lead([
+            'full_name' => 'planning MBBS abroad. I qualified NEET wi',
+            'mobile' => '9876543210',
+        ]);
+
+        $this->assertSame('9876543210', $lead->contactLabel());
+    }
 }

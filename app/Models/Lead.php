@@ -7,6 +7,7 @@ use App\Enums\Leads\LeadQualificationStatus;
 use App\Enums\Leads\LeadSource;
 use App\Enums\Leads\LeadStage;
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\Leads\LeadNameGuard;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -131,5 +132,10 @@ class Lead extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function contactLabel(): string
+    {
+        return app(LeadNameGuard::class)->contactLabel($this->full_name, $this->mobile, $this->email);
     }
 }

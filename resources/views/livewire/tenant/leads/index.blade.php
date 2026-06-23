@@ -112,7 +112,11 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                     @php $task = $latestTasks[$lead->id] ?? null; @endphp
                     <tr>
                         <td class="px-4 py-3 font-mono text-xs">{{ $lead->public_reference }}</td>
-                        <td class="px-4 py-3">{{ $lead->full_name }}<br><span class="text-zinc-500">{{ $lead->mobile ?? $lead->email }}</span></td>
+                        @php
+                            $contactLabel = $lead->contactLabel();
+                            $secondaryContact = $lead->mobile ?? $lead->email;
+                        @endphp
+                        <td class="px-4 py-3">{{ $contactLabel }}@if($secondaryContact && $contactLabel !== $secondaryContact)<br><span class="text-zinc-500">{{ $secondaryContact }}</span>@endif</td>
                         <td class="px-4 py-3">{{ $lead->stage->label() }}</td>
                         <td class="px-4 py-3">{{ $lead->assignee?->name ?? '—' }}</td>
                         <td class="px-4 py-3">

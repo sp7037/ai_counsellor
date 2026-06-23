@@ -12,6 +12,7 @@ class ChatLeadExtractionService
     public function __construct(
         private readonly LeadCreationService $creation,
         private readonly LeadMetadataUpdateService $metadataUpdate,
+        private readonly LeadNameGuard $nameGuard,
     ) {}
 
     public function processMessage(Tenant $tenant, Conversation $conversation, string $message): ?Lead
@@ -37,7 +38,7 @@ class ChatLeadExtractionService
             LeadSource::WidgetConversation,
             array_merge([
                 'conversation_id' => $conversation->id,
-                'full_name' => $extracted['full_name'] ?? 'Visitor',
+                'full_name' => $this->nameGuard->storedName($extracted['full_name'] ?? null),
                 'mobile' => $extracted['mobile'] ?? null,
                 'email' => $extracted['email'] ?? null,
                 'country' => $extracted['country'] ?? null,
@@ -75,8 +76,10 @@ class ChatLeadExtractionService
             $extracted['mobile'] = $matches[1];
         }
 
-        if (preg_match('/(?:my name is|i am|this is|name is)\s+([A-Za-z][A-Za-z\s\'.]{1,40})/i', $message, $matches)) {
-            $extracted['full_name'] = trim(preg_replace('/\s+/', ' ', $matches[1]) ?? $matches[1]);
+        $extractedName = $this->nameGuard->extractFromMessage($message);
+
+        if ($extractedName !== null) {
+            $extracted['full_name'] = $extractedName;
         }
 
         if (preg_match('/\b(mbbs|bds|md|ms)\b/i', $message, $matches)) {
