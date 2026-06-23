@@ -12,6 +12,8 @@ enum AuditAction: string
     case TenantRestored = 'tenant.restored';
     case TenantDeleteAttempted = 'tenant.delete_attempted';
     case TenantDeleted = 'tenant.deleted';
+    case TenantUpdated = 'tenant.updated';
+    case UserEmailReleased = 'user.email_released';
     case MembershipCreated = 'membership.created';
     case MembershipRoleChanged = 'membership.role_changed';
     case MembershipStatusChanged = 'membership.status_changed';
@@ -106,6 +108,9 @@ enum AuditAction: string
     case SubscriptionCancelled = 'subscription.cancelled';
     case SubscriptionRestored = 'subscription.restored';
     case SubscriptionPlanChanged = 'subscription.plan_changed';
+    case PlanChangeRequested = 'plan_change.requested';
+    case PlanChangeApproved = 'plan_change.approved';
+    case PlanChangeRejected = 'plan_change.rejected';
     case EntitlementOverrideApplied = 'entitlement.override_applied';
     case EntitlementOverrideRemoved = 'entitlement.override_removed';
     case PlanPricingUpdated = 'plan.pricing_updated';
@@ -127,6 +132,8 @@ enum AuditAction: string
             self::TenantRestored => 'Tenant restored from archive',
             self::TenantDeleteAttempted => 'Tenant delete attempted',
             self::TenantDeleted => 'Tenant deleted',
+            self::TenantUpdated => 'Tenant updated',
+            self::UserEmailReleased => 'User email released',
             self::MembershipCreated => 'Membership created',
             self::MembershipRoleChanged => 'Membership role changed',
             self::MembershipStatusChanged => 'Membership status changed',
@@ -221,6 +228,9 @@ enum AuditAction: string
             self::SubscriptionCancelled => 'Subscription cancelled',
             self::SubscriptionRestored => 'Subscription restored',
             self::SubscriptionPlanChanged => 'Subscription plan changed',
+            self::PlanChangeRequested => 'Plan change requested',
+            self::PlanChangeApproved => 'Plan change approved',
+            self::PlanChangeRejected => 'Plan change rejected',
             self::EntitlementOverrideApplied => 'Entitlement override applied',
             self::EntitlementOverrideRemoved => 'Entitlement override removed',
             self::PlanPricingUpdated => 'Plan pricing updated',

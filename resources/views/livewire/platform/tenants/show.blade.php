@@ -6,6 +6,7 @@ use App\Services\Platform\PlatformAuditLogService;
 use App\Services\Platform\PlatformTenantDirectoryService;
 use App\Services\Platform\PlatformUsageReportingService;
 use App\Services\Tenancy\TenantLifecycleService;
+use App\Services\Tenancy\TenantProfileService;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -29,10 +30,34 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
     public string $delete_reason = '';
 
+    public bool $edit_open = false;
+
+    public string $edit_name = '';
+
+    public string $edit_legal_name = '';
+
+    public string $edit_slug = '';
+
+    public string $edit_email = '';
+
+    public string $edit_phone = '';
+
+    public bool $confirm_slug_change = false;
+
     public function mount(Tenant $tenant): void
     {
         Gate::authorize('view', $tenant);
         $this->tenant = $tenant;
+        $this->fillEditForm();
+    }
+
+    protected function fillEditForm(): void
+    {
+        $this->edit_name = $this->tenant->name;
+        $this->edit_legal_name = (string) ($this->tenant->legal_name ?? '');
+        $this->edit_slug = $this->tenant->displaySlug();
+        $this->edit_email = (string) ($this->tenant->displayEmail() ?? '');
+        $this->edit_phone = (string) ($this->tenant->phone ?? '');
     }
 
     public function with(
@@ -124,14 +149,55 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
         $this->reset('delete_confirmation', 'delete_reason', 'confirm_delete');
     }
+
+    public function openEdit(): void
+    {
+        Gate::authorize('update', $this->tenant);
+        $this->fillEditForm();
+        $this->edit_open = true;
+    }
+
+    public function saveProfile(TenantProfileService $profiles): void
+    {
+        Gate::authorize('update', $this->tenant);
+
+        $this->validate([
+            'edit_name' => ['required', 'string', 'max:255'],
+            'edit_legal_name' => ['nullable', 'string', 'max:255'],
+            'edit_slug' => ['required', 'string', 'max:255', 'alpha_dash'],
+            'edit_email' => ['nullable', 'email', 'max:255'],
+            'edit_phone' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if ($this->edit_slug !== $this->tenant->displaySlug() && ! $this->confirm_slug_change) {
+            $this->addError('edit_slug', 'Confirm the slug change before saving.');
+
+            return;
+        }
+
+        $this->tenant = $profiles->update($this->tenant, [
+            'name' => $this->edit_name,
+            'legal_name' => $this->edit_legal_name ?: null,
+            'slug' => $this->edit_slug,
+            'email' => $this->edit_email ?: null,
+            'phone' => $this->edit_phone ?: null,
+        ], auth()->user());
+
+        $this->edit_open = false;
+        $this->confirm_slug_change = false;
+        session()->flash('status', 'Tenant profile updated.');
+    }
 }; ?>
 
-<x-slot:heading>{{ $tenant->name }}</x-slot:heading>
+<x-slot:heading>{{ $tenant->displayName() }}</x-slot:heading>
 <x-slot:actions>
     <flux:button href="{{ route('platform.tenants.index') }}" wire:navigate variant="ghost" size="sm">Back</flux:button>
 </x-slot:actions>
 
 <div class="grid gap-6">
+    @if (session('status'))
+        <flux:callout variant="success">{{ session('status') }}</flux:callout>
+    @endif
     <div class="flex flex-wrap gap-2 border-b border-zinc-800 pb-2 text-sm">
         @foreach (['overview' => 'Overview', 'ai' => 'AI configuration', 'usage' => 'Usage', 'activity' => 'Activity', 'audit' => 'Audit history'] as $key => $label)
             <button type="button" wire:click="$set('tab', '{{ $key }}')" @class([
@@ -146,7 +212,15 @@ new #[Layout('components.layouts.platform')] class extends Component {
         <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-sm text-zinc-300">
             <dl class="grid gap-3 sm:grid-cols-2">
                 <div><dt class="text-zinc-500">Status</dt><dd>{{ $tenant->status->label() }}</dd></div>
-                <div><dt class="text-zinc-500">Slug</dt><dd class="font-mono text-xs">{{ $tenant->slug }}</dd></div>
+                <div><dt class="text-zinc-500">Slug</dt><dd class="font-mono text-xs">{{ $tenant->displaySlug() }}</dd></div>
+                @if ($tenant->status === \App\Enums\Tenancy\TenantStatus::Deleted)
+                    <div><dt class="text-zinc-500">Internal slug</dt><dd class="font-mono text-xs text-zinc-500">{{ $tenant->slug }}</dd></div>
+                @endif
+                @if ($tenant->identifier_restore_conflict)
+                    <div class="sm:col-span-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-100">
+                        Identifier conflict on restore. Edit slug/email before reactivation.
+                    </div>
+                @endif
                 <div><dt class="text-zinc-500">UUID</dt><dd class="font-mono text-xs">{{ $tenant->uuid }}</dd></div>
                 <div><dt class="text-zinc-500">Conversations</dt><dd>{{ $detail['tenant']->conversations_count }}</dd></div>
                 @if ($tenant->suspension_reason)
@@ -176,6 +250,9 @@ new #[Layout('components.layouts.platform')] class extends Component {
             </dl>
 
             <div class="mt-4 flex flex-wrap gap-3">
+                @can('update', $tenant)
+                    <flux:button type="button" wire:click="openEdit" variant="ghost">Edit tenant</flux:button>
+                @endcan
                 @can('activate', $tenant)
                     <flux:button wire:click="activate" variant="primary">Activate</flux:button>
                 @endcan
@@ -198,6 +275,26 @@ new #[Layout('components.layouts.platform')] class extends Component {
                 @endcan
             </div>
         </div>
+
+        @if ($edit_open)
+            <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+                <flux:heading size="md">Edit tenant</flux:heading>
+                <form wire:submit="saveProfile" class="mt-4 grid max-w-xl gap-3">
+                    <flux:input wire:model="edit_name" label="Organisation name" required />
+                    <flux:input wire:model="edit_legal_name" label="Legal name" />
+                    <flux:input wire:model="edit_slug" label="Slug" required />
+                    @if ($edit_slug !== $tenant->displaySlug())
+                        <flux:checkbox wire:model="confirm_slug_change" label="I understand this slug change affects tenant URLs and routing." />
+                    @endif
+                    <flux:input wire:model="edit_email" label="Contact email" type="email" />
+                    <flux:input wire:model="edit_phone" label="Phone" />
+                    <div class="flex gap-2">
+                        <flux:button type="submit" variant="primary">Save changes</flux:button>
+                        <flux:button type="button" wire:click="$set('edit_open', false)" variant="ghost">Cancel</flux:button>
+                    </div>
+                </form>
+            </div>
+        @endif
 
         <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">

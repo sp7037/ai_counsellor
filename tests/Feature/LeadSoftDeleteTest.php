@@ -27,7 +27,9 @@ class LeadSoftDeleteTest extends TestCase
         $this->actingAs($admin);
 
         Volt::test('tenant.leads.show', ['tenant' => $tenant, 'lead' => $lead])
-            ->set('confirm_delete', true)
+            ->call('confirmLeadDelete')
+            ->assertSet('confirm_delete', true)
+            ->assertSee('Confirm delete', false)
             ->set('delete_reason', 'Test duplicate')
             ->call('deleteLead')
             ->assertHasNoErrors()
@@ -106,9 +108,21 @@ class LeadSoftDeleteTest extends TestCase
         $this->actingAs($staff);
 
         Volt::test('tenant.leads.show', ['tenant' => $tenant, 'lead' => $lead->fresh()])
-            ->set('confirm_delete', true)
-            ->call('deleteLead')
-            ->assertForbidden();
+            ->assertDontSee('Delete lead', false)
+            ->call('confirmLeadDelete')
+            ->assertSet('delete_error', 'You do not have permission to delete leads.')
+            ->assertSet('confirm_delete', false);
+    }
+
+    public function test_tenant_owner_can_see_delete_lead_action(): void
+    {
+        ['tenant' => $tenant, 'user' => $owner] = $this->createTenantWithMember(role: TenantRole::Owner);
+        $lead = $this->createLead($tenant, $owner);
+
+        $this->actingAs($owner);
+
+        Volt::test('tenant.leads.show', ['tenant' => $tenant, 'lead' => $lead])
+            ->assertSee('Delete lead', false);
     }
 
     public function test_lead_delete_and_restore_write_audit_logs(): void

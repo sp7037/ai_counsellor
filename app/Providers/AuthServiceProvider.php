@@ -54,6 +54,7 @@ use App\Policies\TenantMessagingIntegrationPolicy;
 use App\Policies\TenantNotePolicy;
 use App\Policies\TenantPolicy;
 use App\Policies\TenantWidgetSettingsPolicy;
+use App\Policies\UserPolicy;
 use App\Policies\WidgetKeyPolicy;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Gate;
@@ -87,6 +88,7 @@ class AuthServiceProvider extends ServiceProvider
         Payment::class => PaymentPolicy::class,
         TenantMessagingIntegration::class => TenantMessagingIntegrationPolicy::class,
         Subscription::class => SubscriptionPolicy::class,
+        User::class => UserPolicy::class,
     ];
 
     public function register(): void

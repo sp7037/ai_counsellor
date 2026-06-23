@@ -20,6 +20,7 @@ class TenantLifecycleService
     public function __construct(
         private AuditLogger $auditLogger,
         private MembershipLifecycleService $membershipLifecycle,
+        private TenantIdentifierReleaseService $identifierRelease,
     ) {}
 
     public function createTenant(
@@ -211,11 +212,17 @@ class TenantLifecycleService
             'delete_reason' => $reason,
         ]);
 
+        $this->identifierRelease->releaseOnDelete($tenant->fresh(), $actor);
+
         $this->auditLogger->log(
             AuditAction::TenantDeleted,
-            $tenant,
+            $tenant->fresh(),
             $tenant->id,
-            ['reason' => $reason],
+            [
+                'reason' => $reason,
+                'released_slug' => $tenant->fresh()->slug,
+                'original_slug' => $tenant->fresh()->original_slug,
+            ],
             $actor,
         );
 
@@ -232,23 +239,35 @@ class TenantLifecycleService
 
         app(EntitlementResolver::class)->clearCache();
 
+        $resolved = $this->identifierRelease->resolveIdentifiersForRestore($tenant);
+
         $tenant->update([
             'status' => TenantStatus::Suspended->value,
+            'slug' => $resolved['slug'],
+            'email' => $resolved['email'],
             'deleted_at' => null,
             'deleted_by' => null,
             'delete_reason' => null,
             'archived_at' => null,
             'archived_by' => null,
             'archive_reason' => null,
+            'original_slug' => $resolved['conflict'] ? $tenant->original_slug : null,
+            'original_email' => $resolved['conflict'] ? $tenant->original_email : null,
+            'identifier_restore_conflict' => $resolved['conflict'],
             'suspended_at' => $tenant->suspended_at ?? now(),
-            'suspension_reason' => $tenant->suspension_reason ?? 'Restored from deletion.',
+            'suspension_reason' => $resolved['conflict']
+                ? 'Restored from deletion with identifier conflicts. Update slug/email before reactivation.'
+                : ($tenant->suspension_reason ?? 'Restored from deletion.'),
         ]);
 
         $this->auditLogger->log(
             AuditAction::TenantRestored,
-            $tenant,
+            $tenant->fresh(),
             $tenant->id,
-            ['restored_from' => 'deleted'],
+            [
+                'restored_from' => 'deleted',
+                'identifier_conflict' => $resolved['conflict'],
+            ],
             $actor,
         );
 
@@ -373,10 +392,7 @@ class TenantLifecycleService
         $slug = $base;
         $counter = 1;
 
-        while (Tenant::query()->where('slug', $slug)->whereNotIn('status', [
-            TenantStatus::Archived->value,
-            TenantStatus::Deleted->value,
-        ])->exists()) {
+        while (Tenant::query()->where('slug', $slug)->exists()) {
             $slug = $base.'-'.$counter;
             $counter++;
         }

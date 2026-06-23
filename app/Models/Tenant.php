@@ -33,6 +33,9 @@ use Illuminate\Support\Str;
     'deleted_at',
     'deleted_by',
     'delete_reason',
+    'original_slug',
+    'original_email',
+    'identifier_restore_conflict',
     'created_by',
 ])]
 class Tenant extends Model
@@ -61,7 +64,27 @@ class Tenant extends Model
             'suspended_at' => 'datetime',
             'archived_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'identifier_restore_conflict' => 'boolean',
         ];
+    }
+
+    public function displayName(): string
+    {
+        if ($this->status === TenantStatus::Deleted) {
+            return $this->name.' (Deleted)';
+        }
+
+        return $this->name;
+    }
+
+    public function displaySlug(): string
+    {
+        return $this->original_slug ?? $this->slug;
+    }
+
+    public function displayEmail(): ?string
+    {
+        return $this->original_email ?? $this->email;
     }
 
     public function getRouteKeyName(): string

@@ -1,13 +1,24 @@
 <?php
 
+use App\Enums\Billing\PlanChangeRequestStatus;
+use App\Enums\Billing\PlanStatus;
 use App\Enums\Billing\SubscriptionStatus;
+use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TenantPlanChangeRequest;
 use App\Services\Billing\EntitlementResolver;
+use App\Services\Billing\PlanChangeRequestService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.tenant')] class extends Component {
     public Tenant $tenant;
+
+    public bool $request_open = false;
+
+    public ?int $requested_plan_id = null;
+
+    public string $request_reason = '';
 
     public function mount(Tenant $tenant): void
     {
@@ -18,8 +29,10 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     {
         $subscription = $entitlements->subscriptionFor($this->tenant);
         $effective = $subscription?->effectiveStatus();
+        $canManageBilling = auth()->user()?->tenantRoleFor($this->tenant)?->canManageBilling() ?? false;
 
         return [
+            'canManageBilling' => $canManageBilling,
             'subscription' => $subscription?->load('plan.entitlements'),
             'effectiveStatus' => $effective,
             'usage' => $entitlements->usageSummary($this->tenant),
@@ -38,7 +51,30 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                     'limit' => $e->isUnlimited() ? null : $e->limit_value,
                 ])
                 : collect(),
+            'availablePlans' => Plan::query()->where('status', PlanStatus::Active)->orderBy('display_order')->get(),
+            'pendingRequest' => TenantPlanChangeRequest::query()
+                ->with('requestedPlan')
+                ->where('tenant_id', $this->tenant->id)
+                ->where('status', PlanChangeRequestStatus::Pending->value)
+                ->latest('id')
+                ->first(),
         ];
+    }
+
+    public function submitPlanRequest(PlanChangeRequestService $service): void
+    {
+        abort_unless(auth()->user()?->tenantRoleFor($this->tenant)?->canManageBilling(), 403);
+
+        $this->validate([
+            'requested_plan_id' => ['required', 'integer', 'exists:plans,id'],
+            'request_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $plan = Plan::query()->findOrFail($this->requested_plan_id);
+        $service->submit($this->tenant, auth()->user(), $plan, $this->request_reason ?: null);
+
+        $this->reset('requested_plan_id', 'request_reason', 'request_open');
+        session()->flash('status', 'Plan change request submitted for platform review.');
     }
 }; ?>
 
@@ -48,6 +84,10 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 </x-slot:actions>
 
 <div class="grid gap-6">
+    @if (session('status'))
+        <flux:callout variant="success">{{ session('status') }}</flux:callout>
+    @endif
+
     @if (session('subscription_restriction'))
         <x-subscription-notice>
             Your access to some features is restricted. Review your subscription status below.
@@ -58,6 +98,30 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         <x-tenant.panel>
             <h2 class="text-lg font-semibold text-white">No active subscription</h2>
             <p class="mt-2 text-sm text-zinc-300">Contact your platform administrator to assign a plan or start a trial.</p>
+        </x-tenant.panel>
+
+        <x-tenant.panel heading="Request plan change">
+            @if ($pendingRequest)
+                <p class="text-sm text-amber-200">Pending request to change to <strong>{{ $pendingRequest->requestedPlan->name }}</strong>.</p>
+            @elseif ($canManageBilling && $request_open)
+                <form wire:submit="submitPlanRequest" class="grid max-w-md gap-3">
+                    <flux:select wire:model="requested_plan_id" label="Requested plan" required>
+                        <option value="">Select plan</option>
+                        @foreach ($availablePlans as $plan)
+                            <option value="{{ $plan->id }}">{{ $plan->name }}</option>
+                        @endforeach
+                    </flux:select>
+                    <flux:textarea wire:model="request_reason" label="Reason (optional)" rows="3" />
+                    <div class="flex gap-2">
+                        <flux:button type="submit" variant="primary">Submit request</flux:button>
+                        <flux:button type="button" wire:click="$set('request_open', false)" variant="ghost">Cancel</flux:button>
+                    </div>
+                </form>
+            @elseif ($canManageBilling)
+                <flux:button wire:click="$set('request_open', true)" size="sm" variant="primary">Request plan change</flux:button>
+            @else
+                <p class="text-sm text-zinc-400">Contact a tenant administrator to request a plan change.</p>
+            @endif
         </x-tenant.panel>
     @else
         <x-tenant.panel class="grid gap-4">
@@ -105,6 +169,31 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                     Your subscription is not active. Renew online or contact support.
                 </x-subscription-notice>
             @endif
+        </x-tenant.panel>
+
+        <x-tenant.panel heading="Request plan change">
+            @if ($pendingRequest)
+                <p class="text-sm text-amber-200">Pending request to change to <strong>{{ $pendingRequest->requestedPlan->name }}</strong>. Platform admin will review it.</p>
+            @elseif ($canManageBilling && $request_open)
+                    <form wire:submit="submitPlanRequest" class="grid max-w-md gap-3">
+                        <flux:select wire:model="requested_plan_id" label="Requested plan" required>
+                            <option value="">Select plan</option>
+                            @foreach ($availablePlans as $plan)
+                                <option value="{{ $plan->id }}">{{ $plan->name }}</option>
+                            @endforeach
+                        </flux:select>
+                        <flux:textarea wire:model="request_reason" label="Reason (optional)" rows="3" />
+                        <div class="flex gap-2">
+                            <flux:button type="submit" variant="primary">Submit request</flux:button>
+                            <flux:button type="button" wire:click="$set('request_open', false)" variant="ghost">Cancel</flux:button>
+                        </div>
+                    </form>
+                @elseif ($canManageBilling)
+                    <p class="text-sm text-zinc-400">Ask the platform administrator to upgrade, downgrade, or change your plan.</p>
+                    <flux:button wire:click="$set('request_open', true)" class="mt-3" size="sm" variant="primary">Request plan change</flux:button>
+                @else
+                    <p class="text-sm text-zinc-400">Contact a tenant administrator to request a plan change.</p>
+                @endif
         </x-tenant.panel>
 
         @if ($payments->isNotEmpty())

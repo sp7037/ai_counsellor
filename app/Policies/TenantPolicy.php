@@ -58,4 +58,9 @@ class TenantPolicy
         return $user->isPlatformSuperAdmin()
             && $tenant->status->canBeDeleted();
     }
+
+    public function update(User $user, Tenant $tenant): bool
+    {
+        return $user->isPlatformSuperAdmin();
+    }
 }

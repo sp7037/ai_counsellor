@@ -46,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Volt::route('payment-orders', 'platform.payment-orders.index')->name('payment-orders.index');
             Volt::route('integrations', 'platform.integrations.index')->name('integrations.index');
             Volt::route('tenants/{tenant}/payments', 'platform.tenants.payments')->name('tenants.payments');
+            Volt::route('plan-change-requests', 'platform.plan-change-requests.index')->name('plan-change-requests.index');
+            Volt::route('account-lookup', 'platform.account-lookup')->name('account-lookup');
         });
 
     Route::prefix('app/{tenant}')

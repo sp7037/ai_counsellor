@@ -78,6 +78,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         $lead = Lead::onlyTrashed()->where('tenant_id', $this->tenant->id)->where('uuid', $leadUuid)->firstOrFail();
         $this->authorize('restore', $lead);
         $lifecycle->restore($lead, auth()->user());
+        session()->flash('status', 'Lead '.$lead->public_reference.' restored successfully.');
     }
 }; ?>
 
@@ -90,6 +91,9 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Lead management is not enabled on your current plan.</div>
 @else
 <div class="grid gap-4">
+    @if (session('status'))
+        <flux:callout variant="success">{{ session('status') }}</flux:callout>
+    @endif
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         @foreach (['New leads' => $metrics['new_leads'], 'Unassigned' => $metrics['unassigned'], 'Tasks overdue' => $metrics['overdue'], 'Tasks today' => $metrics['today']] as $label => $value)
             <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4"><p class="text-xs text-zinc-500">{{ $label }}</p><p class="mt-2 text-2xl font-semibold">{{ $value }}</p></div>

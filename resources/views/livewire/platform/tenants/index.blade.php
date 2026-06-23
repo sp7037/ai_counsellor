@@ -85,8 +85,8 @@ new #[Layout('components.layouts.platform')] class extends Component {
                 @forelse ($tenants as $tenant)
                     @php $ai = $aiStatus->summarize($tenant->aiConfig); @endphp
                     <tr>
-                        <td class="px-4 py-3 font-medium">{{ $tenant->name }}</td>
-                        <td class="px-4 py-3 font-mono text-xs">{{ $tenant->slug }}</td>
+                        <td class="px-4 py-3 font-medium">{{ $tenant->displayName() }}</td>
+                        <td class="px-4 py-3 font-mono text-xs">{{ $tenant->displaySlug() }}</td>
                         <td class="px-4 py-3">{{ $tenant->status->label() }}</td>
                         <td class="hidden lg:table-cell px-4 py-3">{{ $aiStatus->credentialModeLabel($tenant->aiConfig) }}</td>
                         <td class="hidden md:table-cell px-4 py-3">{{ $ai['label'] }}</td>
