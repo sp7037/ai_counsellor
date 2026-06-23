@@ -134,7 +134,7 @@
         @keyframes ac-badge-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
         #ac-widget-teaser { position: absolute; bottom: 13px; ${teaserHorizontal} max-width: 220px; padding: 8px 13px; border-radius: 999px; background: #ffffff; color: #0f172a; font-size: 12px; font-weight: 600; line-height: 1.2; box-shadow: 0 6px 20px rgba(0,0,0,.18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translateX(6px); pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
         #ac-widget-teaser.visible { opacity: 1; transform: translateX(0); }
-        #ac-widget-panel { display: none; width: 340px; max-width: calc(100vw - 24px); height: 460px; margin-bottom: 12px; border-radius: 14px; overflow: hidden; background: #111827; color: #f9fafb; box-shadow: 0 12px 40px rgba(0,0,0,.35); flex-direction: column; transition: width .2s ease, height .2s ease; }
+        #ac-widget-panel { display: none; width: 340px; max-width: calc(100vw - 24px); height: 480px; margin-bottom: 12px; border-radius: 14px; overflow: hidden; background: #111827; color: #f9fafb; box-shadow: 0 12px 40px rgba(0,0,0,.35); flex-direction: column; transition: width .2s ease, height .2s ease; }
         #ac-widget-panel.open { display: flex; }
         #ac-widget-panel.expanded { width: min(420px, calc(100vw - 24px)); height: min(640px, calc(100vh - 100px)); }
         #ac-widget-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; background: #1f2937; border-bottom: 1px solid #374151; }
@@ -178,15 +178,15 @@
         #ac-widget-recovery { display: none; margin: 0 12px 8px; padding: 10px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; font-size: 12px; color: #d1d5db; }
         #ac-widget-recovery p { margin: 0 0 8px; }
         #ac-widget-recovery button { border: none; border-radius: 8px; background: ${primary}; color: #fff; padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: 500; }
-        #ac-widget-form { display: grid; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #374151; }
+        #ac-widget-form { display: grid; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #374151; }
         #ac-widget-input, #ac-offline-name, #ac-offline-email, #ac-offline-message { width: 100%; border: 1px solid #4b5563; background: #0f172a; color: #fff; border-radius: 10px; padding: 9px 10px; font-size: 13px; box-sizing: border-box; resize: none; }
         #ac-widget-input:focus { outline: 2px solid ${primary}33; border-color: ${primary}; }
         #ac-widget-send, #ac-offline-submit { border: none; border-radius: 10px; background: ${primary}; color: #fff; padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 500; }
         #ac-widget-send:disabled { opacity: .55; cursor: not-allowed; }
         #ac-widget-error { color: #fca5a5; font-size: 12px; padding: 0 12px 6px; min-height: 0; }
-        /* Slim status row: AI/human disclosure on the left, compact handoff pill on the right. */
-        #ac-widget-statusbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 12px 4px; }
-        #ac-widget-statusbar:empty { display: none; }
+        /* Status row only when human disclosure or an active handoff CTA needs it. */
+        #ac-widget-statusbar { display: none; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px 2px; }
+        #ac-widget-statusbar.visible { display: flex; }
         #ac-widget-disclosure { flex: 1; min-width: 0; font-size: 11px; color: #9ca3af; line-height: 1.3; }
         #ac-widget-disclosure:empty { display: none; }
         /* Powered-by is rendered as a very tiny footer at the bottom edge and never consumes message space. */
@@ -534,12 +534,31 @@
 
         if (state.humanMode) {
             el.textContent = HUMAN_DISCLOSURE_MESSAGE;
+            el.style.display = '';
 
             return;
         }
 
-        const disclosure = state.config?.ai_disclosure;
-        el.textContent = disclosure?.enabled ? (disclosure.message || '') : '';
+        // AI-first mode: keep disclosure in welcome/footer only, not a repeated status line.
+        el.textContent = '';
+        el.style.display = 'none';
+    }
+
+    function updateStatusbarVisibility() {
+        const bar = document.getElementById('ac-widget-statusbar');
+        const disclosure = document.getElementById('ac-widget-disclosure');
+        const subtle = document.getElementById('ac-widget-handoff-subtle');
+
+        if (!bar) {
+            return;
+        }
+
+        const showDisclosure = disclosure
+            && disclosure.style.display !== 'none'
+            && (disclosure.textContent || '').trim() !== '';
+        const showSubtle = subtle && subtle.style.display !== 'none';
+
+        bar.classList.toggle('visible', Boolean(showDisclosure || showSubtle));
     }
 
     function updateHandoffUi() {
@@ -576,6 +595,8 @@
                 status.style.display = 'block';
             }
 
+            updateStatusbarVisibility();
+
             return;
         }
 
@@ -588,11 +609,14 @@
                 status.style.display = 'block';
             }
 
+            updateStatusbarVisibility();
+
             return;
         }
 
         if (!subtle || !prominent || !transfer?.enabled || state.sessionExpired) {
             hideCtas();
+            updateStatusbarVisibility();
 
             return;
         }
@@ -603,9 +627,10 @@
             prominent.textContent = transfer.label || 'Talk to counsellor';
         } else {
             prominent.classList.remove('prominent');
-            subtle.style.display = 'block';
-            subtle.textContent = transfer.subtle_label || 'Need human help?';
+            subtle.style.display = 'none';
         }
+
+        updateStatusbarVisibility();
     }
 
     function detectHandoffIntent(text) {
@@ -916,12 +941,12 @@
             );
             state.visitorMessageCount += 1;
 
-            if (detectHandoffIntent(body)) {
-                state.handoffProminent = true;
-            }
-
             if (typeof data.handoff_prominent === 'boolean') {
                 state.handoffProminent = data.handoff_prominent;
+            }
+
+            if (detectHandoffIntent(body)) {
+                state.handoffProminent = true;
             }
 
             if (typeof data.show_location_chip === 'boolean') {
@@ -935,10 +960,6 @@
                     body: data.reply.body,
                     sender_name: data.reply.sender_name,
                 });
-
-                if (detectAiFallback(data.reply)) {
-                    state.handoffProminent = true;
-                }
             }
 
             state.mode = data.mode || state.mode;

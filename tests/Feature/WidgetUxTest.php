@@ -248,4 +248,143 @@ class WidgetUxTest extends TestCase
         $this->assertStringNotContainsString('OPENAI', (string) $encoded);
         $this->assertSame('Admissions Guide', $config['branding']['assistant_name']);
     }
+
+    public function test_normal_faq_reply_does_not_promote_handoff(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'What documents are needed for admission?',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertFalse((bool) $response->json('handoff_prominent'));
+    }
+
+    public function test_normal_mbbs_counselling_reply_does_not_promote_handoff(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $this->assertFalse((bool) $response->json('handoff_prominent'));
+    }
+
+    public function test_explicit_counsellor_request_promotes_handoff(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'I want to talk to a counsellor please',
+            'request_id' => (string) str()->uuid(),
+        ], [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ])->assertOk();
+
+        $this->assertTrue((bool) $response->json('handoff_prominent'));
+    }
+
+    public function test_location_chip_hidden_when_city_state_already_known(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $this->postJson('/widget/v1/messages', [
+            'body' => 'I am from Delhi, India and need MBBS abroad guidance',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $response = $this->postJson('/widget/v1/messages', [
+            'body' => 'I qualified NEET with score 450',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $this->assertFalse((bool) $response->json('show_location_chip'));
+    }
+
+    public function test_location_chip_only_when_flow_asks_for_city_state(): void
+    {
+        ['key' => $key] = $this->createWidgetReadyTenant();
+
+        $token = $this->postJson('/widget/v1/session', ['widget_key' => $key->public_key], [
+            'Origin' => 'http://127.0.0.1:8000',
+        ])->json('session_token');
+
+        $headers = [
+            'Origin' => 'http://127.0.0.1:8000',
+            'Authorization' => 'Bearer '.$token,
+        ];
+
+        $first = $this->postJson('/widget/v1/messages', [
+            'body' => 'Can you guide me for MBBS abroad?',
+            'request_id' => (string) str()->uuid(),
+        ], $headers)->assertOk();
+
+        $this->assertFalse((bool) $first->json('show_location_chip'));
+
+        $messages = [
+            'I qualified NEET with score 450',
+            'My budget is around 25 lakh',
+            'I prefer Georgia',
+            'My Class 12 PCB is 72 percent',
+            'I am targeting 2026 intake',
+        ];
+
+        $lastResponse = $first;
+
+        foreach ($messages as $body) {
+            $lastResponse = $this->postJson('/widget/v1/messages', [
+                'body' => $body,
+                'request_id' => (string) str()->uuid(),
+            ], $headers)->assertOk();
+        }
+
+        $this->assertTrue((bool) $lastResponse->json('show_location_chip'));
+    }
+
+    public function test_built_widget_hides_ai_disclosure_status_line_in_normal_state(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/widget/embed.js'));
+
+        $this->assertStringContainsString('AI-first mode: keep disclosure in welcome/footer only', $source);
+
+        $path = public_path('build/widget.js');
+        $this->assertFileExists($path);
+
+        $js = (string) file_get_contents($path);
+
+        $this->assertStringContainsString('ac-widget-statusbar.visible', $js);
+    }
 }

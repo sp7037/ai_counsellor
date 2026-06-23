@@ -215,8 +215,20 @@ class ConversationService
             return false;
         }
 
-        return blank($context['city_state'] ?? null)
-            && blank($context['location'] ?? null);
+        if (! blank($context['city_state'] ?? null) || ! blank($context['location'] ?? null)) {
+            return false;
+        }
+
+        if (($counsellingAssessment['next_field'] ?? null) === 'student city/state') {
+            return true;
+        }
+
+        $metadata = is_array($context['metadata'] ?? null) ? $context['metadata'] : [];
+        $askedFields = is_array($metadata['counselling_asked_fields'] ?? null)
+            ? $metadata['counselling_asked_fields']
+            : [];
+
+        return in_array('student_city_state', $askedFields, true);
     }
 
     public function updateVisitorLocation(
