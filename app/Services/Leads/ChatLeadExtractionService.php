@@ -13,6 +13,7 @@ class ChatLeadExtractionService
         private readonly LeadCreationService $creation,
         private readonly LeadMetadataUpdateService $metadataUpdate,
         private readonly LeadNameGuard $nameGuard,
+        private readonly LeadIdentityResolver $identity,
     ) {}
 
     public function processMessage(Tenant $tenant, Conversation $conversation, string $message): ?Lead
@@ -25,8 +26,33 @@ class ChatLeadExtractionService
 
         $conversation->loadMissing('lead');
 
+        $matched = $this->identity->resolve(
+            $tenant,
+            $extracted['mobile'] ?? null,
+            $extracted['email'] ?? null,
+            $conversation,
+        );
+
+        if ($matched !== null && $this->hasResolvableIdentity($extracted, $matched, $conversation)) {
+            if ($conversation->lead_id !== $matched->id) {
+                $this->identity->linkConversation($conversation, $matched);
+            }
+
+            return $this->metadataUpdate->mergeExtractedData($matched, $extracted, [
+                'source' => 'widget_chat',
+                'log_identity_match' => $conversation->lead_id !== $matched->id
+                    || $this->identity->normalizeMobile($extracted['mobile'] ?? null) !== null
+                    || $this->identity->normalizeEmail($extracted['email'] ?? null) !== null,
+                'conversation_id' => $conversation->id,
+                'match_type' => $this->resolveMatchType($extracted),
+                'enquiry_summary_append' => $this->buildEnquirySummary($message, $extracted),
+            ]);
+        }
+
         if ($conversation->lead !== null) {
-            return $this->metadataUpdate->mergeExtractedData($conversation->lead, $extracted);
+            return $this->metadataUpdate->mergeExtractedData($conversation->lead, $extracted, [
+                'enquiry_summary_append' => $this->buildEnquirySummary($message, $extracted),
+            ]);
         }
 
         if (! $this->shouldCreateLead($extracted, $message)) {
@@ -157,6 +183,39 @@ class ChatLeadExtractionService
         }
 
         return $extracted;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extracted
+     */
+    private function hasResolvableIdentity(array $extracted, Lead $matched, Conversation $conversation): bool
+    {
+        if ($this->identity->normalizeMobile($extracted['mobile'] ?? null) !== null) {
+            return true;
+        }
+
+        if ($this->identity->normalizeEmail($extracted['email'] ?? null) !== null) {
+            return true;
+        }
+
+        return $conversation->lead_id !== null
+            && $conversation->lead_id === $matched->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extracted
+     */
+    private function resolveMatchType(array $extracted): ?string
+    {
+        if ($this->identity->normalizeMobile($extracted['mobile'] ?? null) !== null) {
+            return 'mobile';
+        }
+
+        if ($this->identity->normalizeEmail($extracted['email'] ?? null) !== null) {
+            return 'email';
+        }
+
+        return 'conversation';
     }
 
     /**

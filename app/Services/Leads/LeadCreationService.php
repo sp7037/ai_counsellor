@@ -25,6 +25,8 @@ class LeadCreationService
         private readonly AuditLogger $audit,
         private readonly EntitlementResolver $entitlements,
         private readonly LeadNameGuard $nameGuard,
+        private readonly LeadIdentityResolver $identity,
+        private readonly LeadMetadataUpdateService $metadataUpdate,
     ) {}
 
     /**
@@ -62,6 +64,30 @@ class LeadCreationService
                 }
             }
 
+            $conversation = isset($input['conversation_id'])
+                ? Conversation::withoutGlobalScopes()
+                    ->where('tenant_id', $tenant->id)
+                    ->find($input['conversation_id'])
+                : null;
+
+            $matched = $this->identity->resolve(
+                $tenant,
+                $input['mobile'] ?? null,
+                $input['email'] ?? null,
+                $conversation,
+            );
+
+            if ($matched !== null && $this->hasIdentitySignal($input)) {
+                return $this->mergeMatchedLead(
+                    $matched,
+                    $source,
+                    $input,
+                    $actor,
+                    $conversation,
+                    $this->resolveMatchType($input),
+                );
+            }
+
             try {
                 $this->entitlements->assertAllowed($tenant, PlanFeature::LeadManagement);
             } catch (EntitlementDeniedException $exception) {
@@ -76,8 +102,8 @@ class LeadCreationService
                 'capture_event_uuid' => $captureEventUuid,
                 'created_by' => $actor?->id,
                 'full_name' => $this->resolveFullName($input['full_name'] ?? null),
-                'mobile' => $this->normalizeMobile($input['mobile'] ?? null),
-                'email' => isset($input['email']) ? strtolower(trim((string) $input['email'])) : null,
+                'mobile' => $this->identity->normalizeMobile($input['mobile'] ?? null),
+                'email' => $this->identity->normalizeEmail($input['email'] ?? null),
                 'preferred_contact_method' => $input['preferred_contact_method'] ?? null,
                 'location' => $input['location'] ?? null,
                 'state' => $input['state'] ?? null,
@@ -132,6 +158,84 @@ class LeadCreationService
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function mergeMatchedLead(
+        Lead $lead,
+        LeadSource $source,
+        array $input,
+        ?User $actor,
+        ?Conversation $conversation,
+        ?string $matchType,
+    ): Lead {
+        if ($conversation !== null) {
+            $this->identity->linkConversation($conversation, $lead);
+        }
+
+        return $this->metadataUpdate->mergeExtractedData($lead, $this->inputToExtracted($input), [
+            'source' => $this->sourceKey($source),
+            'log_identity_match' => true,
+            'conversation_id' => $conversation?->id,
+            'match_type' => $matchType,
+            'enquiry_summary_append' => $input['enquiry_summary'] ?? null,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function inputToExtracted(array $input): array
+    {
+        return array_filter([
+            'full_name' => $input['full_name'] ?? null,
+            'mobile' => $input['mobile'] ?? null,
+            'email' => $input['email'] ?? null,
+            'country' => $input['country'] ?? null,
+            'location' => $input['location'] ?? null,
+            'programme_interest' => $input['programme_interest'] ?? null,
+            'service_interest' => $input['service_interest'] ?? null,
+            'metadata' => $input['metadata'] ?? null,
+        ], fn ($value) => $value !== null && $value !== []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function hasIdentitySignal(array $input): bool
+    {
+        return $this->identity->normalizeMobile($input['mobile'] ?? null) !== null
+            || $this->identity->normalizeEmail($input['email'] ?? null) !== null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function resolveMatchType(array $input): ?string
+    {
+        if ($this->identity->normalizeMobile($input['mobile'] ?? null) !== null) {
+            return 'mobile';
+        }
+
+        if ($this->identity->normalizeEmail($input['email'] ?? null) !== null) {
+            return 'email';
+        }
+
+        return null;
+    }
+
+    private function sourceKey(LeadSource $source): string
+    {
+        return match ($source) {
+            LeadSource::WidgetConversation => 'widget_chat',
+            LeadSource::WidgetForm => 'widget_form',
+            LeadSource::WhatsApp => 'whatsapp',
+            LeadSource::OfflineIntake => 'offline_intake',
+            default => $source->value,
+        };
+    }
+
     private function resolveFullName(?string $candidate): string
     {
         if ($this->nameGuard->isValidPersonName($candidate)) {
@@ -149,16 +253,5 @@ class LeadCreationService
         }
 
         return 'Visitor';
-    }
-
-    private function normalizeMobile(?string $mobile): ?string
-    {
-        if ($mobile === null) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $mobile) ?? '';
-
-        return $digits !== '' ? $digits : null;
     }
 }

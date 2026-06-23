@@ -129,6 +129,12 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             <div><dt class="text-zinc-500">Stage</dt><dd>{{ $lead->stage->label() }}</dd></div>
             <div><dt class="text-zinc-500">Assigned</dt><dd>{{ $lead->assignee?->name ?? 'Unassigned' }}</dd></div>
             <div><dt class="text-zinc-500">Next follow-up</dt><dd>{{ $lead->next_follow_up_at?->toDayDateTimeString() ?? '—' }}</dd></div>
+            @if (! empty($lead->metadata['identity_matches']))
+                <div class="sm:col-span-2 rounded-md border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+                    <dt class="text-sky-300">Identity match</dt>
+                    <dd class="mt-1 text-zinc-300">This lead was matched and updated from another chat or form source.</dd>
+                </div>
+            @endif
             @if ($lead->enquiry_summary)<div class="sm:col-span-2"><dt class="text-zinc-500">Summary</dt><dd>{{ $lead->enquiry_summary }}</dd></div>@endif
         </dl>
         @can('manageWorkflow', $lead)

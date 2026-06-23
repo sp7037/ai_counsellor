@@ -28,6 +28,7 @@ enum LeadActivityType: string
     case TaskCancelled = 'task_cancelled';
     case HumanHandoffRequested = 'human_handoff_requested';
     case ContactDetailsCaptured = 'contact_details_captured';
+    case IdentityMatched = 'identity_matched';
 
     public function label(): string
     {
@@ -56,6 +57,7 @@ enum LeadActivityType: string
             self::TaskCancelled => 'Follow-up task cancelled',
             self::HumanHandoffRequested => 'Human counsellor requested',
             self::ContactDetailsCaptured => 'Contact details captured',
+            self::IdentityMatched => 'Lead matched from another source',
         };
     }
 }

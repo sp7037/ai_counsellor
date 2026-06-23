@@ -213,7 +213,7 @@ class LeadTaskFollowUpTest extends TestCase
             'task_type' => 'call',
             'priority' => 'normal',
             'status' => LeadTaskStatus::Pending->value,
-            'due_at' => now()->subDay(),
+            'due_at' => now()->subDays(2),
         ]);
 
         LeadTask::query()->create([
@@ -225,7 +225,7 @@ class LeadTaskFollowUpTest extends TestCase
             'task_type' => 'call',
             'priority' => 'normal',
             'status' => LeadTaskStatus::Pending->value,
-            'due_at' => now()->startOfDay()->addHours(10),
+            'due_at' => now()->addHours(3),
         ]);
 
         $directory = app(LeadTaskDirectoryService::class);
@@ -319,7 +319,7 @@ class LeadTaskFollowUpTest extends TestCase
 
         return app(LeadCreationService::class)->create($tenant, LeadSource::Manual, [
             'full_name' => 'Test Lead',
-            'mobile' => '9000000001',
+            'mobile' => '9'.str_pad((string) random_int(100000000, 999999999), 9, '0', STR_PAD_LEFT),
             'enquiry_summary' => 'Test enquiry with enough detail for scoring.',
         ], $actor);
     }
