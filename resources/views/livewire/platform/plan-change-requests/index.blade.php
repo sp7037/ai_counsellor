@@ -8,14 +8,11 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.platform')] class extends Component {
-    public function with(): array
+    public function with(PlanChangeRequestService $service): array
     {
         return [
-            'requests' => TenantPlanChangeRequest::query()
-                ->with(['tenant', 'requester', 'currentPlan', 'requestedPlan', 'reviewer'])
-                ->where('status', PlanChangeRequestStatus::Pending->value)
-                ->latest('id')
-                ->get(),
+            'planChangeRequestsAvailable' => $service->isAvailable(),
+            'requests' => $service->pendingRequests(),
         ];
     }
 
@@ -41,6 +38,12 @@ new #[Layout('components.layouts.platform')] class extends Component {
 <div class="grid gap-4">
     @if (session('status'))
         <flux:callout variant="success">{{ session('status') }}</flux:callout>
+    @endif
+
+    @if (! $planChangeRequestsAvailable)
+        <flux:callout variant="warning">
+            Plan change requests are not enabled on this server yet. Run the latest database migrations to activate this feature.
+        </flux:callout>
     @endif
 
     <div class="overflow-x-auto rounded-lg border border-zinc-800">

@@ -5,11 +5,13 @@ namespace App\Services\Tenancy;
 use App\Enums\Audit\AuditAction;
 use App\Enums\Tenancy\TenantRole;
 use App\Enums\Tenancy\TenantStatus;
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Billing\EntitlementResolver;
+use App\Services\Billing\SubscriptionLifecycleService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -49,10 +51,32 @@ class TenantLifecycleService
 
             if ($owner !== null) {
                 $this->addOwner($tenant, $owner, $actor);
+                $tenant = $this->activate($tenant->fresh(), $actor);
+                $this->provisionDefaultTrial($tenant, $actor);
             }
 
             return $tenant;
         });
+    }
+
+    public function provisionDefaultTrial(Tenant $tenant, ?User $actor): void
+    {
+        if ($actor === null || $tenant->subscription()->exists()) {
+            return;
+        }
+
+        $plan = Plan::query()->where('code', 'trial')->first();
+
+        if ($plan === null) {
+            return;
+        }
+
+        app(SubscriptionLifecycleService::class)->startTrial(
+            $tenant,
+            $plan,
+            $actor,
+            reason: 'Default trial provisioned with new tenant',
+        );
     }
 
     public function activate(Tenant $tenant, ?User $actor = null): Tenant

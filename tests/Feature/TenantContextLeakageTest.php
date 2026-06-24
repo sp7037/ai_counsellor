@@ -34,9 +34,9 @@ class TenantContextLeakageTest extends TestCase
     {
         ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(
             tenantAttributes: [
-                'status' => TenantStatus::Suspended->value,
-                'suspended_at' => now(),
-                'suspension_reason' => 'Test',
+                'status' => TenantStatus::Archived->value,
+                'archived_at' => now(),
+                'archive_reason' => 'Test',
             ],
         );
 

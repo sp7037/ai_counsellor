@@ -152,6 +152,42 @@ class AiOrchestrationTest extends TestCase
         ]);
     }
 
+    public function test_tenant_admin_can_save_platform_managed_when_another_tenant_already_has_config(): void
+    {
+        app(TenantContext::class)->clear();
+
+        ['tenant' => $tenantA, 'user' => $ownerA] = $this->createTenantWithMember(role: TenantRole::Owner);
+        ['tenant' => $tenantB, 'user' => $ownerB] = $this->createTenantWithMember(role: TenantRole::Owner);
+
+        app(TenantAiConfigService::class)->upsert($tenantA, [
+            'provider' => 'fake',
+            'model' => 'tenant-a-model',
+            'temperature' => 0.2,
+            'max_output_tokens' => 400,
+            'timeout_seconds' => 15,
+            'enabled' => true,
+            'credential_mode' => 'platform_managed',
+        ], $ownerA);
+
+        $this->actingAs($ownerB);
+
+        Volt::test('tenant.ai.configuration', ['tenant' => $tenantB])
+            ->set('provider', 'fake')
+            ->set('model', 'tenant-b-model')
+            ->set('temperature', 0.2)
+            ->set('maxOutputTokens', 400)
+            ->set('timeoutSeconds', 15)
+            ->set('enabled', true)
+            ->set('credentialMode', 'platform_managed')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('tenant_ai_configs', [
+            'tenant_id' => $tenantB->id,
+            'model' => 'tenant-b-model',
+        ]);
+    }
+
     public function test_private_draft_knowledge_is_not_exposed_to_ai_prompt_retrieval(): void
     {
         ['tenant' => $tenant, 'user' => $user, 'key' => $key] = $this->createWidgetReadyTenant();

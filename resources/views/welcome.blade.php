@@ -29,14 +29,9 @@
     </head>
     <body class="min-h-screen bg-[#0a0a0b] text-zinc-200 antialiased">
         @php
-            $loggedInUrl = null;
-            if (auth()->check()) {
-                try {
-                    $loggedInUrl = app(\App\Services\Auth\PostLoginRedirect::class)->intendedUrl(auth()->user());
-                } catch (\Throwable $e) {
-                    $loggedInUrl = url('/');
-                }
-            }
+            $loggedInUrl = auth()->check()
+                ? app(\App\Services\Auth\PostLoginRedirect::class)->intendedUrl(auth()->user())
+                : null;
             $demoUrl = url('/widget-demo/static.html');
         @endphp
 

@@ -28,7 +28,12 @@ class EnsureTenantOperational
         $status = $this->entitlements->effectiveSubscriptionStatus($tenant);
 
         if ($status === null) {
-            if ($request->routeIs('tenant.dashboard', 'tenant.select')) {
+            if ($request->routeIs(
+                'tenant.dashboard',
+                'tenant.select',
+                'tenant.counsellors.index',
+                'tenant.counsellors.create',
+            )) {
                 return $next($request);
             }
 

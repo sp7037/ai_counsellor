@@ -7,6 +7,7 @@ use App\Enums\Tenancy\TenantStatus;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Tenancy\TenantLifecycleService;
+use Database\Seeders\PlansSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
@@ -14,6 +15,12 @@ use Tests\TestCase;
 class TenantAdministrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(PlansSeeder::class);
+    }
 
     public function test_platform_super_admin_can_create_tenant(): void
     {
@@ -35,7 +42,7 @@ class TenantAdministrationTest extends TestCase
         $this->assertDatabaseHas('tenants', [
             'name' => 'Acme Counselling',
             'slug' => 'acme-counselling',
-            'status' => TenantStatus::Pending->value,
+            'status' => TenantStatus::Active->value,
         ]);
 
         $this->assertDatabaseHas('audit_logs', [

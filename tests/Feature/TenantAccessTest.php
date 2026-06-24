@@ -45,7 +45,7 @@ class TenantAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_suspended_tenant_is_rejected(): void
+    public function test_suspended_tenant_member_can_access_dashboard(): void
     {
         ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(
             tenantAttributes: [
@@ -57,7 +57,7 @@ class TenantAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('tenant.dashboard', $tenant))
-            ->assertForbidden();
+            ->assertOk();
     }
 
     public function test_cancelled_tenant_is_rejected(): void
@@ -71,7 +71,7 @@ class TenantAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_pending_tenant_is_rejected_for_normal_members(): void
+    public function test_pending_tenant_member_can_access_dashboard(): void
     {
         $tenant = Tenant::factory()->create(['status' => TenantStatus::Pending->value]);
         $user = User::factory()->create();
@@ -86,6 +86,6 @@ class TenantAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('tenant.dashboard', $tenant))
-            ->assertForbidden();
+            ->assertOk();
     }
 }

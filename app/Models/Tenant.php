@@ -97,6 +97,11 @@ class Tenant extends Model
         return $this->status->allowsTenantAccess();
     }
 
+    public function allowsWorkspaceEntry(): bool
+    {
+        return $this->status->allowsWorkspaceEntry();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

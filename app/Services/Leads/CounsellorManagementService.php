@@ -5,7 +5,6 @@ namespace App\Services\Leads;
 use App\Enums\Audit\AuditAction;
 use App\Enums\Billing\PlanFeature;
 use App\Enums\Tenancy\TenantRole;
-use App\Exceptions\Billing\EntitlementDeniedException;
 use App\Models\CounsellorProfile;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
@@ -28,19 +27,33 @@ class CounsellorManagementService
     /**
      * @param  array<string, mixed>  $profile
      */
+    public function provisioningBlockReason(Tenant $tenant): ?string
+    {
+        $result = $this->entitlements->check($tenant, PlanFeature::CounsellorWorkspace);
+
+        return $result->isAllowed() ? null : $result->denyReason();
+    }
+
+    /**
+     * @param  array<string, mixed>  $profile
+     */
     public function create(Tenant $tenant, array $input, array $profile, User $actor): TenantMembership
     {
-        try {
-            $this->entitlements->assertAllowed($tenant, PlanFeature::CounsellorWorkspace);
-        } catch (EntitlementDeniedException $exception) {
-            throw ValidationException::withMessages(['email' => $exception->getMessage()]);
+        $blockReason = $this->provisioningBlockReason($tenant);
+
+        if ($blockReason !== null) {
+            throw ValidationException::withMessages([
+                'form' => $blockReason,
+            ]);
         }
 
         return DB::transaction(function () use ($tenant, $input, $profile, $actor): TenantMembership {
             $email = strtolower(trim((string) $input['email']));
 
             if (User::query()->where('email', $email)->exists()) {
-                throw ValidationException::withMessages(['email' => 'A user with this email already exists.']);
+                throw ValidationException::withMessages([
+                    'email' => 'This email is already registered on the platform. Each counsellor needs a unique login email.',
+                ]);
             }
 
             $user = User::query()->create([

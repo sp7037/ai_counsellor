@@ -145,14 +145,14 @@ class PlatformControlPlaneTest extends TestCase
         $this->assertDatabaseHas('tenants', ['id' => $tenant->id]);
     }
 
-    public function test_suspended_tenant_cannot_access_tenant_routes(): void
+    public function test_suspended_tenant_member_can_still_access_dashboard(): void
     {
         ['tenant' => $tenant, 'user' => $user] = $this->createTenantWithMember(role: TenantRole::Owner);
         app(TenantLifecycleService::class)->suspend($tenant, 'Test suspension', User::factory()->platformSuperAdmin()->create());
 
         $this->actingAs($user)
             ->get(route('tenant.dashboard', $tenant->fresh()))
-            ->assertForbidden();
+            ->assertOk();
     }
 
     public function test_ai_operations_page_does_not_expose_secrets(): void

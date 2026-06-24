@@ -87,10 +87,11 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     <flux:button href="{{ route('tenant.leads.create', $tenant) }}" wire:navigate variant="primary" size="sm">Create lead</flux:button>
 </x-slot:actions>
 
-@if (! $allowed)
-    <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Lead management is not enabled on your current plan.</div>
-@else
-<div class="grid gap-4">
+<div>
+    @if (! $allowed)
+        <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Lead management is not enabled on your current plan.</div>
+    @else
+    <div class="grid gap-4">
     @if (session('status'))
         <flux:callout variant="success">{{ session('status') }}</flux:callout>
     @endif
@@ -164,5 +165,6 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         </table>
     </div>
     {{ $leads->links() }}
+    </div>
+    @endif
 </div>
-@endif

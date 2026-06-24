@@ -94,7 +94,7 @@ class TenantContext
             abort(403);
         }
 
-        if (! $tenant->allowsTenantAccess()) {
+        if (! $tenant->allowsWorkspaceEntry()) {
             abort(403, 'This organisation is not available.');
         }
 

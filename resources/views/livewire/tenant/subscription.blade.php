@@ -1,11 +1,9 @@
 <?php
 
-use App\Enums\Billing\PlanChangeRequestStatus;
 use App\Enums\Billing\PlanStatus;
 use App\Enums\Billing\SubscriptionStatus;
 use App\Models\Plan;
 use App\Models\Tenant;
-use App\Models\TenantPlanChangeRequest;
 use App\Services\Billing\EntitlementResolver;
 use App\Services\Billing\PlanChangeRequestService;
 use Livewire\Attributes\Layout;
@@ -25,7 +23,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         $this->tenant = $tenant;
     }
 
-    public function with(EntitlementResolver $entitlements): array
+    public function with(EntitlementResolver $entitlements, PlanChangeRequestService $planRequests): array
     {
         $subscription = $entitlements->subscriptionFor($this->tenant);
         $effective = $subscription?->effectiveStatus();
@@ -33,6 +31,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 
         return [
             'canManageBilling' => $canManageBilling,
+            'planChangeRequestsAvailable' => $planRequests->isAvailable(),
             'subscription' => $subscription?->load('plan.entitlements'),
             'effectiveStatus' => $effective,
             'usage' => $entitlements->usageSummary($this->tenant),
@@ -52,12 +51,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                 ])
                 : collect(),
             'availablePlans' => Plan::query()->where('status', PlanStatus::Active)->orderBy('display_order')->get(),
-            'pendingRequest' => TenantPlanChangeRequest::query()
-                ->with('requestedPlan')
-                ->where('tenant_id', $this->tenant->id)
-                ->where('status', PlanChangeRequestStatus::Pending->value)
-                ->latest('id')
-                ->first(),
+            'pendingRequest' => $planRequests->pendingForTenant($this->tenant),
         ];
     }
 
@@ -100,6 +94,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             <p class="mt-2 text-sm text-zinc-300">Contact your platform administrator to assign a plan or start a trial.</p>
         </x-tenant.panel>
 
+        @if ($planChangeRequestsAvailable)
         <x-tenant.panel heading="Request plan change">
             @if ($pendingRequest)
                 <p class="text-sm text-amber-200">Pending request to change to <strong>{{ $pendingRequest->requestedPlan->name }}</strong>.</p>
@@ -123,6 +118,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                 <p class="text-sm text-zinc-400">Contact a tenant administrator to request a plan change.</p>
             @endif
         </x-tenant.panel>
+        @endif
     @else
         <x-tenant.panel class="grid gap-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -171,6 +167,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
             @endif
         </x-tenant.panel>
 
+        @if ($planChangeRequestsAvailable)
         <x-tenant.panel heading="Request plan change">
             @if ($pendingRequest)
                 <p class="text-sm text-amber-200">Pending request to change to <strong>{{ $pendingRequest->requestedPlan->name }}</strong>. Platform admin will review it.</p>
@@ -195,6 +192,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                     <p class="text-sm text-zinc-400">Contact a tenant administrator to request a plan change.</p>
                 @endif
         </x-tenant.panel>
+        @endif
 
         @if ($payments->isNotEmpty())
             <x-tenant.panel heading="Payment history">

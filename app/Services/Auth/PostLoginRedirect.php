@@ -3,23 +3,34 @@
 namespace App\Services\Auth;
 
 use App\Models\Tenant;
+use App\Models\TenantMembership;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class PostLoginRedirect
 {
+    /**
+     * @return Collection<int, TenantMembership>
+     */
+    public function accessibleMemberships(User $user): Collection
+    {
+        return $user->activeMemberships()
+            ->with('tenant')
+            ->get()
+            ->filter(fn (TenantMembership $membership) => $membership->tenant->allowsWorkspaceEntry())
+            ->values();
+    }
+
     public function intendedUrl(User $user): string
     {
         if ($user->isPlatformSuperAdmin()) {
             return route('platform.overview');
         }
 
-        $memberships = $user->activeMemberships()
-            ->with('tenant')
-            ->get()
-            ->filter(fn ($membership) => $membership->tenant->allowsTenantAccess());
+        $memberships = $this->accessibleMemberships($user);
 
         if ($memberships->isEmpty()) {
-            return route('home');
+            return route('tenant.select');
         }
 
         if ($memberships->count() === 1) {

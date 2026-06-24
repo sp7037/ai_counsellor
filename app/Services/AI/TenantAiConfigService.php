@@ -34,7 +34,7 @@ class TenantAiConfigService
      */
     public function getEffectiveConfig(Tenant $tenant): array
     {
-        $config = TenantAiConfig::query()->with('provider')->first();
+        $config = $tenant->aiConfig()->with('provider')->first();
         $mode = $config?->credential_mode ?? AiCredentialMode::PlatformManaged;
 
         if ($config?->enabled && $config->provider?->enabled) {

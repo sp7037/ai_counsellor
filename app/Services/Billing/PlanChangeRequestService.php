@@ -10,7 +10,9 @@ use App\Models\Tenant;
 use App\Models\TenantPlanChangeRequest;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class PlanChangeRequestService
@@ -20,12 +22,53 @@ class PlanChangeRequestService
         private readonly SubscriptionLifecycleService $subscriptions,
     ) {}
 
+    public function isAvailable(): bool
+    {
+        return Schema::hasTable('tenant_plan_change_requests');
+    }
+
+    public function pendingForTenant(Tenant $tenant): ?TenantPlanChangeRequest
+    {
+        if (! $this->isAvailable()) {
+            return null;
+        }
+
+        return TenantPlanChangeRequest::query()
+            ->with('requestedPlan')
+            ->where('tenant_id', $tenant->id)
+            ->where('status', PlanChangeRequestStatus::Pending->value)
+            ->latest('id')
+            ->first();
+    }
+
+    /**
+     * @return Collection<int, TenantPlanChangeRequest>
+     */
+    public function pendingRequests(): Collection
+    {
+        if (! $this->isAvailable()) {
+            return collect();
+        }
+
+        return TenantPlanChangeRequest::query()
+            ->with(['tenant', 'requester', 'currentPlan', 'requestedPlan', 'reviewer'])
+            ->where('status', PlanChangeRequestStatus::Pending->value)
+            ->latest('id')
+            ->get();
+    }
+
     public function submit(
         Tenant $tenant,
         User $requester,
         Plan $requestedPlan,
         ?string $reason = null,
     ): TenantPlanChangeRequest {
+        if (! $this->isAvailable()) {
+            throw ValidationException::withMessages([
+                'requested_plan_id' => 'Plan change requests are not available yet. Contact the platform administrator.',
+            ]);
+        }
+
         if (TenantPlanChangeRequest::query()
             ->where('tenant_id', $tenant->id)
             ->where('status', PlanChangeRequestStatus::Pending->value)

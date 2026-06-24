@@ -25,7 +25,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
         session(['auth.password_confirmed_at' => time()]);
 
-        $this->redirectIntended(default: route('home'), navigate: true);
+        $this->redirectIntended(default: route('dashboard'), navigate: true);
     }
 }; ?>
 

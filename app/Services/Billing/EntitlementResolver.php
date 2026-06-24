@@ -6,6 +6,7 @@ use App\Data\Billing\EntitlementResult;
 use App\Enums\Billing\EntitlementOutcome;
 use App\Enums\Billing\PlanFeature;
 use App\Enums\Billing\SubscriptionStatus;
+use App\Enums\Tenancy\TenantStatus;
 use App\Exceptions\Billing\EntitlementDeniedException;
 use App\Models\PlanEntitlement;
 use App\Models\Subscription;
@@ -112,11 +113,7 @@ class EntitlementResolver
     private function resolve(Tenant $tenant, PlanFeature $feature): EntitlementResult
     {
         if (! $tenant->allowsTenantAccess()) {
-            return new EntitlementResult(
-                outcome: EntitlementOutcome::TenantSuspended,
-                feature: $feature,
-                message: EntitlementOutcome::TenantSuspended->safeMessageForTenantAdmin(),
-            );
+            return $this->resultForInactiveTenant($tenant, $feature);
         }
 
         $subscription = $this->subscriptionFor($tenant);
@@ -301,5 +298,41 @@ class EntitlementResolver
         }
 
         return $entitlement->limit_value;
+    }
+
+    private function resultForInactiveTenant(Tenant $tenant, PlanFeature $feature): EntitlementResult
+    {
+        return match ($tenant->status) {
+            TenantStatus::Pending => new EntitlementResult(
+                outcome: EntitlementOutcome::ConfigurationRequired,
+                feature: $feature,
+                message: 'Your organisation account is pending activation. Contact the SR Worlds platform administrator to activate your account and assign a plan. You can add counsellors only after activation is complete.',
+            ),
+            TenantStatus::Suspended => new EntitlementResult(
+                outcome: EntitlementOutcome::TenantSuspended,
+                feature: $feature,
+                message: EntitlementOutcome::TenantSuspended->safeMessageForTenantAdmin(),
+            ),
+            TenantStatus::Archived => new EntitlementResult(
+                outcome: EntitlementOutcome::Denied,
+                feature: $feature,
+                message: 'This organisation has been archived. Contact platform support to restore it.',
+            ),
+            TenantStatus::Deleted => new EntitlementResult(
+                outcome: EntitlementOutcome::Denied,
+                feature: $feature,
+                message: 'This organisation has been deleted.',
+            ),
+            TenantStatus::Cancelled => new EntitlementResult(
+                outcome: EntitlementOutcome::SubscriptionExpired,
+                feature: $feature,
+                message: 'This organisation has been cancelled.',
+            ),
+            default => new EntitlementResult(
+                outcome: EntitlementOutcome::Denied,
+                feature: $feature,
+                message: 'This organisation is not currently active.',
+            ),
+        };
     }
 }

@@ -28,6 +28,11 @@ enum TenantStatus: string
         return $this === self::Active;
     }
 
+    public function allowsWorkspaceEntry(): bool
+    {
+        return in_array($this, [self::Active, self::Suspended, self::Pending], true);
+    }
+
     public function canBeArchived(): bool
     {
         return in_array($this, [self::Suspended, self::Cancelled], true);

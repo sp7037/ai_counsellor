@@ -3,7 +3,6 @@
 use App\Enums\AI\AiCredentialMode;
 use App\Models\AiProvider;
 use App\Models\Tenant;
-use App\Models\TenantAiConfig;
 use App\Services\AI\TenantAiConfigService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -34,7 +33,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
         $this->authorize('viewTenantAiConfiguration', $tenant);
         $this->tenant = $tenant;
 
-        $config = TenantAiConfig::query()->with('provider')->first();
+        $config = $tenant->aiConfig()->with('provider')->first();
         if ($config) {
             $this->provider = $config->provider?->slug ?? 'openai';
             $this->model = $config->model;
@@ -63,13 +62,13 @@ new #[Layout('components.layouts.tenant')] class extends Component {
     {
         return [
             'providers' => AiProvider::query()->where('enabled', true)->orderBy('name')->get(),
-            'config' => TenantAiConfig::query()->with('provider')->first(),
+            'config' => $this->tenant->aiConfig()->with('provider')->first(),
         ];
     }
 
     public function save(TenantAiConfigService $service): void
     {
-        $config = TenantAiConfig::query()->first();
+        $config = $this->tenant->aiConfig()->first();
         if ($config) {
             $this->authorize('update', $config);
         } else {
@@ -135,6 +134,11 @@ new #[Layout('components.layouts.tenant')] class extends Component {
                     <option value="{{ $mode->value }}">{{ $mode->label() }}</option>
                 @endforeach
             </flux:select>
+            @if ($credentialMode === \App\Enums\AI\AiCredentialMode::PlatformManaged->value)
+                <p class="md:col-span-2 text-xs text-zinc-500">
+                    Platform managed uses the platform’s provider API keys for this tenant’s AI replies. Keys stay on the server and are never shown here.
+                </p>
+            @endif
 
             <div class="md:col-span-2 rounded border border-zinc-800 p-3">
                 <flux:checkbox wire:model.live="replaceSecret" label="Replace provider key" />

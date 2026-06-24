@@ -22,6 +22,10 @@ Route::match(['get', 'post'], '/webhooks/messaging/{provider}', MessagingWebhook
     ->name('webhooks.messaging');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', function () {
+        return redirect(app(\App\Services\Auth\PostLoginRedirect::class)->intendedUrl(auth()->user()));
+    })->name('dashboard');
+
     Volt::route('app/select-tenant', 'tenant.select')->name('tenant.select');
 
     Route::prefix('platform')

@@ -71,6 +71,22 @@ class WidgetIsolationTest extends TestCase
         $this->assertSame([$tenantA->id], $keys);
     }
 
+    public function test_widget_page_lists_only_current_tenant_keys_and_domains_without_context(): void
+    {
+        app(TenantContext::class)->clear();
+
+        ['tenant' => $tenantA, 'key' => $keyA, 'domain' => $domainA] = $this->createWidgetReadyTenant();
+        ['tenant' => $tenantB, 'user' => $userB, 'key' => $keyB, 'domain' => $domainB] = $this->createWidgetReadyTenant();
+
+        $this->actingAs($userB);
+
+        Volt::test('tenant.widget.index', ['tenant' => $tenantB])
+            ->assertDontSee($keyA->public_key)
+            ->assertSee($keyB->public_key)
+            ->assertSee($domainB->domain)
+            ->assertDontSee($domainA->domain);
+    }
+
     public function test_cross_tenant_widget_session_count(): void
     {
         $cases = 0;

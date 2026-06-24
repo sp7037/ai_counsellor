@@ -25,8 +25,8 @@ new #[Layout('components.layouts.tenant')] class extends Component
     public function with(): array
     {
         return [
-            'keys' => WidgetKey::query()->latest()->get(),
-            'domains' => TenantDomain::query()->latest()->get(),
+            'keys' => $this->tenant->widgetKeys()->latest()->get(),
+            'domains' => $this->tenant->domains()->latest()->get(),
             'embedBase' => url('/build'),
             'gatewayBase' => url('/widget/v1'),
         ];
