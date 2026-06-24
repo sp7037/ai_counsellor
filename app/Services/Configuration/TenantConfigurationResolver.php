@@ -3,6 +3,7 @@
 namespace App\Services\Configuration;
 
 use App\Enums\Configuration\DayOfWeek;
+use App\Enums\Configuration\LauncherMode;
 use App\Enums\Configuration\WidgetPosition;
 use App\Models\Tenant;
 use App\Models\TenantSettings;
@@ -38,6 +39,7 @@ class TenantConfigurationResolver
                 'offline_form_enabled' => true,
                 'widget_position' => WidgetPosition::BottomRight->value,
                 'welcome_delay_seconds' => 0,
+                'launcher_mode' => LauncherMode::Circle->value,
             ],
         );
     }

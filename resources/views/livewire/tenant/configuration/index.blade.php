@@ -21,6 +21,7 @@ new #[Layout('components.layouts.tenant')] class extends Component {
 
 <div class="grid gap-4 md:grid-cols-2">
     <flux:button href="{{ route('tenant.configuration.branding', $tenant) }}" wire:navigate class="justify-start">Branding and logo</flux:button>
+    <flux:button href="{{ route('tenant.configuration.launcher', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Widget launcher</flux:button>
     <flux:button href="{{ route('tenant.configuration.assistant', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Assistant, languages and messages</flux:button>
     <flux:button href="{{ route('tenant.configuration.office-hours', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Office hours</flux:button>
     <flux:button href="{{ route('tenant.configuration.services', $tenant) }}" wire:navigate class="justify-start" variant="ghost">Services</flux:button>

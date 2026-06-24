@@ -40,6 +40,11 @@
         handoffRequestInFlight: false,
         teaserDismissed: false,
         teaserTimer: null,
+        cardTimer: null,
+        cardReshowTimer: null,
+        cardVisible: false,
+        visitorHasSentMessage: false,
+        launcherConfigured: false,
     };
 
     const HANDOFF_INTENT_PATTERNS = [
@@ -194,9 +199,37 @@
         #ac-widget-powered-by.visible { display: block; }
         #ac-widget-powered-by .ac-powered-chip { display: inline-flex; align-items: center; gap: 5px; padding: 0; background: transparent; }
         #ac-widget-powered-by img { width: 11px; height: 11px; object-fit: contain; border-radius: 3px; opacity: .8; }
+        #ac-widget-card { display: none; position: absolute; bottom: 0; right: 0; width: min(380px, calc(100vw - 32px)); border-radius: 18px; background: #ffffff; color: #0f172a; box-shadow: 0 16px 40px rgba(15, 23, 42, .18); overflow: hidden; border: 1px solid rgba(148, 163, 184, .25); padding-bottom: env(safe-area-inset-bottom, 0px); }
+        #ac-widget-card.visible { display: block; }
+        #ac-widget-card.ac-position-left { right: auto; left: 0; }
+        #ac-widget-card-close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: none; border-radius: 999px; background: rgba(15, 23, 42, .06); color: #475569; cursor: pointer; font-size: 18px; line-height: 1; z-index: 2; }
+        #ac-widget-card-close:hover { background: rgba(15, 23, 42, .12); color: #0f172a; }
+        #ac-widget-card-body { display: grid; grid-template-columns: 124px 1fr; gap: 14px; padding: 16px 16px 16px 14px; align-items: center; }
+        #ac-widget-card-image-wrap { width: 124px; height: 124px; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #eff6ff, #dbeafe); flex-shrink: 0; }
+        #ac-widget-card-image { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+        #ac-widget-card-image-fallback { width: 100%; height: 100%; display: none; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: ${primary}; background: #eff6ff; }
+        #ac-widget-card-copy { min-width: 0; display: grid; gap: 6px; padding-right: 18px; }
+        #ac-widget-card-title { font-size: 14px; font-weight: 700; line-height: 1.25; color: #0f172a; }
+        #ac-widget-card-subtitle { font-size: 12px; line-height: 1.4; color: #475569; }
+        #ac-widget-card-trust { font-size: 11px; line-height: 1.3; color: #64748b; }
+        #ac-widget-card-trust:empty { display: none; }
+        #ac-widget-card-cta { border: none; border-radius: 10px; background: ${primary}; color: #fff; padding: 9px 12px; font-size: 12px; font-weight: 600; cursor: pointer; width: fit-content; max-width: 100%; margin-top: 2px; }
+        #ac-widget-card-cta:hover { filter: brightness(1.05); }
+        #ac-widget-card.ac-animate-slide-up.visible { animation: ac-card-slide-up .45s ease-out; }
+        #ac-widget-card-cta.ac-animate-pulse { animation: ac-card-cta-pulse 2.4s ease-in-out infinite; }
+        #ac-widget-card.ac-animate-bounce-once.visible { animation: ac-card-bounce-once .7s ease-out; }
+        @keyframes ac-card-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes ac-card-cta-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 ${primary}33; } 50% { transform: scale(1.02); box-shadow: 0 0 0 6px ${primary}00; } }
+        @keyframes ac-card-bounce-once { 0% { transform: translateY(10px); opacity: 0; } 60% { transform: translateY(-3px); opacity: 1; } 100% { transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) {
+            #ac-widget-card, #ac-widget-card-cta { animation: none !important; transition: none !important; }
+        }
         @media (max-width: 640px) {
             #ac-widget-root { bottom: 12px; right: 12px; left: 12px; }
             #ac-widget-teaser { display: none; }
+            #ac-widget-card { width: calc(100vw - 24px); max-width: none; }
+            #ac-widget-card-body { grid-template-columns: 104px 1fr; gap: 12px; padding: 14px; }
+            #ac-widget-card-image-wrap { width: 104px; height: 104px; }
             #ac-widget-panel.open { width: 100%; max-width: 100%; height: min(72vh, 560px); }
             #ac-widget-panel.expanded.open { width: 100%; max-width: 100%; height: calc(100vh - 24px); margin-bottom: 8px; border-radius: 12px; }
         }
@@ -345,6 +378,258 @@
         }
     }
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function launcherMode() {
+        return state.config?.launcher?.mode || 'circle';
+    }
+
+    function cardConfig() {
+        return state.config?.launcher?.card || {};
+    }
+
+    function cardSnoozeDelayMs() {
+        const configured = Number(cardConfig().dismiss_reshow_seconds);
+        if (Number.isFinite(configured) && configured >= 3) {
+            return Math.min(10, configured) * 1000;
+        }
+
+        return 4000;
+    }
+
+    function clearLegacyCardDismissStorage() {
+        try {
+            localStorage.removeItem(`ac_widget_card_dismiss_${widgetKey}`);
+        } catch {
+            // Ignore storage failures.
+        }
+    }
+
+    function prefersReducedMotion() {
+        return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+    }
+
+    function shouldSuppressCardLauncher() {
+        return state.open
+            || state.visitorHasSentMessage
+            || launcherMode() !== 'card';
+    }
+
+    function hideCardLauncher() {
+        const card = document.getElementById('ac-widget-card');
+        if (card) {
+            card.classList.remove('visible');
+        }
+        state.cardVisible = false;
+        if (state.cardTimer) {
+            clearTimeout(state.cardTimer);
+            state.cardTimer = null;
+        }
+    }
+
+    function dismissCardLauncher() {
+        hideCardLauncher();
+
+        if (state.cardReshowTimer) {
+            clearTimeout(state.cardReshowTimer);
+        }
+
+        state.cardReshowTimer = setTimeout(() => {
+            state.cardReshowTimer = null;
+            showCardLauncher();
+        }, cardSnoozeDelayMs());
+    }
+
+    function applyCardLauncherContent() {
+        const card = document.getElementById('ac-widget-card');
+        const image = document.getElementById('ac-widget-card-image');
+        const fallback = document.getElementById('ac-widget-card-image-fallback');
+        const title = document.getElementById('ac-widget-card-title');
+        const subtitle = document.getElementById('ac-widget-card-subtitle');
+        const trust = document.getElementById('ac-widget-card-trust');
+        const cta = document.getElementById('ac-widget-card-cta');
+        const config = cardConfig();
+
+        if (!card || !title || !subtitle || !trust || !cta || !image || !fallback) {
+            return;
+        }
+
+        title.textContent = config.title || 'Need help?';
+        subtitle.textContent = config.subtitle || 'Ask our AI counsellor anything.';
+        trust.textContent = config.trust_text || '';
+        cta.textContent = config.cta_text || 'Start chat';
+
+        const candidates = [];
+        if (typeof config.image_url === 'string' && config.image_url.trim() !== '') {
+            candidates.push(config.image_url.trim());
+        }
+        if (state.config?.branding?.logo_url) {
+            candidates.push(state.config.branding.logo_url);
+        }
+        if (typeof state.config?.launcher?.logo_url === 'string' && state.config.launcher.logo_url.trim() !== '') {
+            candidates.push(state.config.launcher.logo_url.trim());
+        }
+
+        fallback.textContent = assistantInitials() || 'AI';
+        let index = 0;
+        const showFallback = () => {
+            image.onload = null;
+            image.onerror = null;
+            image.removeAttribute('src');
+            image.style.display = 'none';
+            fallback.style.display = 'flex';
+        };
+        const tryNext = () => {
+            if (index >= candidates.length) {
+                showFallback();
+
+                return;
+            }
+            const url = candidates[index];
+            index += 1;
+            image.onload = () => {
+                image.style.display = 'block';
+                fallback.style.display = 'none';
+            };
+            image.onerror = () => tryNext();
+            image.src = url;
+            image.alt = `${assistantLabel()} counsellor`;
+        };
+
+        if (candidates.length === 0) {
+            showFallback();
+        } else {
+            tryNext();
+        }
+
+        card.classList.remove('ac-animate-slide-up', 'ac-animate-bounce-once');
+        cta.classList.remove('ac-animate-pulse');
+        if (!prefersReducedMotion()) {
+            const animation = config.animation || 'soft_slide_up';
+            if (animation === 'soft_slide_up' || animation === 'gentle_pulse') {
+                card.classList.add('ac-animate-slide-up');
+            }
+            if (animation === 'soft_bounce_once') {
+                card.classList.add('ac-animate-bounce-once');
+            }
+            if (animation === 'gentle_pulse' || animation === 'soft_slide_up') {
+                cta.classList.add('ac-animate-pulse');
+            }
+        }
+
+        if (state.config?.branding?.widget_position === 'bottom_left') {
+            card.classList.add('ac-position-left');
+        } else {
+            card.classList.remove('ac-position-left');
+        }
+    }
+
+    function showCardLauncher() {
+        if (shouldSuppressCardLauncher()) {
+            return;
+        }
+
+        const card = document.getElementById('ac-widget-card');
+        if (!card) {
+            return;
+        }
+
+        applyCardLauncherContent();
+        card.classList.add('visible');
+        state.cardVisible = true;
+    }
+
+    function scheduleCardLauncher() {
+        if (state.cardTimer) {
+            clearTimeout(state.cardTimer);
+            state.cardTimer = null;
+        }
+
+        if (shouldSuppressCardLauncher()) {
+            hideCardLauncher();
+
+            return;
+        }
+
+        const delayMs = Math.max(0, Number(cardConfig().delay_seconds ?? 5)) * 1000;
+        state.cardTimer = setTimeout(showCardLauncher, delayMs);
+    }
+
+    function applyLauncherVisibility() {
+        const mode = launcherMode();
+        const toggle = document.getElementById('ac-widget-toggle');
+        const teaser = document.getElementById('ac-widget-teaser');
+        const card = document.getElementById('ac-widget-card');
+
+        if (toggle) {
+            toggle.style.display = mode === 'circle' ? '' : 'none';
+        }
+        if (teaser) {
+            teaser.style.display = mode === 'circle' ? '' : 'none';
+        }
+        if (card) {
+            card.style.display = mode === 'card' ? '' : 'none';
+        }
+
+        if (mode === 'disabled') {
+            if (toggle) {
+                toggle.style.display = 'none';
+            }
+            if (teaser) {
+                teaser.style.display = 'none';
+            }
+            hideCardLauncher();
+            if (card) {
+                card.style.display = 'none';
+            }
+
+            return;
+        }
+
+        if (mode === 'circle') {
+            hideCardLauncher();
+            setTimeout(() => {
+                if (!state.open && !state.teaserDismissed && launcherMode() === 'circle') {
+                    showTeaser(7000);
+                }
+            }, 1200);
+        } else if (mode === 'card') {
+            hideTeaser();
+            applyCardLauncherContent();
+            if (state.cardVisible) {
+                showCardLauncher();
+            } else {
+                scheduleCardLauncher();
+            }
+        }
+    }
+
+    async function openWidgetPanel() {
+        const panel = document.getElementById('ac-widget-panel');
+        if (!panel || state.open) {
+            return;
+        }
+
+        state.open = true;
+        state.teaserDismissed = true;
+        hideTeaser();
+        hideCardLauncher();
+        panel.classList.add('open');
+
+        const ready = await ensureSession();
+        if (ready) {
+            setSendingState(false);
+            scrollToBottom(true);
+        }
+    }
+
     function applyBranding(config) {
         const branding = config?.branding || {};
         const title = document.getElementById('ac-widget-title');
@@ -380,6 +665,7 @@
         }
         applyLauncher();
         applyTeaserText();
+        applyLauncherVisibility();
         if (root && branding.widget_position === 'bottom_left') {
             root.style.left = '20px';
             root.style.right = 'auto';
@@ -940,6 +1226,8 @@
                 { uuid: data.visitor_message.uuid, role: 'visitor', body: data.visitor_message.body },
             );
             state.visitorMessageCount += 1;
+            state.visitorHasSentMessage = true;
+            hideCardLauncher();
 
             if (typeof data.handoff_prominent === 'boolean') {
                 state.handoffProminent = data.handoff_prominent;
@@ -1149,10 +1437,36 @@
         teaser.setAttribute('role', 'status');
         teaser.textContent = 'Ask AI Counsellor';
 
+        const card = document.createElement('div');
+        card.id = 'ac-widget-card';
+        card.setAttribute('role', 'dialog');
+        card.setAttribute('aria-label', 'Counsellor invitation');
+        card.innerHTML = `
+            <button id="ac-widget-card-close" type="button" aria-label="Dismiss invitation">&times;</button>
+            <div id="ac-widget-card-body">
+                <div id="ac-widget-card-image-wrap">
+                    <img id="ac-widget-card-image" alt="" />
+                    <div id="ac-widget-card-image-fallback" aria-hidden="true"></div>
+                </div>
+                <div id="ac-widget-card-copy">
+                    <div id="ac-widget-card-title"></div>
+                    <div id="ac-widget-card-subtitle"></div>
+                    <div id="ac-widget-card-trust"></div>
+                    <button id="ac-widget-card-cta" type="button"></button>
+                </div>
+            </div>
+        `;
+
         root.appendChild(teaser);
         root.appendChild(panel);
+        root.appendChild(card);
         root.appendChild(toggle);
         document.body.appendChild(root);
+
+        clearLegacyCardDismissStorage();
+        toggle.style.display = 'none';
+        teaser.style.display = 'none';
+        card.style.display = 'none';
 
         injectStyles(null);
         bindHandoffActions();
@@ -1161,13 +1475,27 @@
         });
 
         // Subtle teaser: reveal shortly after load, auto-hide, and reappear only on hover/focus.
-        toggle.addEventListener('mouseenter', () => showTeaser(4000));
-        toggle.addEventListener('focus', () => showTeaser(4000));
-        setTimeout(() => {
-            if (!state.open && !state.teaserDismissed) {
-                showTeaser(7000);
+        toggle.addEventListener('mouseenter', () => {
+            if (launcherMode() === 'circle') {
+                showTeaser(4000);
             }
-        }, 1200);
+        });
+        toggle.addEventListener('focus', () => {
+            if (launcherMode() === 'circle') {
+                showTeaser(4000);
+            }
+        });
+
+        document.getElementById('ac-widget-card-close')?.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            dismissCardLauncher();
+        });
+        document.getElementById('ac-widget-card-cta')?.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            await openWidgetPanel();
+        });
 
         const messagesEl = messagesContainer();
         messagesEl?.addEventListener('scroll', () => {
@@ -1189,6 +1517,9 @@
         document.getElementById('ac-widget-minimize')?.addEventListener('click', () => {
             state.open = false;
             panel.classList.remove('open');
+            if (launcherMode() === 'card' && !state.visitorHasSentMessage) {
+                showCardLauncher();
+            }
         });
 
         document.getElementById('ac-widget-new-chat')?.addEventListener('click', async () => {
@@ -1196,18 +1527,14 @@
         });
 
         toggle.addEventListener('click', async () => {
-            state.open = !state.open;
-            panel.classList.toggle('open', state.open);
-
             if (state.open) {
-                state.teaserDismissed = true;
-                hideTeaser();
-                const ready = await ensureSession();
-                if (ready) {
-                    setSendingState(false);
-                    scrollToBottom(true);
-                }
+                state.open = false;
+                panel.classList.remove('open');
+
+                return;
             }
+
+            await openWidgetPanel();
         });
 
         panel.querySelector('#ac-widget-form').addEventListener('submit', async (event) => {

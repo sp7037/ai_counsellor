@@ -2,6 +2,8 @@
 
 namespace App\Services\Configuration;
 
+use App\Enums\Configuration\LauncherAnimation;
+use App\Enums\Configuration\LauncherMode;
 use App\Enums\Configuration\CatalogueStatus;
 use App\Models\Course;
 use App\Models\Institution;
@@ -87,10 +89,47 @@ class WidgetPublicConfigService
         $poweredByLabel = (string) ($platformSettings['widget_powered_by_label'] ?? config('widget.powered_by.label', 'Powered by SR Worlds AI'));
         $poweredByLogoUrl = (string) ($platformSettings['widget_powered_by_logo_url'] ?? '');
 
-        // Platform-controlled launcher logo: Super Admin URL, else bundled platform logo. The
-        // widget frontend falls back to tenant logo/initials if this URL is empty or fails to load.
         $launcherLogoUrl = trim((string) ($platformSettings['widget_launcher_logo_url'] ?? config('widget.launcher.logo_url', '')));
         $launcherFromPlatform = $launcherLogoUrl !== '';
+        $tenantHeaderLogoUrl = $settings->logo_path ? Storage::disk('public')->url($settings->logo_path) : null;
+        $cardImageUrl = $this->resolveLauncherCardImageUrl(
+            $widgetSettings,
+            $tenantHeaderLogoUrl,
+            $launcherFromPlatform ? $launcherLogoUrl : asset(Branding::logoPath()),
+        );
+
+        $cardDefaults = (array) config('widget.launcher_card', []);
+        $card = [
+            'image_url' => $cardImageUrl,
+            'title' => $this->resolveLauncherCardField(
+                $widgetSettings->launcher_card_title,
+                $platformSettings['widget_launcher_card_title'] ?? null,
+                (string) ($cardDefaults['title'] ?? 'Need help?'),
+            ),
+            'subtitle' => $this->resolveLauncherCardField(
+                $widgetSettings->launcher_card_subtitle,
+                $platformSettings['widget_launcher_card_subtitle'] ?? null,
+                (string) ($cardDefaults['subtitle'] ?? 'Ask our AI counsellor anything.'),
+            ),
+            'cta_text' => $this->resolveLauncherCardField(
+                $widgetSettings->launcher_card_cta_text,
+                $platformSettings['widget_launcher_card_cta_text'] ?? null,
+                (string) ($cardDefaults['cta_text'] ?? 'Start chat'),
+            ),
+            'trust_text' => $this->resolveLauncherCardField(
+                $widgetSettings->launcher_card_trust_text,
+                $platformSettings['widget_launcher_card_trust_text'] ?? null,
+                (string) ($cardDefaults['trust_text'] ?? ''),
+            ),
+            'delay_seconds' => $widgetSettings->launcher_card_delay_seconds
+                ?? ($platformSettings['widget_launcher_card_delay_seconds'] ?? null)
+                ?? (int) ($cardDefaults['delay_seconds'] ?? 5),
+            'dismiss_reshow_seconds' => $this->resolveCardSnoozeSeconds($widgetSettings, $platformSettings, $cardDefaults),
+            'dismiss_hours' => $widgetSettings->launcher_card_dismiss_hours
+                ?? ($platformSettings['widget_launcher_card_dismiss_hours'] ?? null)
+                ?? (int) ($cardDefaults['dismiss_hours'] ?? 24),
+            'animation' => $this->resolveLauncherCardAnimation($widgetSettings, $platformSettings, $cardDefaults),
+        ];
 
         return [
             'branding' => [
@@ -99,7 +138,7 @@ class WidgetPublicConfigService
                 'assistant_title' => $settings->assistant_title,
                 'primary_color' => $settings->primary_color,
                 'accent_color' => $settings->accent_color,
-                'logo_url' => $settings->logo_path ? Storage::disk('public')->url($settings->logo_path) : null,
+                'logo_url' => $tenantHeaderLogoUrl,
                 'widget_position' => $widgetSettings->widget_position?->value ?? 'bottom_right',
             ],
             'powered_by' => [
@@ -108,11 +147,73 @@ class WidgetPublicConfigService
                 'logo_url' => $poweredByLogoUrl !== '' ? $poweredByLogoUrl : asset(Branding::logoPath()),
             ],
             'launcher' => [
+                'mode' => $widgetSettings->launcher_mode?->value ?? LauncherMode::Circle->value,
                 'logo_url' => $launcherFromPlatform ? $launcherLogoUrl : asset(Branding::logoPath()),
                 'source' => 'platform',
                 'teaser_text' => (string) ($platformSettings['widget_launcher_teaser_text'] ?? config('widget.launcher.teaser_text', 'Ask AI Counsellor')),
+                'card' => $card,
             ],
         ];
+    }
+
+    private function resolveLauncherCardField(?string $tenantValue, mixed $platformValue, string $fallback): string
+    {
+        if ($tenantValue !== null && trim($tenantValue) !== '') {
+            return trim($tenantValue);
+        }
+
+        if (is_string($platformValue) && trim($platformValue) !== '') {
+            return trim($platformValue);
+        }
+
+        return $fallback;
+    }
+
+    private function resolveLauncherCardAnimation($widgetSettings, $platformSettings, array $defaults): string
+    {
+        $tenantAnimation = $widgetSettings->launcher_card_animation?->value;
+        if ($tenantAnimation !== null) {
+            return $tenantAnimation;
+        }
+
+        $platformAnimation = $platformSettings['widget_launcher_card_animation'] ?? null;
+        if (is_string($platformAnimation) && $platformAnimation !== '') {
+            return $platformAnimation;
+        }
+
+        return (string) ($defaults['animation'] ?? LauncherAnimation::SoftSlideUp->value);
+    }
+
+    private function resolveLauncherCardImageUrl($widgetSettings, ?string $tenantHeaderLogoUrl, string $platformLauncherLogoUrl): ?string
+    {
+        if ($widgetSettings->launcher_card_image_path) {
+            return Storage::disk('public')->url($widgetSettings->launcher_card_image_path);
+        }
+
+        if ($tenantHeaderLogoUrl) {
+            return $tenantHeaderLogoUrl;
+        }
+
+        return $platformLauncherLogoUrl !== '' ? $platformLauncherLogoUrl : null;
+    }
+
+    private function resolveCardSnoozeSeconds($widgetSettings, $platformSettings, array $defaults): int
+    {
+        foreach ([
+            $widgetSettings->launcher_card_dismiss_hours,
+            $platformSettings['widget_launcher_card_dismiss_hours'] ?? null,
+        ] as $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $seconds = (int) $value;
+            if ($seconds >= 3 && $seconds <= 10) {
+                return $seconds;
+            }
+        }
+
+        return max(3, min(10, (int) ($defaults['dismiss_reshow_seconds'] ?? 4)));
     }
 
     private function mapCatalogue($items): array

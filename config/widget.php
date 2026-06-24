@@ -41,6 +41,17 @@ return [
         'teaser_text' => env('WIDGET_LAUNCHER_TEASER_TEXT', 'Ask AI Counsellor'),
     ],
 
+    'launcher_card' => [
+        'title' => env('WIDGET_LAUNCHER_CARD_TITLE', 'Need help choosing MBBS abroad?'),
+        'subtitle' => env('WIDGET_LAUNCHER_CARD_SUBTITLE', 'Ask your free admission counsellor about fees, eligibility, documents and country options.'),
+        'cta_text' => env('WIDGET_LAUNCHER_CARD_CTA', 'Start free counselling'),
+        'trust_text' => env('WIDGET_LAUNCHER_CARD_TRUST', 'Free guidance • No obligation'),
+        'delay_seconds' => max(0, min(30, (int) env('WIDGET_LAUNCHER_CARD_DELAY', 5))),
+        'dismiss_reshow_seconds' => max(3, min(10, (int) env('WIDGET_LAUNCHER_CARD_SNOOZE_SECONDS', 4))),
+        'dismiss_hours' => max(1, min(168, (int) env('WIDGET_LAUNCHER_CARD_DISMISS_HOURS', 24))),
+        'animation' => env('WIDGET_LAUNCHER_CARD_ANIMATION', 'soft_slide_up'),
+    ],
+
     'default_welcome_message' => 'Hello! I am your AI counsellor. Ask me about services, admission, eligibility, fees, documents, or counselling support.',
 
 ];

@@ -34,6 +34,14 @@ class PlatformSettingsService
             'widget_powered_by_label' => (string) ($settings['widget_powered_by_label'] ?? config('widget.powered_by.label', 'Powered by SR Worlds AI')),
             'widget_powered_by_logo_url' => (string) ($settings['widget_powered_by_logo_url'] ?? ''),
             'widget_launcher_logo_url' => (string) ($settings['widget_launcher_logo_url'] ?? config('widget.launcher.logo_url', '')),
+            'widget_launcher_teaser_text' => (string) ($settings['widget_launcher_teaser_text'] ?? config('widget.launcher.teaser_text', 'Ask AI Counsellor')),
+            'widget_launcher_card_title' => (string) ($settings['widget_launcher_card_title'] ?? config('widget.launcher_card.title', '')),
+            'widget_launcher_card_subtitle' => (string) ($settings['widget_launcher_card_subtitle'] ?? config('widget.launcher_card.subtitle', '')),
+            'widget_launcher_card_cta_text' => (string) ($settings['widget_launcher_card_cta_text'] ?? config('widget.launcher_card.cta_text', '')),
+            'widget_launcher_card_trust_text' => (string) ($settings['widget_launcher_card_trust_text'] ?? config('widget.launcher_card.trust_text', '')),
+            'widget_launcher_card_delay_seconds' => (int) ($settings['widget_launcher_card_delay_seconds'] ?? config('widget.launcher_card.delay_seconds', 5)),
+            'widget_launcher_card_dismiss_hours' => (int) ($settings['widget_launcher_card_dismiss_hours'] ?? config('widget.launcher_card.dismiss_reshow_seconds', 4)),
+            'widget_launcher_card_animation' => (string) ($settings['widget_launcher_card_animation'] ?? config('widget.launcher_card.animation', 'soft_slide_up')),
             'platform_credential_configured' => $this->platformCredentialConfigured(),
             'openai_credential_configured' => $this->credentialResolver->isConfigured('openai'),
             'deepseek_credential_configured' => $this->credentialResolver->isConfigured('deepseek'),
@@ -54,6 +62,14 @@ class PlatformSettingsService
             $this->upsert('widget_powered_by_label', (string) ($input['widget_powered_by_label'] ?? config('widget.powered_by.label', 'Powered by SR Worlds AI')), $actor);
             $this->upsert('widget_powered_by_logo_url', (string) ($input['widget_powered_by_logo_url'] ?? ''), $actor);
             $this->upsert('widget_launcher_logo_url', (string) ($input['widget_launcher_logo_url'] ?? ''), $actor);
+            $this->upsert('widget_launcher_teaser_text', (string) ($input['widget_launcher_teaser_text'] ?? config('widget.launcher.teaser_text', 'Ask AI Counsellor')), $actor);
+            $this->upsert('widget_launcher_card_title', (string) ($input['widget_launcher_card_title'] ?? ''), $actor);
+            $this->upsert('widget_launcher_card_subtitle', (string) ($input['widget_launcher_card_subtitle'] ?? ''), $actor);
+            $this->upsert('widget_launcher_card_cta_text', (string) ($input['widget_launcher_card_cta_text'] ?? ''), $actor);
+            $this->upsert('widget_launcher_card_trust_text', (string) ($input['widget_launcher_card_trust_text'] ?? ''), $actor);
+            $this->upsert('widget_launcher_card_delay_seconds', max(0, min(30, (int) ($input['widget_launcher_card_delay_seconds'] ?? config('widget.launcher_card.delay_seconds', 5)))), $actor);
+            $this->upsert('widget_launcher_card_dismiss_hours', max(3, min(10, (int) ($input['widget_launcher_card_dismiss_hours'] ?? config('widget.launcher_card.dismiss_reshow_seconds', 4)))), $actor);
+            $this->upsert('widget_launcher_card_animation', (string) ($input['widget_launcher_card_animation'] ?? config('widget.launcher_card.animation', 'soft_slide_up')), $actor);
 
             $this->storeProviderApiKey($input, 'platform_api_key', 'platform_openai_api_key', $actor);
             $this->storeProviderApiKey($input, 'platform_deepseek_api_key', 'platform_deepseek_api_key', $actor);

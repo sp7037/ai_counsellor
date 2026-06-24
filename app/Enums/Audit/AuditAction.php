@@ -28,6 +28,9 @@ enum AuditAction: string
     case BrandingUpdated = 'branding.updated';
     case LogoUpdated = 'logo.updated';
     case LogoRemoved = 'logo.removed';
+    case LauncherCardUpdated = 'launcher_card.updated';
+    case LauncherCardImageUpdated = 'launcher_card.image_updated';
+    case LauncherCardImageRemoved = 'launcher_card.image_removed';
     case OfficeHoursUpdated = 'office_hours.updated';
     case ServiceCreated = 'service.created';
     case ServiceUpdated = 'service.updated';
@@ -148,6 +151,9 @@ enum AuditAction: string
             self::BrandingUpdated => 'Branding updated',
             self::LogoUpdated => 'Logo updated',
             self::LogoRemoved => 'Logo removed',
+            self::LauncherCardUpdated => 'Widget launcher card updated',
+            self::LauncherCardImageUpdated => 'Widget launcher card image updated',
+            self::LauncherCardImageRemoved => 'Widget launcher card image removed',
             self::OfficeHoursUpdated => 'Office hours updated',
             self::ServiceCreated => 'Service created',
             self::ServiceUpdated => 'Service updated',

@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::prefix('configuration')->name('configuration.')->group(function () {
                     Volt::route('/', 'tenant.configuration.index')->name('index');
                     Volt::route('branding', 'tenant.configuration.branding')->name('branding');
+                    Volt::route('launcher', 'tenant.configuration.launcher')->name('launcher');
                     Volt::route('assistant', 'tenant.configuration.assistant')->name('assistant');
                     Volt::route('office-hours', 'tenant.configuration.office-hours')->name('office-hours');
                     Volt::route('services', 'tenant.configuration.services')->name('services');

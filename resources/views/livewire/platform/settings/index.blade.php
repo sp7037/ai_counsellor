@@ -20,6 +20,22 @@ new #[Layout('components.layouts.platform')] class extends Component {
 
     public string $widget_launcher_logo_url = '';
 
+    public string $widget_launcher_teaser_text = '';
+
+    public string $widget_launcher_card_title = '';
+
+    public string $widget_launcher_card_subtitle = '';
+
+    public string $widget_launcher_card_cta_text = '';
+
+    public string $widget_launcher_card_trust_text = '';
+
+    public int $widget_launcher_card_delay_seconds = 5;
+
+    public int $widget_launcher_card_dismiss_hours = 4;
+
+    public string $widget_launcher_card_animation = 'soft_slide_up';
+
     public string $platform_api_key = '';
 
     public string $platform_deepseek_api_key = '';
@@ -56,6 +72,14 @@ new #[Layout('components.layouts.platform')] class extends Component {
         $this->widget_powered_by_label = (string) ($current['widget_powered_by_label'] ?? 'Powered by SR Worlds AI');
         $this->widget_powered_by_logo_url = (string) ($current['widget_powered_by_logo_url'] ?? '');
         $this->widget_launcher_logo_url = (string) ($current['widget_launcher_logo_url'] ?? '');
+        $this->widget_launcher_teaser_text = (string) ($current['widget_launcher_teaser_text'] ?? '');
+        $this->widget_launcher_card_title = (string) ($current['widget_launcher_card_title'] ?? '');
+        $this->widget_launcher_card_subtitle = (string) ($current['widget_launcher_card_subtitle'] ?? '');
+        $this->widget_launcher_card_cta_text = (string) ($current['widget_launcher_card_cta_text'] ?? '');
+        $this->widget_launcher_card_trust_text = (string) ($current['widget_launcher_card_trust_text'] ?? '');
+        $this->widget_launcher_card_delay_seconds = (int) ($current['widget_launcher_card_delay_seconds'] ?? 5);
+        $this->widget_launcher_card_dismiss_hours = (int) ($current['widget_launcher_card_dismiss_hours'] ?? config('widget.launcher_card.dismiss_reshow_seconds', 4));
+        $this->widget_launcher_card_animation = (string) ($current['widget_launcher_card_animation'] ?? 'soft_slide_up');
         $this->platform_credential_configured = (bool) $current['platform_credential_configured'];
         $this->openai_credential_configured = (bool) ($current['openai_credential_configured'] ?? false);
         $this->deepseek_credential_configured = (bool) ($current['deepseek_credential_configured'] ?? false);
@@ -78,6 +102,14 @@ new #[Layout('components.layouts.platform')] class extends Component {
             'widget_powered_by_label' => ['nullable', 'string', 'max:120'],
             'widget_powered_by_logo_url' => ['nullable', 'url', 'max:2048'],
             'widget_launcher_logo_url' => ['nullable', 'url', 'max:2048'],
+            'widget_launcher_teaser_text' => ['nullable', 'string', 'max:120'],
+            'widget_launcher_card_title' => ['nullable', 'string', 'max:120'],
+            'widget_launcher_card_subtitle' => ['nullable', 'string', 'max:280'],
+            'widget_launcher_card_cta_text' => ['nullable', 'string', 'max:60'],
+            'widget_launcher_card_trust_text' => ['nullable', 'string', 'max:80'],
+            'widget_launcher_card_delay_seconds' => ['required', 'integer', 'min:0', 'max:30'],
+            'widget_launcher_card_dismiss_hours' => ['required', 'integer', 'min:3', 'max:10'],
+            'widget_launcher_card_animation' => ['required', 'string', 'in:none,soft_slide_up,gentle_pulse,soft_bounce_once'],
             'platform_api_key' => ['nullable', 'string', 'max:500'],
             'platform_deepseek_api_key' => ['nullable', 'string', 'max:500'],
             'payment_environment' => ['required', 'in:test,live'],
@@ -95,6 +127,14 @@ new #[Layout('components.layouts.platform')] class extends Component {
             'widget_powered_by_label' => $this->widget_powered_by_label ?: null,
             'widget_powered_by_logo_url' => $this->widget_powered_by_logo_url ?: null,
             'widget_launcher_logo_url' => $this->widget_launcher_logo_url ?: null,
+            'widget_launcher_teaser_text' => $this->widget_launcher_teaser_text ?: null,
+            'widget_launcher_card_title' => $this->widget_launcher_card_title ?: null,
+            'widget_launcher_card_subtitle' => $this->widget_launcher_card_subtitle ?: null,
+            'widget_launcher_card_cta_text' => $this->widget_launcher_card_cta_text ?: null,
+            'widget_launcher_card_trust_text' => $this->widget_launcher_card_trust_text ?: null,
+            'widget_launcher_card_delay_seconds' => $this->widget_launcher_card_delay_seconds,
+            'widget_launcher_card_dismiss_hours' => $this->widget_launcher_card_dismiss_hours,
+            'widget_launcher_card_animation' => $this->widget_launcher_card_animation,
             'platform_api_key' => $this->platform_api_key,
             'platform_deepseek_api_key' => $this->platform_deepseek_api_key,
         ], auth()->user());
@@ -142,9 +182,28 @@ new #[Layout('components.layouts.platform')] class extends Component {
             <flux:checkbox wire:model="widget_powered_by_enabled" class="mt-2" label="Show powered-by chip in widget footer" />
             <flux:input wire:model="widget_powered_by_label" class="mt-3" label="Powered-by label" placeholder="Powered by SR Worlds AI" />
             <flux:input wire:model="widget_powered_by_logo_url" class="mt-3" label="Powered-by logo URL (optional)" placeholder="https://example.com/logo.png" />
-            <flux:input wire:model="widget_launcher_logo_url" class="mt-3" label="Launcher logo URL (floating chat button)" placeholder="https://example.com/launcher-logo.png" />
-            <flux:text class="mt-1 text-xs text-zinc-500">Shown on the floating chat button. Leave blank to use the bundled platform logo; the widget falls back to the tenant logo or initials if unavailable.</flux:text>
+            <flux:input wire:model="widget_launcher_logo_url" class="mt-3" label="Launcher logo URL (circle button fallback)" placeholder="https://example.com/launcher-logo.png" />
+            <flux:text class="mt-1 text-xs text-zinc-500">Used for the circle launcher and as a card image fallback when a tenant has no card image.</flux:text>
+            <flux:input wire:model="widget_launcher_teaser_text" class="mt-3" label="Circle launcher teaser text" placeholder="Ask AI Counsellor" />
         </div>
+
+        <div class="rounded border border-zinc-800 p-4 text-sm">
+            <flux:heading size="sm">Card launcher defaults</flux:heading>
+            <flux:text class="mt-1 text-xs text-zinc-500">Tenants can override these in Configuration → Widget launcher. Empty tenant fields inherit these defaults.</flux:text>
+            <flux:input wire:model="widget_launcher_card_title" class="mt-3" label="Default card title" />
+            <flux:textarea wire:model="widget_launcher_card_subtitle" class="mt-3" label="Default card subtitle" rows="2" />
+            <flux:input wire:model="widget_launcher_card_cta_text" class="mt-3" label="Default CTA text" />
+            <flux:input wire:model="widget_launcher_card_trust_text" class="mt-3" label="Default trust line" />
+            <div class="mt-3 grid gap-3 md:grid-cols-2">
+                <flux:input wire:model="widget_launcher_card_delay_seconds" type="number" min="0" max="30" label="Default auto-show delay (seconds)" />
+                <flux:input wire:model="widget_launcher_card_dismiss_hours" type="number" min="3" max="10" label="Default hide after close (seconds)" />
+            </div>
+            <flux:select wire:model="widget_launcher_card_animation" class="mt-3" label="Default animation">
+                <option value="none">None</option>
+                <option value="soft_slide_up">Soft slide-up</option>
+                <option value="gentle_pulse">Gentle pulse</option>
+                <option value="soft_bounce_once">Soft bounce once</option>
+            </flux:select>
 
         <div class="rounded border border-zinc-800 p-4 text-sm">
             <p class="text-zinc-400">Platform OpenAI credential: {{ $openai_credential_configured ? 'Configured (value not shown)' : 'Not configured' }}</p>
